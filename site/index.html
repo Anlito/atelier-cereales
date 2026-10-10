@@ -6,6 +6,7 @@
 <title>Atelier du distributeur de céréales</title>
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/atelier.css">
+<link rel="stylesheet" href="css/carnet.css">
 </head>
 <body>
 <div class="ecran-accueil" hidden>
@@ -75,6 +76,23 @@
       </div>
     </section>
   </div>
+</div>
+
+<div class="ecran-carnet" hidden>
+  <header class="carnet-entete">
+    <img src="img/favicon.svg" alt="" width="40" height="40">
+    <div class="carnet-titre">
+      <h1>Projet distributeur de céréales</h1>
+      <span class="carnet-equipe"></span>
+    </div>
+    <span class="etat-enregistrement" aria-live="polite"></span>
+    <button type="button" class="btn-aide btn-enregistrer"><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
+    <button type="button" class="btn-aide btn-imprimer-carnet"><span data-icone="imprimante" data-epaisseur="2.4"></span>Imprimer</button>
+  </header>
+  <div class="carnet-avancement" aria-label="Avancement"></div>
+  <nav class="carnet-onglets" role="tablist" aria-label="Parties du carnet"></nav>
+  <p class="impression-entete"></p>
+  <main class="carnet-contenu"></main>
 </div>
 
 <div class="ecran-exercice" hidden>
@@ -171,7 +189,6 @@
   </footer>
 
   <div class="panneau-verification" role="status" hidden></div>
-  <div class="message-bref" role="status" hidden></div>
 
   <dialog class="dialogue-lexique" aria-label="Lexique">
     <div class="dialogue-entete">
@@ -196,6 +213,8 @@
   </dialog>
 </div>
 
+<div class="message-bref" role="status" hidden></div>
+
 <!-- Bibliothèques (copiées dans le dépôt : aucun CDN) -->
 <script src="vendor/blockly/blockly_compressed.js"></script>
 <script src="vendor/blockly/fr.js"></script>
@@ -204,6 +223,7 @@
 <script src="js/moteur/simulation.js"></script>
 <script src="js/moteur/validation.js"></script>
 <script src="js/moteur/catalogue.js"></script>
+<script src="js/moteur/carnet.js"></script>
 <script src="js/moteur/progression.js"></script>
 <!-- Données modifiables par le professeur -->
 <script src="exercices/parametres.js"></script>
@@ -224,6 +244,7 @@
 <script src="donnees/lexique.js"></script>
 <script src="donnees/classes.js"></script>
 <script src="donnees/fiches.js"></script>
+<script src="donnees/carnet.js"></script>
 <!-- Interface -->
 <script src="js/icones.js"></script>
 <script src="js/blocs.js"></script>
@@ -233,6 +254,8 @@
 <script src="js/ecran-exercice.js"></script>
 <script src="js/fichiers.js"></script>
 <script src="js/accueil.js"></script>
+<script src="js/session.js"></script>
+<script src="js/carnet-ecran.js"></script>
 <script>
   Atelier.ajusterEchelle();
   addEventListener('resize', Atelier.ajusterEchelle);
@@ -244,17 +267,22 @@
         var r = JSON.parse(localStorage.getItem('atelier-cereales-revue'));
         if (r && r.donnees) {
           document.title = 'Lecture · ' + r.donnees.equipe.eleves.join(', ');
-          return Atelier.demarrerEcranExercice({ donnees: r.donnees, handle: null, lecture: true, exercice: r.exercice, programme: r.programme });
+          document.querySelector('.ecran-exercice').hidden = false;
+          return Atelier.demarrerEcranExercice(Atelier.creerSession({ donnees: r.donnees, lecture: true }), { exercice: r.exercice, programme: r.programme });
         }
       } catch (e) { /* on ouvre l'accueil */ }
     }
     // Mode enseignant : pas d'accueil, une équipe fictive, rien n'est enregistré.
     if (q.has('enseignant')) {
-      return Atelier.demarrerEcranExercice({
-        donnees: Atelier.creerProgression({ eleves: ['Mode enseignant'], classe: '' }), handle: null, lecture: true,
-      });
+      document.querySelector('.ecran-exercice').hidden = false;
+      return Atelier.demarrerEcranExercice(
+        Atelier.creerSession({ donnees: Atelier.creerProgression({ eleves: ['Mode enseignant'], classe: '' }), lecture: true }),
+      );
     }
-    Atelier.demarrerAccueil(Atelier.demarrerEcranExercice);
+    // Élèves : créer ou ouvrir le projet de l'équipe, puis le carnet de projet.
+    Atelier.demarrerAccueil(function (r) {
+      Atelier.demarrerProjet(Atelier.creerSession(r));
+    });
   })();
 </script>
 </body>

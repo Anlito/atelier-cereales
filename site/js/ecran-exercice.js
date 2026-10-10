@@ -81,11 +81,11 @@
     }
   }
 
-  // session : { donnees (progression de l'équipe), handle (fichier de l'équipe, ou null),
-  //             lecture (mode enseignant : rien n'est enregistré), exercice, programme (à ouvrir) }
-  function demarrer(session) {
+  // session : créée par A.creerSession (donnees, handle, lecture, aEnregistrer…).
+  // options : { exercice, programme } à ouvrir au démarrage.
+  function demarrer(session, options) {
+    const opts = options || {};
     poserIcones($('.ecran-exercice'));
-    $('.ecran-exercice').hidden = false;
 
     const exercices = A.catalogue.exercices();
     const lexique = A.lexique || [];
@@ -96,11 +96,8 @@
       sim: null,
       servos: {}, // position affichée de chaque servo
       rejeu: null,
-      donnees: session.donnees,
-      handle: session.handle,
-      nonEnregistre: false, // modifications pas encore écrites dans le fichier
     };
-    const D = etat.donnees;
+    const D = session.donnees;
     // Mode enseignant (?enseignant=1, ou programme ouvert depuis prof.html) : tout est ouvert,
     // la solution peut être affichée, et rien n'est enregistré (ni fichier, ni copie de secours).
     const lecture = !!session.lecture;
@@ -112,8 +109,6 @@
       document.body.classList.add('mode-enseignant');
       $('.entete-equipe').insertAdjacentHTML('afterbegin', '<span class="badge-enseignant">Mode enseignant · rien n’est enregistré</span>');
       $('.btn-solution').hidden = false;
-      $('.btn-enregistrer').hidden = true;
-      $('.etat-enregistrement').hidden = true;
     }
     $('.btn-solution').addEventListener('click', () => {
       if (!confirm('Remplacer le programme affiché par la solution de référence ?')) return;
@@ -140,7 +135,7 @@
       ouvrirIndice(niveau) {
         A.noterIndice(D, etat.exercice.id, niveau);
         majCompteurIndices();
-        aEnregistrer(true, true);
+        session.aEnregistrer(true, true);
       },
     });
     function majCompteurIndices() {
@@ -200,7 +195,7 @@
       aides.changerExercice(ex);
       majCompteurIndices();
       // Rouvrir un exercice déjà commencé (ou ouvrir une sauvegarde) n'est pas un travail à enregistrer.
-      if (A.progressionExercice(D, ex.id).statut !== statutAvant) aEnregistrer(true);
+      if (A.progressionExercice(D, ex.id).statut !== statutAvant) session.aEnregistrer(true);
     }
 
     // ----- Consigne : réduire / afficher, bulle de définition -----
@@ -386,7 +381,7 @@
             .map((x) => x.message);
       A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
       A.noterVerification(D, etat.exercice.id, { reussi: r.reussi, message: r.message, ecarts, notes, programme });
-      aEnregistrer(true, true);
+      session.aEnregistrer(true, true);
       const panneau = $('.panneau-verification');
       panneau.classList.toggle('reussi', r.reussi);
       if (r.reussi) {
@@ -394,7 +389,7 @@
         panneau.innerHTML =
           `<div class="verif-titre">${A.icone('coche', { couleur: '#2E7D32', epaisseur: 2.8 })}Ton programme fonctionne.</div>` +
           '<p>Le simulateur fait exactement ce que demande la consigne.</p>' +
-          (etat.handle ? '' : '<p class="verif-note">Pense à enregistrer ton travail dans le dossier de ton équipe.</p>') +
+          (session.handle ? '' : '<p class="verif-note">Pense à enregistrer ton travail dans le dossier de ton équipe.</p>') +
           '<div class="verif-actions">' +
           (suivant ? `<button type="button" class="btn-principal btn-suivant">Exercice suivant${A.icone('suivant', { epaisseur: 2.8 })}</button>` : '') +
           '<button type="button" class="btn-secondaire btn-fermer-verif">Fermer</button></div>';
@@ -440,14 +435,7 @@
     $('.btn-zoom-plus').addEventListener('click', () => editeur.zoomer(1));
     $('.btn-recentrer').addEventListener('click', editeur.recentrer);
 
-    let minuteur = null;
-    function message(texte, duree) {
-      const t = $('.message-bref');
-      t.textContent = texte;
-      t.hidden = false;
-      clearTimeout(minuteur);
-      minuteur = setTimeout(() => (t.hidden = true), duree || 2600);
-    }
+    const message = (texte, duree) => session.message(texte, duree);
 
     // ----- Parcours (provisoire, en attendant l'écran dessiné) : statut et déblocage -----
 
@@ -475,109 +463,43 @@
       $('.dialogue-parcours').close();
       ouvrir(exercices[Number(b.dataset.i)]);
     });
+    if (!lecture) $('.btn-parcours').lastChild.textContent = 'Carnet';
     $('.btn-parcours').addEventListener('click', () => {
+      // Élèves : retour au carnet de projet (onglet Programmation). Mode enseignant : liste des exercices.
+      if (!lecture && A.montrerCarnet) return A.montrerCarnet('programmation');
       majParcours();
       $('.dialogue-parcours').showModal();
     });
     $('.btn-fermer-parcours').addEventListener('click', () => $('.dialogue-parcours').close());
 
-    // ----- Enregistrement : copie de secours à chaque modification, fichier de l'équipe -----
+    // ----- Enregistrement : la session commune (carnet et exercices) écrit le fichier de l'équipe -----
 
-    let minuteurFichier = null;
     let minuteurSecours = null;
     function programmeModifie() {
       clearTimeout(minuteurSecours);
-      minuteurSecours = setTimeout(() => {
-        A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
-        aEnregistrer(false);
-      }, 800);
+      minuteurSecours = setTimeout(() => session.aEnregistrer(false), 800);
     }
-
-    // Note une modification. Avec le fichier de l'équipe, il est réécrit tout seul (tout de suite, ou après 10 s).
-    // geste : l'élève vient de cliquer (vérifier, indice) ; si le navigateur n'a pas encore donné le droit
-    // d'écrire dans le fichier, c'est le moment de le demander (une seule fois).
-    function aEnregistrer(maintenant, geste) {
-      if (lecture) return;
-      A.fichiers.sauverSecours(D);
-      etat.nonEnregistre = true;
-      majEtatEnregistrement();
-      if (!etat.handle) return;
-      clearTimeout(minuteurFichier);
-      if (geste) enregistrer('geste');
-      else minuteurFichier = setTimeout(() => enregistrer('auto'), maintenant ? 0 : 10000);
-    }
-
-    let enCours = null;
-    // mode : 'auto' (minuteur : jamais de fenêtre), 'geste' (après un clic de l'élève, sans message),
-    // ou autre (bouton « Enregistrer » : message de confirmation).
-    async function enregistrer(mode) {
-      const automatique = mode === 'auto' || mode === true;
-      const discret = automatique || mode === 'geste';
-      if (lecture) return null;
-      if (enCours) return enCours;
-      A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
-      A.fichiers.sauverSecours(D);
-      majEtatEnregistrement('…');
-      enCours = (async () => {
-        try {
-          const r = await A.fichiers.enregistrer(D, etat.handle, { silencieux: automatique });
-          if (r.ok) {
-            if (r.handle && r.handle !== etat.handle) {
-              etat.handle = r.handle;
-              A.fichiers.memoriserHandle(r.handle);
-            }
-            etat.nonEnregistre = false;
-            etat.dernierEnregistrement = new Date();
-            if (r.telecharge) message(`Le fichier « ${A.fichiers.nomFichier(D)} » est dans Téléchargements : range-le dans le dossier de ton équipe.`, 6000);
-            else if (!discret) message('C’est enregistré dans le dossier de ton équipe.');
-            etat.attenteAutorisation = false;
-          } else if (r.permission) etat.attenteAutorisation = true; // on attendra un clic de l'élève
-        } catch {
-          if (!automatique) message('L’enregistrement n’a pas marché. Clique encore sur « Enregistrer » et choisis le dossier de ton équipe.', 6000);
-        } finally {
-          enCours = null;
-          majEtatEnregistrement();
-        }
-      })();
-      return enCours;
-    }
-    $('.btn-enregistrer').addEventListener('click', () => enregistrer(false));
-
-    function majEtatEnregistrement(texte) {
-      const el = $('.etat-enregistrement');
-      if (texte) el.textContent = 'Enregistrement' + texte;
-      else if (!etat.nonEnregistre && etat.dernierEnregistrement)
-        el.textContent = 'Enregistré à ' + etat.dernierEnregistrement.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      else el.textContent = etat.nonEnregistre ? 'Pas encore enregistré' : '';
-      el.classList.toggle('a-faire', !texte && etat.nonEnregistre && (!etat.handle || !!etat.attenteAutorisation));
-    }
-
-    // Rappel à la fermeture de l'onglet si le fichier n'est pas à jour.
-    addEventListener('beforeunload', (e) => {
-      if (lecture) return;
-      A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
-      A.fichiers.sauverSecours(D);
-      if (etat.nonEnregistre) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+    // Avant chaque écriture, le programme affiché est rangé dans les données de l'équipe.
+    session.surAvantEcriture(() => {
+      if (etat.exercice) A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
     });
 
     // Temps passé : seulement l'activité réelle (onglet visible et actif).
     setInterval(() => {
-      if (etat.exercice && document.visibilityState === 'visible' && document.hasFocus()) A.ajouterTemps(D, etat.exercice.id, 1);
+      const visible = !$('.ecran-exercice').hidden;
+      if (etat.exercice && visible && document.visibilityState === 'visible' && document.hasFocus()) A.ajouterTemps(D, etat.exercice.id, 1);
     }, 1000);
 
     let depart = exercices.find((e) => e.id === A.exerciceAReprendre(D)) || exercices[0];
-    const demande = session.exercice || new URLSearchParams(location.search).get('exercice');
+    const demande = opts.exercice || new URLSearchParams(location.search).get('exercice');
     if (demande && A.estDebloque(D, demande, { toutDebloquer })) depart = exercices.find((e) => e.id === demande) || depart;
 
     ouvrir(depart);
     // Programme précis à montrer (ex. celui d'une vérification de l'historique, ouvert depuis prof.html).
-    if (session.programme) editeur.charger(depart, session.programme.blocks ? session.programme : A.versBlockly(session.programme));
+    if (opts.programme) editeur.charger(depart, opts.programme.blocks ? opts.programme : A.versBlockly(opts.programme));
     majCommandes();
-    majEtatEnregistrement();
-    A.ecran = { ouvrir, editeur, etat };
+    A.ecran = { ouvrir, editeur, etat, session, arreter };
+    return A.ecran;
   }
 
   A.demarrerEcranExercice = demarrer;

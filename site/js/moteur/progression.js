@@ -5,6 +5,8 @@
 (function (global) {
   'use strict';
 
+  const C = typeof module === 'object' && module.exports ? require('./carnet.js') : global.Atelier;
+
   const APPLICATION = 'atelier-cereales';
   const FORMAT = 1;
   const ORDRE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A', '13B'];
@@ -55,6 +57,7 @@
       exerciceCourant: ORDRE[0],
       exercices: {},
       exercice13: { versionReussie: null },
+      carnet: C.carnetVide(),
     };
   }
 
@@ -75,6 +78,8 @@
     if (!d.equipe || !Array.isArray(d.equipe.eleves)) return { ok: false, raison: 'Cette sauvegarde est incomplète : il manque l’équipe.' };
     d.exercices = d.exercices || {};
     d.exercice13 = d.exercice13 || { versionReussie: null };
+    // Sauvegardes d'avant le carnet de projet : on ajoute un carnet vide.
+    d.carnet = C.completerCarnet(d.carnet);
     for (const e of Object.values(d.exercices)) e.historique = e.historique || [];
     return { ok: true, donnees: d };
   }

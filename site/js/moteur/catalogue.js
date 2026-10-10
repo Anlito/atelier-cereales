@@ -38,6 +38,7 @@
     global.definirLexique = (liste) => (Atelier.lexique = liste);
     global.definirClasses = (liste) => (Atelier.classes = liste);
     global.definirFiches = (fiches) => (Atelier.fiches = fiches);
+    global.definirCarnet = (carnet) => (Atelier.carnet = carnet);
     global.definirBareme = (bareme) => (Atelier.bareme = bareme);
     global.definirCheminSauvegarde = (chemin) => (Atelier.cheminSauvegarde = chemin);
   }
