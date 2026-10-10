@@ -1,0 +1,25 @@
+definirExercice({
+  "id": "2",
+  "titre": "Faire clignoter une LED",
+  "consigne": "Faire clignoter la LED sur la broche D3 toutes les 2 secondes.",
+  "composants": [
+    { "type": "led", "broche": "D3" }
+  ],
+  "blocsAutorises": ["led_etat", "attendre"],
+  "blocsDepart": null,
+  "scenarios": [
+    { "nom": "La LED clignote", "etapes": [
+      { "sequence": "D3", "valeurs": [1, 0], "intervalle": 2, "duree": 10, "changements": 4 }
+    ] }
+  ],
+  "aSavoir": "2",
+  "solutionReference": {
+    "demarrage": [],
+    "boucle": [
+      { "bloc": "led_etat", "broche": "D3", "etat": 1 },
+      { "bloc": "attendre", "duree": 2 },
+      { "bloc": "led_etat", "broche": "D3", "etat": 0 },
+      { "bloc": "attendre", "duree": 2 }
+    ]
+  }
+});

@@ -1,0 +1,9 @@
+{
+  "name": "atelier-cereales",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atelier de programmation en blocs du distributeur de céréales (5e), avec simulateur en direct",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
