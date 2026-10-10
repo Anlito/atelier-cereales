@@ -468,18 +468,6 @@
       } else if (g.algo && cas && cas.dataset.algo === g.algo) placerPiece(g.algo, cas.dataset.case, g.texte);
     });
 
-    // ---------- Impression de l'onglet affiché ----------
-
-    $('.btn-imprimer-carnet', racine).addEventListener('click', () => {
-      const o = ONGLETS.find((x) => x.cle === ui.onglet);
-      const avant = document.title;
-      document.title = [D.equipe.classe, o.titre.replace(/\s+/g, '_'), A.nomEquipe(D.equipe.eleves)].filter(Boolean).join('_');
-      $('.impression-entete', racine).textContent =
-        `Projet distributeur de céréales · ${o.titre} · ${D.equipe.eleves.join(', ')}${D.equipe.classe ? ' · ' + D.equipe.classe : ''} · ${new Date().toLocaleDateString('fr-FR')}`;
-      addEventListener('afterprint', () => (document.title = avant), { once: true });
-      print();
-    });
-
     return { montrer, rafraichir: () => montrer() };
   }
 

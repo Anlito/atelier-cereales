@@ -29,7 +29,6 @@
 .onglet.etat-fait .onglet-etat { color: #1B5E20; }
 .onglet.etat-en_cours .onglet-etat { color: var(--bleu-fonce); }
 .onglet.etat-a_faire .onglet-etat { color: var(--gris); }
-.impression-entete { display: none; }
 .carnet-contenu { max-width: 64rem; margin: 0.875rem auto 2rem; padding: 0 1.25rem; }
 
 .carte-carnet {
@@ -168,15 +167,3 @@
 .couleur-fixe { display: inline-flex; align-items: center; gap: 0.5rem; font-style: italic; color: var(--texte-2); }
 .point { display: inline-block; width: 1.125rem; height: 1.125rem; border-radius: 999px; border: 1px solid #9AA8B0; }
 .broche-cablage { display: inline-block; padding: 0.125rem 0.625rem; border-radius: 0.375rem; border: 2px solid var(--orange); background: var(--consigne-fond); font: 700 1rem monospace; color: #5B3A00; }
-
-/* Impression : seulement l'onglet affiché, avec un en-tête (équipe, classe, date) */
-@media print {
-  body { overflow: visible; background: #FFFFFF; }
-  .ecran-carnet { height: auto; overflow: visible; background: #FFFFFF; }
-  .carnet-entete, .carnet-avancement, .carnet-onglets, .verifier-partie button, .btn-continuer, .message-bref { display: none !important; }
-  .impression-entete { display: block; margin: 0 0 4mm; font-weight: 700; font-size: 11pt; }
-  .carnet-contenu { max-width: none; margin: 0; padding: 0; }
-  .carte-carnet { border: 1px solid #999; }
-  .algo-defile { overflow: visible; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}

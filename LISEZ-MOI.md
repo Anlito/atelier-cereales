@@ -32,7 +32,6 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
    Objet automatisé (classement capteur / carte / actionneur), Algorigrammes (deux exercices),
    Algorigramme du distributeur, Programmation, Câblage. Un bouton « Vérifier » corrige le classement et les
    algorigrammes : il dit combien de réponses sont justes et marque « à revoir » ce qui est faux, sans donner la réponse.
-   « Imprimer » imprime l'onglet affiché, avec l'équipe, la classe et la date.
 4. **Exercices de programmation** (onglet Programmation) : on réussit l'exercice N pour ouvrir le N+1
    (13B est un défi après 13A). Le bouton « Carnet » de l'écran d'exercice ramène au carnet.
 5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
