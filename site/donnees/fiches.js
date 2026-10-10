@@ -4,7 +4,7 @@
 //
 // Schémas possibles :
 //   { "type": "led" }                                   LED éteinte (BAS) et allumée (HAUT)
-//   { "type": "chronogramme", "series": [ { "nom": "LED D3", "etats": [[2, "HAUT"], [2, "BAS"]] } ] }
+//   { "type": "chronogramme", "series": [ { "nom": "LED D9", "etats": [[2, "HAUT"], [2, "BAS"]] } ] }
 //   { "type": "blocs", "programme": { ... } }           petits blocs, comme dans l'éditeur
 //   { "type": "fourche" }                               si … alors … sinon
 //   { "type": "servo" }                                 demi-cercle 0°, 90°, 180°
@@ -43,7 +43,7 @@ definirFiches({
       "Pour clignoter : allumer, attendre, éteindre, attendre."
     ],
     "schema": { "type": "chronogramme", "series": [
-      { "nom": "LED D3", "etats": [[2, "HAUT"], [2, "BAS"], [2, "HAUT"], [2, "BAS"]] }
+      { "nom": "LED D9", "etats": [[2, "HAUT"], [2, "BAS"], [2, "HAUT"], [2, "BAS"]] }
     ] }
   },
   "3": {
@@ -54,8 +54,8 @@ definirFiches({
       "Deux blocs placés l'un sous l'autre, sans « attendre » entre eux, se font en même temps pour nos yeux."
     ],
     "schema": { "type": "chronogramme", "series": [
-      { "nom": "LED D3", "etats": [[2, "HAUT"], [2, "BAS"], [2, "HAUT"], [2, "BAS"]] },
-      { "nom": "LED D4", "etats": [[2, "BAS"], [2, "HAUT"], [2, "BAS"], [2, "HAUT"]] }
+      { "nom": "LED D9", "etats": [[2, "HAUT"], [2, "BAS"], [2, "HAUT"], [2, "BAS"]] },
+      { "nom": "LED D10", "etats": [[2, "BAS"], [2, "HAUT"], [2, "BAS"], [2, "HAUT"]] }
     ] }
   },
   "4": {
@@ -69,14 +69,14 @@ definirFiches({
     "etapes": [
       { "texte": "1. Pose le bloc « si … alors ». La case de la condition est vide.",
         "programme": { "boucle": [ { "bloc": "si_alors", "condition": null, "alors": [] } ] } },
-      { "texte": "2. Fabrique la condition « état sur la broche D8 = HAUT » et glisse-la dans la case.",
+      { "texte": "2. Fabrique la condition « état sur la broche D3 = HAUT » et glisse-la dans la case.",
         "programme": { "boucle": [ { "bloc": "si_alors",
-          "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D8" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
+          "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D3" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
           "alors": [] } ] } },
       { "texte": "3. Mets l'action dans « alors » : elle se fait seulement quand le bouton est appuyé.",
         "programme": { "boucle": [ { "bloc": "si_alors",
-          "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D8" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
-          "alors": [ { "bloc": "led_etat", "broche": "D3", "etat": 1 } ] } ] } }
+          "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D3" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
+          "alors": [ { "bloc": "led_etat", "broche": "D9", "etat": 1 } ] } ] } }
     ]
   },
   "5": {
@@ -97,9 +97,9 @@ definirFiches({
     ],
     "schema": { "type": "blocs", "programme": { "boucle": [
       { "bloc": "si_sinon",
-        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D8" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
-        "alors": [ { "bloc": "led_etat", "broche": "D3", "etat": 1 }, { "bloc": "led_etat", "broche": "D4", "etat": 0 } ],
-        "sinon": [ { "bloc": "led_etat", "broche": "D3", "etat": 0 }, { "bloc": "led_etat", "broche": "D4", "etat": 1 } ] }
+        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D3" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
+        "alors": [ { "bloc": "led_etat", "broche": "D9", "etat": 1 }, { "bloc": "led_etat", "broche": "D10", "etat": 0 } ],
+        "sinon": [ { "bloc": "led_etat", "broche": "D9", "etat": 0 }, { "bloc": "led_etat", "broche": "D10", "etat": 1 } ] }
     ] } }
   },
   "7": {
@@ -111,11 +111,11 @@ definirFiches({
     ],
     "schema": { "type": "blocs", "programme": { "boucle": [
       { "bloc": "si_alors",
-        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D8" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
-        "alors": [ { "bloc": "led_etat", "broche": "D3", "etat": 1 } ] },
+        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D3" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
+        "alors": [ { "bloc": "led_etat", "broche": "D9", "etat": 1 } ] },
       { "bloc": "si_alors",
-        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D9" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
-        "alors": [ { "bloc": "led_etat", "broche": "D4", "etat": 1 } ] }
+        "condition": { "bloc": "comparaison", "op": "=", "a": { "bloc": "bouton_etat", "broche": "D4" }, "b": { "bloc": "valeur_haut_bas", "valeur": 1 } },
+        "alors": [ { "bloc": "led_etat", "broche": "D10", "etat": 1 } ] }
     ] } }
   },
   "8": {

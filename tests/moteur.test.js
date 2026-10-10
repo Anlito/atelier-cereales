@@ -164,7 +164,7 @@ test('l’échec renvoie de quoi rejouer le test à l’écran', () => {
   assert.equal(r.reussi, false);
   assert.equal(r.scenario, 0);
   assert.equal(r.entrees.length, 1);
-  assert.equal(r.entrees[0].broche, 'D8');
+  assert.equal(r.entrees[0].broche, 'D3');
   assert.ok(r.entrees[0].t >= 500 && r.entrees[0].t <= 510);
   assert.ok(r.temps >= 500);
 });

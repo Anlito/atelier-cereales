@@ -119,7 +119,9 @@
     function indiceSortie(broche) {
       if (sim.journal.some((e) => e.broche === broche && e.type !== 'entree')) return '';
       const c = composant(exercice, broche);
-      const autre = sim.journal.find((e) => e.type === c.type && !declarees.has(e.broche));
+      // Une sortie du même genre sur une broche où l'exercice n'a pas de composant de ce genre.
+      const memeGenre = new Set((exercice.composants || []).filter((x) => x.type === c.type).map((x) => x.broche));
+      const autre = sim.journal.find((e) => e.type === c.type && !memeGenre.has(e.broche));
       return autre ? `Ton programme agit sur la broche ${autre.broche} : vérifie la broche choisie dans le bloc.` : '';
     }
     // Le programme lit un bouton sur une broche où il n'y a pas de bouton (ex. D9 au lieu de D8).
