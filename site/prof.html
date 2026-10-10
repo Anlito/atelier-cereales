@@ -30,6 +30,35 @@
       <span class="zone-depot-aide">Le dossier de la classe (ex. DISTRIBUTEUR DE CEREALES) : tous les dossiers des équipes sont lus d’un coup.</span>
     </div>
     <div class="prof-messages" aria-live="polite"></div>
+    <div class="prof-reprendre" hidden>
+      Dernier dossier suivi : <strong class="reprendre-dossier"></strong>
+      <button type="button" class="btn-principal btn-reprendre-suivi">Reprendre le suivi en direct</button>
+    </div>
+  </section>
+
+  <section class="prof-suivi" aria-label="Suivi en direct" hidden>
+    <span class="suivi-etat" aria-live="polite"></span>
+    <label>toutes les
+      <select class="suivi-periode">
+        <option value="15">15 s</option>
+        <option value="30" selected>30 s</option>
+        <option value="60">1 min</option>
+        <option value="120">2 min</option>
+      </select>
+    </label>
+    <button type="button" class="btn-secondaire btn-suivi-maintenant">Actualiser maintenant</button>
+    <button type="button" class="btn-secondaire btn-suivi-pause">Mettre en pause</button>
+    <button type="button" class="btn-lien btn-suivi-arreter">Arrêter le suivi</button>
+    <span class="suivi-erreur" role="alert"></span>
+  </section>
+
+  <section class="prof-alertes" aria-label="Alertes" hidden>
+    <div class="alertes-entete">
+      <h2 class="alertes-titre"></h2>
+      <label class="case"><input type="checkbox" class="alerte-son" checked> Son à chaque nouvelle alerte</label>
+      <button type="button" class="btn-secondaire btn-notifications">Activer les notifications</button>
+    </div>
+    <ul class="alertes-liste"></ul>
   </section>
 
   <section class="prof-outils" aria-label="Filtres et exports" hidden>

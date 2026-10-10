@@ -9,7 +9,9 @@
   const exercices = A.catalogue.exercices();
   const titre = (id) => (exercices.find((e) => e.id === id) || {}).titre || '';
 
-  let fichiers = []; // { nom, texte } : tout ce qui a été importé
+  let manuels = []; // { nom, texte } : fichiers glissés ou choisis à la main
+  let fichiersDossier = []; // fichiers lus dans le dossier de la classe (relus en direct)
+  let fichiers = []; // les deux réunis
   let bareme = A.completerBareme(A.bareme);
   let fusion = { equipes: [], invalides: [] };
 
@@ -18,12 +20,26 @@
   async function ajouter(nouveaux) {
     // Un même fichier importé deux fois n'est compté qu'une fois.
     const cle = (f) => f.nom + '|' + f.texte.length + '|' + f.texte.slice(-60);
-    const vus = new Set(fichiers.map(cle));
-    for (const f of nouveaux) if (!vus.has(cle(f))) fichiers.push(f);
+    const vus = new Set(manuels.map(cle));
+    for (const f of nouveaux) if (!vus.has(cle(f))) manuels.push(f);
+    recalculer();
+  }
+
+  function recalculer() {
+    fichiers = [...manuels, ...fichiersDossier];
+    // Signature du travail d'une équipe : change dès qu'elle vérifie, ouvre un indice ou réussit.
+    const signature = (d) =>
+      d.modifieLe + '|' + Object.values(d.exercices).map((e) => `${e.statut}:${e.tentatives}:${e.indicesOuverts}`).join(',');
+    const avant = new Map(fusion.equipes.map((e) => [e.cle, signature(e.donnees)]));
     fusion = A.fusionnerEquipes(fichiers);
+    // Équipes qui ont avancé depuis la dernière lecture (signalées dans le tableau).
+    misesAJour = new Set(fusion.equipes.filter((e) => avant.has(e.cle) && avant.get(e.cle) !== signature(e.donnees)).map((e) => e.cle));
     messages();
     dessiner();
+    verifierAlertes();
+    rafraichirDetail();
   }
+  let misesAJour = new Set();
 
   async function lireFichiers(liste) {
     const sortie = [];
@@ -32,11 +48,26 @@
   }
 
   // Tous les .json du dossier choisi et de ses sous-dossiers (ex. DISTRIBUTEUR DE CEREALES › Léa_Hugo › Léa_Hugo.json).
+  // Un fichier qui n'a pas changé depuis la dernière lecture n'est pas relu (dossier réseau : on reste léger).
+  const cache = new Map(); // chemin → { date, taille, texte }
   async function lireDossier(dossier, chemin, profondeur) {
     const sortie = [];
     for await (const entree of dossier.values()) {
       if (entree.kind === 'file' && /\.json$/i.test(entree.name)) {
-        sortie.push({ nom: chemin + entree.name, texte: await (await entree.getFile()).text() });
+        const nom = chemin + entree.name;
+        let f;
+        try {
+          f = await entree.getFile();
+        } catch {
+          continue; // fichier en cours d'écriture par un élève : on le relira au prochain passage
+        }
+        const connu = cache.get(nom);
+        if (connu && connu.date === f.lastModified && connu.taille === f.size) sortie.push({ nom, texte: connu.texte });
+        else {
+          const texte = await f.text();
+          cache.set(nom, { date: f.lastModified, taille: f.size, texte });
+          sortie.push({ nom, texte });
+        }
       } else if (entree.kind === 'directory' && profondeur < 3) {
         sortie.push(...(await lireDossier(entree, chemin + entree.name + ' › ', profondeur + 1)));
       }
@@ -59,6 +90,59 @@
     ajouter(await lireFichiers([...e.target.files]));
     e.target.value = '';
   });
+  // ---------- Suivi en direct du dossier de la classe (Chrome, Edge) ----------
+
+  const suivi = { dossier: null, minuteur: null, periode: 30, enPause: false, derniere: null, erreur: '' };
+
+  async function actualiser() {
+    if (!suivi.dossier) return;
+    try {
+      fichiersDossier = await lireDossier(suivi.dossier, suivi.dossier.name + ' › ', 0);
+      suivi.erreur = '';
+      suivi.derniere = new Date();
+    } catch {
+      suivi.erreur = 'Le dossier n’a pas pu être relu (réseau ?). Nouvel essai au prochain passage.';
+    }
+    recalculer();
+    majSuivi();
+  }
+
+  function programmer() {
+    clearInterval(suivi.minuteur);
+    suivi.minuteur = suivi.dossier && !suivi.enPause ? setInterval(actualiser, suivi.periode * 1000) : null;
+    majSuivi();
+  }
+
+  async function suivre(dossier) {
+    suivi.dossier = dossier;
+    suivi.enPause = false;
+    cache.clear();
+    memoriserDossier(dossier);
+    $('.prof-reprendre').hidden = true;
+    await actualiser();
+    programmer();
+  }
+
+  function arreterSuivi() {
+    suivi.dossier = null;
+    fichiersDossier = [];
+    clearInterval(suivi.minuteur);
+    memoriserDossier(null);
+    majSuivi();
+  }
+
+  function majSuivi() {
+    const bandeau = $('.prof-suivi');
+    bandeau.hidden = !suivi.dossier;
+    if (!suivi.dossier) return;
+    const heure = suivi.derniere ? suivi.derniere.toLocaleTimeString('fr-FR') : '…';
+    $('.suivi-etat', bandeau).innerHTML = suivi.enPause
+      ? `<span class="suivi-point pause" aria-hidden="true"></span><strong>Suivi en pause</strong> · « ${echapper(suivi.dossier.name)} » · dernière lecture à ${heure}`
+      : `<span class="suivi-point" aria-hidden="true"></span><strong>En direct</strong> · « ${echapper(suivi.dossier.name)} » · mis à jour à ${heure}`;
+    $('.suivi-erreur', bandeau).textContent = suivi.erreur;
+    $('.btn-suivi-pause', bandeau).textContent = suivi.enPause ? 'Reprendre' : 'Mettre en pause';
+  }
+
   if (typeof global.showDirectoryPicker === 'function') {
     const b = $('.btn-dossier-classe');
     b.hidden = false;
@@ -69,9 +153,150 @@
       } catch {
         return;
       }
-      ajouter(await lireDossier(dossier, dossier.name + ' › ', 0));
+      suivre(dossier);
     });
-  } else $('.zone-depot-aide').textContent = 'Sur ce navigateur, sélectionne tous les fichiers .json d’un coup (Ctrl+A dans la fenêtre).';
+    $('.btn-suivi-maintenant').addEventListener('click', actualiser);
+    $('.btn-suivi-pause').addEventListener('click', () => {
+      suivi.enPause = !suivi.enPause;
+      if (!suivi.enPause) actualiser();
+      programmer();
+    });
+    $('.btn-suivi-arreter').addEventListener('click', arreterSuivi);
+    $('.suivi-periode').addEventListener('change', (e) => {
+      suivi.periode = Number(e.target.value) || 30;
+      programmer();
+    });
+    // Le dossier suivi est mémorisé : à la réouverture de la page, un clic suffit pour reprendre.
+    dossierMemorise().then((d) => {
+      if (!d) return;
+      const r = $('.prof-reprendre');
+      $('.reprendre-dossier', r).textContent = d.name;
+      r.hidden = false;
+      $('.btn-reprendre-suivi', r).addEventListener('click', async () => {
+        try {
+          if ((await d.queryPermission({ mode: 'read' })) !== 'granted' && (await d.requestPermission({ mode: 'read' })) !== 'granted') return;
+        } catch {
+          return;
+        }
+        suivre(d);
+      });
+    });
+  } else $('.zone-depot-aide').textContent = 'Sur ce navigateur, sélectionne tous les fichiers .json d’un coup (Ctrl+A dans la fenêtre). Le suivi en direct demande Chrome ou Edge.';
+
+  function base() {
+    return new Promise((ok, ko) => {
+      const r = indexedDB.open('atelier-cereales-prof', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('dossiers');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => ko(r.error);
+    });
+  }
+  async function memoriserDossier(dossier) {
+    try {
+      const db = await base();
+      const t = db.transaction('dossiers', 'readwrite');
+      if (dossier) t.objectStore('dossiers').put(dossier, 'classe');
+      else t.objectStore('dossiers').delete('classe');
+    } catch {
+      /* stockage indisponible : il faudra rechoisir le dossier */
+    }
+  }
+  async function dossierMemorise() {
+    try {
+      const db = await base();
+      return await new Promise((ok) => {
+        const r = db.transaction('dossiers').objectStore('dossiers').get('classe');
+        r.onsuccess = () => ok(r.result || null);
+        r.onerror = () => ok(null);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  // ---------- Alertes : une équipe devient « bloquée » ----------
+
+  let alertesConnues = null; // clés déjà signalées (null : première lecture, rien n'est « nouveau »)
+  const nouvelles = new Map(); // clé → heure d'apparition
+  function verifierAlertes() {
+    const liste = A.alertesClasse(fusion.equipes, seuils());
+    const cles = new Set(liste.map((a) => a.cle));
+    const apparues = alertesConnues ? liste.filter((a) => !alertesConnues.has(a.cle)) : [];
+    for (const a of apparues) nouvelles.set(a.cle, new Date());
+    for (const c of [...nouvelles.keys()]) if (!cles.has(c)) nouvelles.delete(c);
+    alertesConnues = cles;
+    dessinerAlertes(liste);
+    if (apparues.length) prevenir(apparues);
+  }
+
+  function dessinerAlertes(liste) {
+    const zone = $('.prof-alertes');
+    zone.hidden = !liste.length;
+    if (!liste.length) return;
+    liste.sort((a, b) => (nouvelles.has(b.cle) ? 1 : 0) - (nouvelles.has(a.cle) ? 1 : 0));
+    $('.alertes-liste', zone).innerHTML = liste
+      .map((a) => {
+        const n = nouvelles.get(a.cle);
+        return (
+          `<li class="${n ? 'nouvelle' : ''}"><button type="button" class="btn-lien" data-alerte="${echapper(a.cle.split('|').slice(0, 2).join('|'))}">` +
+          `<strong>⚠ ${echapper(a.equipe)}</strong>${a.classe ? ' (' + echapper(a.classe) + ')' : ''}</button> : exercice ${a.id} · ${echapper(titre(a.id))} — ${echapper(a.raison)}` +
+          (n ? ` <span class="badge-nouveau">nouveau · ${n.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>` : '') +
+          '</li>'
+        );
+      })
+      .join('');
+    $('.alertes-titre', zone).textContent = `${liste.length} alerte${liste.length > 1 ? 's' : ''} « bloqué »`;
+  }
+  $('.prof-alertes').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-alerte]');
+    if (!b) return;
+    const eq = fusion.equipes.find((x) => x.cle === b.dataset.alerte);
+    if (eq) ouvrirDetail(eq);
+  });
+
+  // Son court (deux notes) et notification du système si elle a été autorisée.
+  function prevenir(apparues) {
+    if ($('.alerte-son').checked) {
+      try {
+        const ctx = new (global.AudioContext || global.webkitAudioContext)();
+        [660, 880].forEach((f, i) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.18);
+          g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + i * 0.18 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.18 + 0.16);
+          o.connect(g).connect(ctx.destination);
+          o.start(ctx.currentTime + i * 0.18);
+          o.stop(ctx.currentTime + i * 0.18 + 0.2);
+        });
+      } catch {
+        /* pas de son */
+      }
+    }
+    if (global.Notification && Notification.permission === 'granted') {
+      const a = apparues[0];
+      const plus = apparues.length > 1 ? ` (+${apparues.length - 1} autre${apparues.length > 2 ? 's' : ''})` : '';
+      try {
+        new Notification('Atelier : équipe bloquée', { body: `${a.equipe}, exercice ${a.id} : ${a.raison}${plus}`, tag: 'atelier-alerte' });
+      } catch {
+        /* notifications indisponibles (ex. fichier ouvert hors serveur) */
+      }
+    }
+  }
+  const bNotif = $('.btn-notifications');
+  if (!global.Notification) bNotif.hidden = true;
+  else {
+    const majNotif = () => {
+      bNotif.disabled = Notification.permission !== 'default';
+      bNotif.textContent = Notification.permission === 'granted' ? 'Notifications activées' : Notification.permission === 'denied' ? 'Notifications refusées par le navigateur' : 'Activer les notifications';
+    };
+    majNotif();
+    bNotif.addEventListener('click', async () => {
+      await Notification.requestPermission();
+      majNotif();
+    });
+  }
 
   function messages() {
     const m = [];
@@ -95,10 +320,11 @@
     $('.prof-messages').innerHTML = m.join('');
     const v = $('.btn-vider');
     if (v) v.addEventListener('click', () => {
-      fichiers = [];
-      fusion = { equipes: [], invalides: [] };
+      manuels = [];
+      arreterSuivi();
+      alertesConnues = null;
+      recalculer();
       $('.prof-messages').innerHTML = '';
-      dessiner();
     });
   }
 
@@ -167,7 +393,8 @@
       h +=
         `<tr class="ligne-equipe${r.bloque ? ' equipe-bloquee' : ''}" data-i="${fusion.equipes.indexOf(x.eq)}" tabindex="0">` +
         `<th scope="row" class="col-equipe"><span class="nom-equipe">${echapper(r.eleves.join(', '))}</span>` +
-        `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}</span></th>` +
+        `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}` +
+        `${misesAJour.has(x.eq.cle) ? ' · <span class="badge-maj">● vient d’avancer</span>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
         `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
         `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
@@ -187,7 +414,14 @@
   }
 
   for (const sel of ['.filtre-classe', '.tri', '.filtre-bloquees', '.seuil-tentatives', '.seuil-minutes']) {
-    $(sel).addEventListener(sel.startsWith('.seuil') ? 'input' : 'change', dessiner);
+    $(sel).addEventListener(sel.startsWith('.seuil') ? 'input' : 'change', () => {
+      dessiner();
+      if (sel.startsWith('.seuil')) {
+        alertesConnues = null; // nouveaux seuils : on repart de l'état actuel, sans « nouvelles » alertes
+        nouvelles.clear();
+        verifierAlertes();
+      }
+    });
   }
   $('.prof-tableau').addEventListener('click', (e) => {
     const l = e.target.closest('.ligne-equipe');
@@ -228,8 +462,19 @@
     );
   }
 
-  function ouvrirDetail(eq) {
+  let detailOuvert = null; // clé de l'équipe affichée dans le détail
+  function rafraichirDetail() {
+    if (!detailOuvert || !$('.prof-detail').open) return;
+    const eq = fusion.equipes.find((x) => x.cle === detailOuvert);
+    if (eq) ouvrirDetail(eq, true);
+  }
+
+  function ouvrirDetail(eq, miseAJour) {
+    detailOuvert = eq.cle;
     const d = eq.donnees;
+    // Garder les historiques ouverts et la position de lecture pendant une mise à jour en direct.
+    const ouverts = miseAJour ? new Set([...document.querySelectorAll('.historique[open] summary')].map((s) => s.textContent.split(' — ')[0])) : null;
+    const defilement = miseAJour ? $('.prof-detail').scrollTop : 0;
     const r = A.resumerEquipe(d, seuils());
     const note = A.noterEquipe(d, bareme);
     const dialogue = $('.prof-detail');
@@ -302,7 +547,9 @@
       zoneBlocs.hidden = !zoneBlocs.hidden;
       b.textContent = zoneBlocs.hidden ? 'Voir les blocs' : 'Masquer les blocs';
     };
-    dialogue.showModal();
+    if (ouverts) for (const det of document.querySelectorAll('.historique')) if (ouverts.has(det.querySelector('summary').textContent.split(' — ')[0])) det.open = true;
+    if (!dialogue.open) dialogue.showModal();
+    dialogue.scrollTop = defilement;
   }
   $('.btn-fermer-detail').addEventListener('click', () => $('.prof-detail').close());
 

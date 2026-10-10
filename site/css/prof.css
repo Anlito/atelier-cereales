@@ -128,3 +128,31 @@ body.page-prof { overflow: auto; background: var(--fond); }
 .detail-note { margin: 0 0 0.25rem; font-size: 1.125rem; }
 .points-raison { display: block; font-size: 0.8125rem; color: var(--texte-2); }
 @media print { .prof-bareme { display: none !important; } }
+
+/* Suivi en direct et alertes */
+.prof-reprendre { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; padding: 0.625rem 0.875rem; background: var(--bleu-pale); border-radius: 0.625rem; }
+.prof-suivi {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.625rem 1rem;
+  background: #FFFFFF; border: 2px solid var(--bleu); border-radius: 0.75rem;
+}
+.prof-suivi label { display: flex; align-items: center; gap: 0.375rem; }
+.prof-suivi select { height: 2.5rem; border: 2px solid var(--bord); border-radius: 0.5rem; font: 400 0.9375rem var(--police); padding: 0 0.375rem; }
+.prof-suivi .btn-secondaire { height: 2.5rem; }
+.suivi-etat { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 18rem; }
+.suivi-point { width: 0.75rem; height: 0.75rem; border-radius: 999px; background: #2E7D32; box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.6); animation: pouls 2s infinite; flex: none; }
+.suivi-point.pause { background: var(--gris); animation: none; }
+@keyframes pouls { 0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.55); } 70% { box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); } }
+.suivi-erreur { color: #8A5300; font-weight: 600; }
+.suivi-erreur:empty { display: none; }
+.prof-alertes { background: #FFF4DD; border: 2px solid var(--orange); border-left-width: 8px; border-radius: 0.75rem; padding: 0.625rem 1rem; }
+.alertes-entete { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.alertes-titre { margin: 0; font-size: 1.0625rem; flex: 1; color: #5B3A00; }
+.alertes-entete .case { display: flex; align-items: center; gap: 0.375rem; font-weight: 600; }
+.alertes-entete .btn-secondaire { height: 2.5rem; }
+.alertes-liste { margin: 0.5rem 0 0; padding-left: 1.25rem; max-height: 12rem; overflow-y: auto; }
+.alertes-liste li { margin: 0.25rem 0; }
+.alertes-liste .btn-lien { min-height: 0; font-size: 1rem; color: #5B3A00; }
+.alertes-liste li.nouvelle { font-weight: 600; }
+.badge-nouveau { display: inline-block; padding: 0 0.5rem; border-radius: 999px; background: #8A5300; color: #FFFFFF; font-size: 0.75rem; font-weight: 700; }
+.badge-maj { color: #1B5E20; font-weight: 700; }
+@media print { .prof-suivi, .prof-alertes, .prof-reprendre { display: none !important; } }

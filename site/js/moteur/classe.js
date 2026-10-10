@@ -71,6 +71,25 @@
     };
   }
 
+  // Alertes « bloqué » de la classe : une par équipe et par exercice non réussi qui dépasse un seuil.
+  // equipes : sortie de fusionnerEquipes → [{ cle, equipe, classe, id, tentatives, temps, raison }]
+  function alertes(equipes, seuils) {
+    const s = seuils || SEUILS;
+    const liste = [];
+    for (const eq of equipes) {
+      const r = resumer(eq.donnees, s);
+      for (const id of ORDRE) {
+        const c = r.cellules[id];
+        if (!c.bloque) continue;
+        const raisons = [];
+        if (c.tentatives >= s.tentatives) raisons.push(`${c.tentatives} tentatives`);
+        if (c.temps >= s.minutes * 60) raisons.push(`${duree(c.temps)} sur l’exercice`);
+        liste.push({ cle: eq.cle + '|' + id, equipe: r.eleves.join(', '), classe: r.classe, id, tentatives: c.tentatives, temps: c.temps, raison: raisons.join(' et ') });
+      }
+    }
+    return liste;
+  }
+
   // Taux de réussite par exercice (part des équipes qui l'ont réussi).
   function tauxReussite(resumes) {
     const taux = {};
@@ -178,7 +197,7 @@
     return '﻿' + [entete, ...lignes].map((l) => l.map(champ).join(';')).join('\r\n') + '\r\n';
   }
 
-  const api = { SEUILS, fusionnerEquipes: fusionner, resumerEquipe: resumer, tauxReussite, tableauClasse: tableau, detailClasse: detail, enCsv: csv, dureeLisible: duree, dateCourte, SYMBOLES, MOTS_STATUT: MOTS, estBloque: bloque };
+  const api = { SEUILS, fusionnerEquipes: fusionner, resumerEquipe: resumer, alertesClasse: alertes, tauxReussite, tableauClasse: tableau, detailClasse: detail, enCsv: csv, dureeLisible: duree, dateCourte, SYMBOLES, MOTS_STATUT: MOTS, estBloque: bloque };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign((global.Atelier = global.Atelier || {}), api);
 })(this);

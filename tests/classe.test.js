@@ -73,3 +73,19 @@ test('fichier Excel : un ZIP valide avec les feuilles demandées', () => {
   assert.ok(texte.includes('<v>3</v>'));
   assert.ok(texte.includes('&lt;x&gt;'));
 });
+
+test('alertes de la classe : équipe et exercice, avec la raison', () => {
+  const d = P.creerProgression({ eleves: ['Noah', 'Jade'], classe: '5A' });
+  P.noterVerification(d, '1', { reussi: true });
+  for (let i = 0; i < 6; i++) P.noterVerification(d, '2', { reussi: false, message: 'm' });
+  const f = K.fusionnerEquipes([{ nom: 'n.json', texte: JSON.stringify(d) }]);
+  const a = K.alertesClasse(f.equipes);
+  assert.equal(a.length, 1);
+  assert.equal(a[0].id, '2');
+  assert.equal(a[0].equipe, 'Noah, Jade');
+  assert.match(a[0].raison, /6 tentatives/);
+  assert.equal(K.alertesClasse(f.equipes, { tentatives: 10, minutes: 20 }).length, 0);
+  d.exercices['2'].tempsPasseSecondes = 25 * 60;
+  const b = K.alertesClasse(K.fusionnerEquipes([{ nom: 'n.json', texte: JSON.stringify(d) }]).equipes, { tentatives: 10, minutes: 20 });
+  assert.match(b[0].raison, /25 min sur l’exercice/);
+});
