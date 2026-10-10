@@ -358,7 +358,8 @@
   function resumerBareme() {
     $('.bareme-resume').textContent =
       `· sur ${bareme.sur}, ${bareme.objectif} exercices attendus, −${Math.round(bareme.penaliteIndice * 100)} % par indice, ` +
-      `−${Math.round(bareme.penaliteEchec * 100)} % par essai raté au-delà de ${bareme.essaisGratuits}, ` +
+      `−${Math.round(bareme.penaliteEchec * 100)} % par essai raté${bareme.essaisGratuits ? ` au-delà de ${bareme.essaisGratuits}` : ''}, ` +
+      `avance : ${Math.round(bareme.avance * 100)} %, ` +
       `commencé : ${Math.round(bareme.participation * 100)} %, bonus 13B : +${A.nombreFr(bareme.bonus13B)}`;
   }
   zoneBareme.addEventListener('input', (e) => {

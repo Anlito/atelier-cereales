@@ -7,6 +7,9 @@ definirBareme({
   // La note est calculée sur eux ; un exercice réussi au-delà rapporte ses points en bonus.
   // À augmenter au fil des séances : la note reste juste même si une équipe ne finit pas.
   "objectif": 13,
+  // Exercice réussi AU-DELÀ des exercices attendus : part de ses points ajoutée en bonus.
+  // 0 = l'avance ne rapporte rien, pour qu'elle ne compense pas les erreurs sur le travail attendu.
+  "avance": 0,
   // Coefficient de chaque exercice (selon sa difficulté). 0 = l'exercice ne compte pas.
   "coefficients": { "1": 1, "2": 1, "3": 1, "4": 1.5, "5": 1.5, "6": 1.5, "7": 1.5, "8": 2,
                     "9": 1, "10": 1, "11": 1.5, "12": 1.5, "13A": 3 },

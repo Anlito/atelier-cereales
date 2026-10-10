@@ -17,6 +17,9 @@
     // Exercices attendus à ce moment du projet (les N premiers) : la note est calculée sur eux ;
     // ceux réussis au-delà rapportent leurs points en bonus. 13 = tout le parcours.
     objectif: 13,
+    // Exercice réussi au-delà des exercices attendus : part de ses points ajoutée en bonus.
+    // 0 par défaut, pour que l'avance ne masque pas les erreurs faites sur le travail attendu.
+    avance: 0,
     coefficients: { 1: 1, 2: 1, 3: 1, 4: 1.5, 5: 1.5, 6: 1.5, 7: 1.5, 8: 2, 9: 1, 10: 1, 11: 1.5, 12: 1.5, '13A': 3 },
     bonus13B: 1,
     participation: 0.2,
@@ -82,9 +85,15 @@
       if (!(coef > 0)) continue;
       const r = noterExercice(donnees.exercices[id], b);
       const attendu = attendus.has(id);
-      // Au-delà de l'objectif : seul un exercice réussi rapporte des points (en bonus).
-      const fraction = attendu || donnees.exercices[id]?.statut === 'reussi' ? r.fraction : 0;
-      detail.push({ id, coef, attendu, fraction, parfait: !!r.parfait, points: fraction * coef, raisons: attendu ? r.raisons : [fraction ? 'en avance : bonus' : 'pas encore attendu'] });
+      // Au-delà de l'objectif : un exercice réussi rapporte seulement la part « avance » de ses points (0 par défaut).
+      const enAvance = !attendu && donnees.exercices[id] && donnees.exercices[id].statut === 'reussi';
+      const fraction = attendu ? r.fraction : enAvance ? r.fraction * b.avance : 0;
+      const raisons = attendu
+        ? r.raisons
+        : enAvance
+          ? [b.avance > 0 ? `réussi en avance : bonus (${pourcent(b.avance)})` : 'réussi en avance (ne compte pas dans la note)']
+          : ['pas encore attendu'];
+      detail.push({ id, coef, attendu, fraction, parfait: !!r.parfait, points: fraction * coef, raisons });
       obtenu += fraction * coef;
       if (attendu) possible += coef;
     }

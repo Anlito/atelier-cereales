@@ -84,7 +84,7 @@ test('le fichier donnees/notation.js est complet et égal au barème par défaut
   assert.deepEqual(JSON.parse(JSON.stringify(bareme)), JSON.parse(JSON.stringify(N.BAREME_DEFAUT)));
 });
 
-test('note évolutive : calculée sur les N exercices attendus, le reste en bonus', () => {
+test('note évolutive : calculée sur les N exercices attendus', () => {
   const d = equipe();
   for (const id of ['1', '2', '3']) P.noterVerification(d, id, { reussi: true });
   assert.equal(N.noterEquipe(d, { objectif: 3 }).note, 20);
@@ -95,5 +95,23 @@ test('note évolutive : calculée sur les N exercices attendus, le reste en bonu
   assert.equal(r.detail.find((x) => x.id === '5').points, 0, 'commencé au-delà de l’objectif : rien');
   P.noterVerification(d, '4', { reussi: true });
   P.noterVerification(d, '5', { reussi: true });
-  assert.equal(N.noterEquipe(d, { objectif: 4 }).note, 20, 'en avance : bonus, plafonné');
+  assert.equal(N.noterEquipe(d, { objectif: 4 }).note, 20);
+  assert.equal(N.noterEquipe(d, { objectif: 4 }).detail.find((x) => x.id === '5').points, 0, 'en avance : ne compte pas par défaut');
+  assert.ok(N.noterEquipe(d, { objectif: 4, avance: 0.5 }).detail.find((x) => x.id === '5').points > 0, 'bonus d’avance si réglé');
+});
+
+test('l’avance ne compense pas les erreurs sur le travail attendu (cas Lucas / Tom)', () => {
+  // Lucas : 1 et 2 du premier coup. Tom : 1 du premier coup, 2 après 3 essais ratés, 3 réussi en avance.
+  const lucas = equipe();
+  P.noterVerification(lucas, '1', { reussi: true });
+  P.noterVerification(lucas, '2', { reussi: true });
+  const tom = equipe();
+  P.noterVerification(tom, '1', { reussi: true });
+  for (let i = 0; i < 3; i++) P.noterVerification(tom, '2', { reussi: false, message: 'm' });
+  P.noterVerification(tom, '2', { reussi: true });
+  for (let i = 0; i < 2; i++) P.noterVerification(tom, '3', { reussi: false, message: 'm' });
+  P.noterVerification(tom, '3', { reussi: true });
+  const b = { objectif: 2 };
+  assert.equal(N.noterEquipe(lucas, b).note, 20);
+  assert.equal(N.noterEquipe(tom, b).note, 18.5);
 });
