@@ -14,9 +14,12 @@
   const nomFichier = (donnees) => A.nomEquipe(donnees.equipe.eleves) + '.json';
   const texte = (donnees) => JSON.stringify(donnees, null, 1);
 
-  async function autorise(handle) {
+  // Droit d'écrire dans le fichier. demander = false : on regarde seulement, sans afficher la fenêtre
+  // « Autoriser ce site à modifier … ? » (elle n'est montrée qu'au premier vrai travail de l'équipe).
+  async function autorise(handle, demander) {
     const options = { mode: 'readwrite' };
     if ((await handle.queryPermission(options)) === 'granted') return true;
+    if (demander === false) return false;
     return (await handle.requestPermission(options)) === 'granted';
   }
 
@@ -117,7 +120,10 @@
   async function enregistrer(donnees, handle, options) {
     const o = options || {};
     if (handle) {
-      if (!(await autorise(handle))) throw new Error('permission');
+      if (!(await autorise(handle, !o.silencieux))) {
+        if (o.silencieux) return { ok: false, handle, permission: true };
+        throw new Error('permission');
+      }
       const flux = await handle.createWritable();
       await flux.write(texte(donnees));
       await flux.close();

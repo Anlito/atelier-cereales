@@ -49,12 +49,14 @@
       let donnees = secours;
       if (handle) {
         try {
-          if (await F.autorise(handle)) {
+          // Pas de fenêtre d'autorisation ici : on lit le fichier seulement si c'est déjà permis.
+          // L'autorisation d'écrire sera demandée au premier vrai travail (vérification, indice, Enregistrer).
+          if ((await handle.queryPermission({ mode: 'read' })) === 'granted') {
             const lecture = A.lireSauvegarde(await (await handle.getFile()).text());
             const meme = lecture.ok && A.nomEquipe(lecture.donnees.equipe.eleves) === A.nomEquipe(secours.equipe.eleves);
             if (!meme) handle = null;
             else if (lecture.donnees.modifieLe > secours.modifieLe) donnees = lecture.donnees;
-          } else handle = null;
+          }
         } catch {
           handle = null;
         }
@@ -74,13 +76,8 @@
       }
       if (!r) return;
       if (!r.lecture.ok) return erreur('choix', r.lecture.raison + ' Rien n’a été modifié.');
-      if (r.handle) {
-        try {
-          if (!(await F.autorise(r.handle))) r.handle = null;
-        } catch {
-          r.handle = null;
-        }
-      }
+      // Pas de demande d'autorisation à l'ouverture : rien n'a encore été fait. Elle viendra au premier
+      // vrai travail de l'équipe (vérification, indice ou clic sur « Enregistrer »).
       fin(r.lecture.donnees, r.handle);
     });
 

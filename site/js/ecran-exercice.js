@@ -140,7 +140,7 @@
       ouvrirIndice(niveau) {
         A.noterIndice(D, etat.exercice.id, niveau);
         majCompteurIndices();
-        aEnregistrer(true);
+        aEnregistrer(true, true);
       },
     });
     function majCompteurIndices() {
@@ -195,10 +195,12 @@
       editeur.charger(ex, A.progressionExercice(D, ex.id).programme);
       vue = A.creerVueSimulateur($('.simulateur'), ex, { basculerBouton });
       afficher();
+      const statutAvant = A.progressionExercice(D, ex.id).statut;
       A.noterOuverture(D, ex.id);
       aides.changerExercice(ex);
       majCompteurIndices();
-      aEnregistrer(true);
+      // Rouvrir un exercice déjà commencé (ou ouvrir une sauvegarde) n'est pas un travail à enregistrer.
+      if (A.progressionExercice(D, ex.id).statut !== statutAvant) aEnregistrer(true);
     }
 
     // ----- Consigne : réduire / afficher, bulle de définition -----
@@ -384,7 +386,7 @@
             .map((x) => x.message);
       A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
       A.noterVerification(D, etat.exercice.id, { reussi: r.reussi, message: r.message, ecarts, notes, programme });
-      aEnregistrer(true);
+      aEnregistrer(true, true);
       const panneau = $('.panneau-verification');
       panneau.classList.toggle('reussi', r.reussi);
       if (r.reussi) {
@@ -492,18 +494,25 @@
     }
 
     // Note une modification. Avec le fichier de l'équipe, il est réécrit tout seul (tout de suite, ou après 10 s).
-    function aEnregistrer(maintenant) {
+    // geste : l'élève vient de cliquer (vérifier, indice) ; si le navigateur n'a pas encore donné le droit
+    // d'écrire dans le fichier, c'est le moment de le demander (une seule fois).
+    function aEnregistrer(maintenant, geste) {
       if (lecture) return;
       A.fichiers.sauverSecours(D);
       etat.nonEnregistre = true;
       majEtatEnregistrement();
       if (!etat.handle) return;
       clearTimeout(minuteurFichier);
-      minuteurFichier = setTimeout(() => enregistrer(true), maintenant ? 0 : 10000);
+      if (geste) enregistrer('geste');
+      else minuteurFichier = setTimeout(() => enregistrer('auto'), maintenant ? 0 : 10000);
     }
 
     let enCours = null;
-    async function enregistrer(automatique) {
+    // mode : 'auto' (minuteur : jamais de fenêtre), 'geste' (après un clic de l'élève, sans message),
+    // ou autre (bouton « Enregistrer » : message de confirmation).
+    async function enregistrer(mode) {
+      const automatique = mode === 'auto' || mode === true;
+      const discret = automatique || mode === 'geste';
       if (lecture) return null;
       if (enCours) return enCours;
       A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
@@ -520,11 +529,11 @@
             etat.nonEnregistre = false;
             etat.dernierEnregistrement = new Date();
             if (r.telecharge) message(`Le fichier « ${A.fichiers.nomFichier(D)} » est dans Téléchargements : range-le dans le dossier de ton équipe.`, 6000);
-            else if (!automatique) message('C’est enregistré dans le dossier de ton équipe.');
-          }
+            else if (!discret) message('C’est enregistré dans le dossier de ton équipe.');
+            etat.attenteAutorisation = false;
+          } else if (r.permission) etat.attenteAutorisation = true; // on attendra un clic de l'élève
         } catch {
           if (!automatique) message('L’enregistrement n’a pas marché. Clique encore sur « Enregistrer » et choisis le dossier de ton équipe.', 6000);
-          else etat.handle = null;
         } finally {
           enCours = null;
           majEtatEnregistrement();
@@ -540,7 +549,7 @@
       else if (!etat.nonEnregistre && etat.dernierEnregistrement)
         el.textContent = 'Enregistré à ' + etat.dernierEnregistrement.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       else el.textContent = etat.nonEnregistre ? 'Pas encore enregistré' : '';
-      el.classList.toggle('a-faire', !texte && etat.nonEnregistre && !etat.handle);
+      el.classList.toggle('a-faire', !texte && etat.nonEnregistre && (!etat.handle || !!etat.attenteAutorisation));
     }
 
     // Rappel à la fermeture de l'onglet si le fichier n'est pas à jour.
