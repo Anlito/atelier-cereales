@@ -125,13 +125,15 @@
   // Si les résumés portent une note (r.note, calculée par notation.js), une colonne « Note » est ajoutée.
   function tableau(resumes, seuils) {
     const avecNote = resumes.some((r) => r.note);
+    const avecCarnet = resumes.some((r) => r.carnet !== undefined);
     const sur = avecNote ? resumes.find((r) => r.note).note.sur : 20;
-    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', '★ 1er coup', ...(avecNote ? ['Note /' + sur] : []), 'Dernière activité', 'Temps total', 'Bloqué'];
+    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', ...(avecCarnet ? ['Carnet'] : []), '★ 1er coup', ...(avecNote ? ['Note /' + sur] : []), 'Dernière activité', 'Temps total', 'Bloqué'];
     const lignes = resumes.map((r) => [
       r.classe,
       r.eleves.join(', '),
       ...ORDRE.map((id) => texteCellule(r.cellules[id])),
       `${r.avancement}/13`,
+      ...(avecCarnet ? [r.carnet === undefined ? '' : `${r.carnet}/${r.carnetTotal}`] : []),
       r.premierCoup,
       ...(avecNote ? [r.note ? r.note.note : ''] : []),
       dateCourte(r.derniereActivite),
@@ -141,7 +143,7 @@
     const taux = tauxReussite(resumes);
     const notes = resumes.filter((r) => r.note).map((r) => r.note.note);
     const moyenne = notes.length ? Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 10) / 10 : '';
-    lignes.push(['', avecNote ? 'Taux de réussite · moyenne' : 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', '', ...(avecNote ? [moyenne] : []), '', '', '']);
+    lignes.push(['', avecNote ? 'Taux de réussite · moyenne' : 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', ...(avecCarnet ? [''] : []), '', ...(avecNote ? [moyenne] : []), '', '', '']);
     const legende = [
       `✓ réussi, ● en cours, ○ non commencé ; le nombre est celui des tentatives (clics sur « Vérifier »). ` +
         `★ 1er coup : exercices réussis du premier coup et sans indice. ` +

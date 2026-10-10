@@ -76,6 +76,40 @@ const equipes = [
   equipe(['Emma', 'Yanis'], '5B', (id) => (Number.parseInt(id, 10) <= 2 ? { reussi: id === '1', erreurs: id === '2' ? 1 : 0, indices: 0 } : null)),
 ];
 
+// Carnets de projet plus ou moins remplis (0 : rien, 3 : tout, avec quelques essais ratés).
+const vm = require('node:vm');
+const Cn = require('../site/js/moteur/carnet.js');
+let contenu;
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'site', 'donnees', 'carnet.js'), 'utf8'), { definirCarnet: (c) => (contenu = c) });
+const ex13 = exercices.find((e) => e.id === '13A');
+function remplirCarnet(d, niveau) {
+  const K = d.carnet;
+  if (niveau >= 1) {
+    K.idees = ['Une trémie avec une trappe qui s’ouvre', 'Un bouton pour choisir la quantité'];
+    K.definition = 'Un objet fabriqué par l’homme pour répondre à un besoin.';
+  }
+  if (niveau >= 2) {
+    for (const e of contenu.classement) K.classement[e.nom] = e.place;
+    Cn.noterVerificationCarnet(d, 'classement', { reussi: false, bien: 12, total: 14 });
+    Cn.noterVerificationCarnet(d, 'classement', { reussi: true, bien: 14, total: 14 });
+    for (const a of contenu.algorigrammes) {
+      K.algos[a.id] = Cn.attenduLineaire(a);
+      Cn.noterVerificationCarnet(d, a.id, { reussi: true, bien: 5, total: 5 });
+    }
+  }
+  if (niveau >= 3) {
+    K.algos.final = { ...contenu.algoFinal.cases };
+    Cn.noterVerificationCarnet(d, 'final', { reussi: false, bien: 15, total: 18 });
+    Cn.noterVerificationCarnet(d, 'final', { reussi: true, bien: 18, total: 18 });
+    for (const l of Cn.lignesCablage(ex13.composants)) if (!l.couleurImposee) K.couleurs[l.broche] = 'rouge';
+  }
+}
+[3, 2, 1, 1, 3, 0].forEach((n, i) => {
+  const date = equipes[i].modifieLe;
+  remplirCarnet(equipes[i], n);
+  equipes[i].modifieLe = date;
+});
+
 fs.rmSync(RACINE, { recursive: true, force: true });
 for (const d of equipes) {
   const nom = P.nomEquipe(d.equipe.eleves);

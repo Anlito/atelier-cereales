@@ -28,9 +28,16 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
    (`5A › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES › Prénom_Prénom`).
    L'élève choisit ce dossier ; s'il n'existe pas, il choisit `DISTRIBUTEUR DE CEREALES` et l'atelier le crée.
    Une sauvegarde déjà présente n'est jamais écrasée : l'atelier propose de l'ouvrir.
-3. **Exercices** : on réussit l'exercice N pour ouvrir le N+1 (13B est un défi après 13A).
-   Sur Chrome et Edge, le fichier se réenregistre tout seul (à chaque vérification et 10 s après une modification).
-4. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
+3. **Carnet de projet** (il remplace le document élève) : six onglets — Problématique (idées, définition),
+   Objet automatisé (classement capteur / carte / actionneur), Algorigrammes (deux exercices),
+   Algorigramme du distributeur, Programmation, Câblage. Un bouton « Vérifier » corrige le classement et les
+   algorigrammes : il dit combien de réponses sont justes et marque « à revoir » ce qui est faux, sans donner la réponse.
+   « Imprimer » imprime l'onglet affiché, avec l'équipe, la classe et la date.
+4. **Exercices de programmation** (onglet Programmation) : on réussit l'exercice N pour ouvrir le N+1
+   (13B est un défi après 13A). Le bouton « Carnet » de l'écran d'exercice ramène au carnet.
+5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
+   tout seul (à chaque vérification et peu après une modification).
+6. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
 
 ## 3. Outil professeur (`prof.html`)
 
@@ -39,9 +46,11 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 - **Suivi en direct** (Chrome, Edge) : après le choix du dossier, il est relu toutes les 30 s.
   Les équipes qui avancent sont signalées ; une **alerte** (son, et notification si autorisée) apparaît quand
   une équipe est **bloquée** : au moins 6 tentatives ou 10 minutes sur un exercice non réussi (seuils réglables).
-- **Tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, ★ réussites du
-  premier coup sans indice, note, dernière activité, temps. Clic sur une équipe : tout son historique
-  (chaque vérification et ses erreurs, le programme de chaque tentative, chaque indice).
+- **Tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, parties du
+  carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité, temps.
+  Clic sur une équipe : son carnet (idées, définition, vérifications du classement et des algorigrammes,
+  couleurs de câblage) et tout son historique de programmation (chaque vérification et ses erreurs,
+  le programme de chaque tentative, chaque indice).
   « Lancer ce programme » le rouvre dans l'atelier, en lecture.
 - **Exports** : CSV, Excel (feuilles « Classe » et « Détail par exercice »), impression A4 paysage.
 
@@ -86,11 +95,14 @@ Ils sont dans le dossier du site (`site/` dans le dépôt, `atelier-cereales/` d
 | la **durée de la trappe** (CHOIX = 3 ou 7) | `exercices/parametres.js` | `"dureePetiteDose"`, `"dureeGrandeDose"` |
 | jusqu'à quel exercice le bloc LED affiche « allumée / éteinte » | `exercices/parametres.js` | `"aideLedJusquAExercice"` (0 = jamais) |
 | le **barème** de la note | `donnees/notation.js` | chaque réglage est expliqué dans le fichier |
+| le **carnet de projet** (problématique, éléments à classer et leur bonne colonne, étapes des algorigrammes, couleurs de câbles) | `donnees/carnet.js` | chaque partie est expliquée dans le fichier ; le tableau de câblage est construit depuis `exercices/13A.js` |
 
 **Attention aux broches** : si vous changez une broche dans `"composants"`, changez-la aussi dans
 `"solutionReference"` et dans les `"scenarios"` (les tests de « Vérifier mon programme »), sinon la
-vérification attendra l'ancienne broche. Les broches des exercices suivent les captures Vittascience ;
-le tableau de câblage du document élève en utilise d'autres : à harmoniser.
+vérification attendra l'ancienne broche. Les broches suivent le **tableau de câblage** : boutons PetiteDose D3,
+GrandeDose D4, Trappe D5 ; LED PetiteDose D9, GrandeDose D10, Trappe D11 ; servo D6. Le tableau « Câblage » du
+carnet est construit à partir de `exercices/13A.js` : il suit automatiquement une modification de ce fichier.
+Les menus des blocs proposent toutes les broches D2 à D13 : c'est à l'élève de choisir la bonne.
 
 **Les tests de vérification** (`"scenarios"`) décrivent ce qu'on observe : attendre, appuyer sur un bouton,
 vérifier l'état d'une LED ou l'angle du servo. On peut les laisser tels quels si on ne change que des textes.
@@ -101,7 +113,8 @@ vérifier l'état d'une LED ou l'angle du servo. On peut les laisser tels quels 
 
 - **Grande dose** : CHOIX vaut **7** (la consigne), alors que les captures du programme affectent 10
   (`exercices/parametres.js`).
-- **Exercice 12** : le servo est sur **D5** (comme la capture), la broche de la LED Trappe à l'exercice 13.
+- **Exercice 12** : le bouton est sur **D5** (bouton Trappe) et le moteur sur **D6**, comme au câblage.
+- **Consignes** : les numéros de broches des consignes Vittascience ont été remplacés par ceux du câblage.
 - **Exercice 11** : un programme qui reste 4 s à 0° (cinq positions écrites, puis la boucle) est accepté.
 - **13A** suffit pour terminer le parcours ; **13B** est un défi.
 - Libellés des blocs : ceux de Vittascience ; catégories Lumière, Temps, Bouton, Moteur, Décisions, Variables.

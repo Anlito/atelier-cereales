@@ -156,3 +156,7 @@ body.page-prof { overflow: auto; background: var(--fond); }
 .badge-nouveau { display: inline-block; padding: 0 0.5rem; border-radius: 999px; background: #8A5300; color: #FFFFFF; font-size: 0.75rem; font-weight: 700; }
 .badge-maj { color: #1B5E20; font-weight: 700; }
 @media print { .prof-suivi, .prof-alertes, .prof-reprendre { display: none !important; } }
+
+/* Carnet de projet dans le détail d'une équipe */
+.carnet-detail th { width: 14rem; }
+.carnet-detail ol { margin: 0; padding-left: 1.25rem; }

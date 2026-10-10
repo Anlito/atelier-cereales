@@ -188,6 +188,13 @@ async function cycleSauvegarde(navigateur, base) {
     await new Promise((x) => setTimeout(x, 500));
     document.querySelector('.btn-commencer').click();
     await new Promise((x) => setTimeout(x, 500));
+    // Le carnet de projet s'ouvre d'abord : une idée, puis l'exercice 1 depuis l'onglet Programmation.
+    if (document.querySelector('.ecran-carnet').hidden) throw new Error('le carnet ne s’ouvre pas après l’accueil');
+    const idee = document.querySelector('[data-idee="0"]');
+    idee.value = 'Une trémie avec une trappe';
+    idee.dispatchEvent(new Event('input', { bubbles: true }));
+    Atelier.ouvrirExercice('1');
+    await new Promise((x) => setTimeout(x, 500));
     const E = Atelier.ecran;
     E.editeur.charger(E.etat.exercice, Atelier.versBlockly(E.etat.exercice.solutionReference));
     await new Promise((x) => setTimeout(x, 200));
@@ -203,13 +210,23 @@ async function cycleSauvegarde(navigateur, base) {
     const carte = !document.querySelector('.accueil-reprendre').hidden;
     document.querySelector('.btn-reprendre').click();
     await new Promise((x) => setTimeout(x, 800));
+    const carnet = !document.querySelector('.ecran-carnet').hidden;
+    const idee = document.querySelector('[data-idee="0"]').value;
+    document.querySelector('[data-onglet="programmation"]').click();
+    document.querySelector('.btn-continuer').click();
+    await new Promise((x) => setTimeout(x, 800));
     const E = Atelier.ecran;
-    return { carte, exercice: E && E.etat.exercice.id, fichier: !!(E && E.etat.handle), equipe: document.querySelector('.equipe-noms').innerText };
+    return { carte, carnet, idee, exercice: E && E.etat.exercice.id, fichier: !!(E && E.session.handle), equipe: document.querySelector('.equipe-noms').innerText };
   });
   await page.close();
   const d = JSON.parse(texte);
-  const ok = d.exercices['1'].statut === 'reussi' && reprise.carte && reprise.exercice === '2' && reprise.fichier;
-  return { ok, texte, detail: `fichier écrit (ex. 1 ${d.exercices['1'].statut}), reprise à l’exercice ${reprise.exercice}, équipe ${reprise.equipe}, fichier ${reprise.fichier ? 'retrouvé' : 'perdu'}` };
+  const ok = d.exercices['1'].statut === 'reussi' && d.carnet.idees[0] && reprise.carte && reprise.carnet && reprise.idee && reprise.exercice === '2' && reprise.fichier;
+  return {
+    ok,
+    texte,
+    detail: `fichier écrit (ex. 1 ${d.exercices['1'].statut}, idée du carnet ${d.carnet.idees[0] ? 'gardée' : 'perdue'}), reprise : carnet ${reprise.carnet ? 'ouvert' : 'absent'}, ` +
+      `« Continuer » ouvre l’exercice ${reprise.exercice}, équipe ${reprise.equipe}, fichier ${reprise.fichier ? 'retrouvé' : 'perdu'}`,
+  };
 }
 
 (async () => {

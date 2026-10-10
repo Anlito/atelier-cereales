@@ -341,6 +341,8 @@
     let liste = fusion.equipes.map((eq) => {
       const r = A.resumerEquipe(eq.donnees, s);
       r.note = A.noterEquipe(eq.donnees, bareme);
+      r.carnet = avancementCarnet(eq.donnees);
+      r.carnetTotal = A.PARTIES_CARNET.length;
       return { eq, r };
     });
     if (classe) liste = liste.filter((x) => x.r.classe === classe);
@@ -386,8 +388,8 @@
     $('.titre-classe').textContent = $('.filtre-classe').value ? 'classe ' + $('.filtre-classe').value : 'toutes les classes';
     let h = '<thead><tr><th scope="col" class="col-equipe">Équipe</th>';
     for (const id of ORDRE) h += `<th scope="col" title="${echapper(titre(id))}">${id}</th>`;
-    h += `<th scope="col">Avancement</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
-    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 6}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
+    h += `<th scope="col">Avancement</th><th scope="col" title="Parties du carnet de projet terminées">Carnet</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
+    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 7}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
     liste.forEach((x, i) => {
       const r = x.r;
       h +=
@@ -396,7 +398,7 @@
         `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}` +
         `${misesAJour.has(x.eq.cle) ? ' · <span class="badge-maj">● vient d’avancer</span>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
-        `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
+        `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.carnet}/${r.carnetTotal}</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
         `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
       void i;
     });
@@ -405,7 +407,7 @@
     for (const id of ORDRE) h += `<td class="nombre">${liste.length ? Math.round(taux[id] * 100) + ' %' : ''}</td>`;
     const notes = liste.map((x) => x.r.note.note);
     const moyenne = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : 0;
-    h += `<td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
+    h += `<td></td><td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
     $('.prof-tableau').innerHTML = h;
     $('.prof-legende').textContent =
       `✓ réussi · ● en cours · ○ non commencé. Le nombre est celui des tentatives (clics sur « Vérifier »). ` +
@@ -450,6 +452,43 @@
       return;
     }
     global.open('index.html?revue=1', '_blank', 'noopener');
+  }
+
+  // ---------- Carnet de projet de l'équipe ----------
+
+  const ex13 = exercices.find((e) => e.id === '13A');
+  function avancementCarnet(d) {
+    return A.avancementCarnet(d.carnet, A.carnet, ex13 ? ex13.composants : []);
+  }
+
+  function carnetHtml(d) {
+    const K = A.completerCarnet(d.carnet);
+    const C = A.carnet || {};
+    const etats = A.etatsCarnet(K, C, ex13 ? ex13.composants : []);
+    const mot = { fait: '✓ fait', en_cours: '● en cours', a_faire: '○ à faire' };
+    const verifs = (p) => {
+      const v = K.verifications[p] || [];
+      if (!v.length) return '';
+      const reussie = v.findIndex((x) => x.reussi);
+      const der = v[v.length - 1];
+      return `${v.length} vérification${v.length > 1 ? 's' : ''}` +
+        (reussie >= 0 ? ` · réussi à la ${reussie + 1}${reussie ? 'e' : 're'}` : ` · dernière : ${der.bien}/${der.total}`);
+    };
+    const ligne = (p, contenu) =>
+      `<tr><th scope="row">${A.NOMS_PARTIES_CARNET[p]}</th><td class="statut-${etats[p] === 'fait' ? 'reussi' : etats[p] === 'en_cours' ? 'en_cours' : 'non_commence'}">${mot[etats[p]]}</td>` +
+      `<td>${contenu || ''}</td></tr>`;
+    const idees = K.idees.filter((x) => x && x.trim());
+    const couleurs = A.lignesCablage(ex13 ? ex13.composants : [])
+      .filter((l) => !l.couleurImposee)
+      .map((l) => `${l.broche} ${echapper(K.couleurs[l.broche] || '—')}`)
+      .join(' · ');
+    let h = `<h3>Carnet de projet · ${A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length}/${A.PARTIES_CARNET.length}</h3>`;
+    h += '<table class="detail-tableau carnet-detail"><tbody>';
+    h += ligne('idees', idees.length ? '<ol>' + idees.map((i) => `<li>${echapper(i)}</li>`).join('') + '</ol>' : '');
+    h += ligne('definition', K.definition ? `« ${echapper(K.definition)} »` : '');
+    for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += ligne(p, verifs(p));
+    h += ligne('cablage', couleurs);
+    return h + '</tbody></table>';
   }
 
   // « 1,2 / 1,6 » et la raison des retenues.
@@ -500,6 +539,8 @@
         `<td>${e && e.programme ? `<button type="button" class="btn-lien" data-ouvrir="${id}">Lancer le programme</button>` : ''}</td></tr>`;
     }
     h += '</tbody></table>';
+
+    h += carnetHtml(d);
 
     // Historique : chaque vérification (avec tous les écarts et le programme du moment) et chaque indice.
     h += '<h3>Historique</h3>';
