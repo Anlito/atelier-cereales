@@ -324,6 +324,8 @@
       if (vus < 3) {
         html +=
           (vus ? '' : '<p class="indice-intro">Trois indices, du plus léger au plus fort. Ouvre-les un par un.</p>') +
+          '<p class="indice-note">Chaque indice ouvert enlève un peu de points à ta note pour cet exercice. ' +
+          'Réussir du premier coup et sans indice rapporte tous les points : essaie d’abord sans !</p>' +
           `<button type="button" class="btn-principal btn-indice-suivant">${A.icone('ampoule')}Voir l’indice ${vus + 1}</button>`;
       } else html += '<p class="indice-intro">Tu as vu les trois indices. La solution complète n’est jamais montrée : à toi de jouer !</p>';
       ouvrir('indice', 'ampoule', `Indices (${vus}/3)`, html);

@@ -37,8 +37,8 @@ test('retenues d’autonomie : indices et essais ratés avant la réussite seule
   P.noterIndice(d, '4', 3);
   P.noterVerification(d, '4', { reussi: false, message: 'm' });
   const e4 = N.noterEquipe(d).detail.find((x) => x.id === '4');
-  // 2 indices (−20 %) + 4 échecs dont 2 gratuits (−10 %)
-  assert.ok(Math.abs(e4.fraction - 0.7) < 1e-9);
+  // 2 indices (−20 %) + 4 essais ratés (−20 %)
+  assert.ok(Math.abs(e4.fraction - 0.6) < 1e-9);
   assert.equal(e4.raisons.length, 2);
   // Les retenues sont plafonnées : il reste au moins 45 %.
   const d2 = equipe();
@@ -46,6 +46,25 @@ test('retenues d’autonomie : indices et essais ratés avant la réussite seule
   for (let i = 0; i < 20; i++) P.noterVerification(d2, '4', { reussi: false, message: 'm' });
   P.noterVerification(d2, '4', { reussi: true });
   assert.ok(Math.abs(N.noterEquipe(d2).detail.find((x) => x.id === '4').fraction - 0.45) < 1e-9);
+});
+
+test('du premier coup et sans indice : tous les points, et compté à part', () => {
+  const d = equipe();
+  P.noterVerification(d, '1', { reussi: true });
+  P.noterVerification(d, '2', { reussi: false, message: 'm' });
+  P.noterVerification(d, '2', { reussi: true });
+  P.noterIndice(d, '3', 1);
+  P.noterVerification(d, '3', { reussi: true });
+  const r = N.noterEquipe(d);
+  const ex = (id) => r.detail.find((x) => x.id === id);
+  assert.equal(ex('1').fraction, 1);
+  assert.equal(ex('1').parfait, true);
+  assert.match(ex('1').raisons[0], /premier coup/);
+  assert.ok(Math.abs(ex('2').fraction - 0.95) < 1e-9, 'un essai raté : −5 %');
+  assert.ok(Math.abs(ex('3').fraction - 0.9) < 1e-9, 'un indice : −10 %');
+  assert.deepEqual(N.premierCoup(d), ['1']);
+  // Avec des essais gratuits, l'ancien comportement reste possible.
+  assert.equal(N.noterEquipe(d, { essaisGratuits: 2 }).detail.find((x) => x.id === '2').fraction, 1);
 });
 
 test('barème réglable : coefficients, arrondi, note sur 10', () => {

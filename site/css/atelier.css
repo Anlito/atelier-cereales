@@ -559,3 +559,6 @@ button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
 .lexique-picto { flex: none; width: 2.5rem; height: 2.5rem; border-radius: 0.625rem; background: var(--bleu-pale); display: flex; align-items: center; justify-content: center; }
 .lexique-badge { font-size: 0.75rem; font-weight: 700; padding: 0 0.5rem; border-radius: 999px; background: var(--orange); }
 .lexique-vide { grid-column: 1 / -1; padding: 1.5rem; text-align: center; color: var(--texte-2); font-weight: 600; }
+
+/* Rappel : un indice joue légèrement sur la note */
+.indice-note { padding: 0.5rem 0.75rem; border-left: 4px solid var(--bleu); background: var(--bleu-pale); border-radius: 0.5rem; font-size: 0.9375rem; }

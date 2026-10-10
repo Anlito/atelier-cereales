@@ -54,8 +54,14 @@ async function ouvrirExercice(page, base, id) {
 }
 
 async function recetteNavigateur(nav, mode, base, origine) {
-  const navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ['--lang=fr-FR', '--allow-file-access-from-files'] });
   const contexte = `${nav.nom}, ${mode}`;
+  let navigateur;
+  try {
+    navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ['--lang=fr-FR', '--allow-file-access-from-files'] });
+  } catch (e) {
+    noter('Le navigateur démarre en mode automatique', contexte, false, String(e.message || e).split('\n')[0]);
+    return;
+  }
   try {
     const page = await navigateur.newPage();
     const s = surveiller(page, origine);

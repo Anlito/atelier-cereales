@@ -160,8 +160,8 @@
     $('.titre-classe').textContent = $('.filtre-classe').value ? 'classe ' + $('.filtre-classe').value : 'toutes les classes';
     let h = '<thead><tr><th scope="col" class="col-equipe">Équipe</th>';
     for (const id of ORDRE) h += `<th scope="col" title="${echapper(titre(id))}">${id}</th>`;
-    h += `<th scope="col">Avancement</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
-    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 5}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
+    h += `<th scope="col">Avancement</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
+    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 6}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
     liste.forEach((x, i) => {
       const r = x.r;
       h +=
@@ -169,7 +169,7 @@
         `<th scope="row" class="col-equipe"><span class="nom-equipe">${echapper(r.eleves.join(', '))}</span>` +
         `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
-        `<td class="nombre">${r.avancement}/13</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
+        `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
         `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
       void i;
     });
@@ -178,10 +178,11 @@
     for (const id of ORDRE) h += `<td class="nombre">${liste.length ? Math.round(taux[id] * 100) + ' %' : ''}</td>`;
     const notes = liste.map((x) => x.r.note.note);
     const moyenne = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : 0;
-    h += `<td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
+    h += `<td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
     $('.prof-tableau').innerHTML = h;
     $('.prof-legende').textContent =
       `✓ réussi · ● en cours · ○ non commencé. Le nombre est celui des tentatives (clics sur « Vérifier »). ` +
+      `★ 1er coup : exercices réussis du premier coup et sans indice. ` +
       `⚠ bloqué : au moins ${s.tentatives} tentatives ou plus de ${s.minutes} min sur un exercice non réussi. Clique sur une équipe pour voir son détail.`;
   }
 
@@ -236,7 +237,7 @@
     let h =
       `<p class="detail-note">Note : <strong>${A.nombreFr(note.note, 2)}/${note.sur}</strong>` +
       `${note.bonus ? ` (dont bonus 13B : +${A.nombreFr(note.bonus)})` : ''}</p>` +
-      `<p class="detail-resume"><strong>${r.avancement}/13</strong> exercices réussis · ${A.dureeLisible(r.tempsTotal)} de travail · ` +
+      `<p class="detail-resume"><strong>${r.avancement}/13</strong> exercices réussis, dont <strong>★ ${r.premierCoup}</strong> du premier coup sans indice · ${A.dureeLisible(r.tempsTotal)} de travail · ` +
       `dernière activité ${echapper(heure(r.derniereActivite))} · fichier ${echapper(eq.fichier)}` +
       `${d.exercice13 && d.exercice13.versionReussie ? ' · exercice 13 réussi en version ' + d.exercice13.versionReussie : ''}</p>`;
     h +=

@@ -67,6 +67,7 @@
       derniereActivite: d.modifieLe || '',
       tempsTotal,
       bloque: ORDRE.some((id) => cellules[id].bloque),
+      premierCoup: N.premierCoup(d).length,
     };
   }
 
@@ -106,12 +107,13 @@
   function tableau(resumes, seuils) {
     const avecNote = resumes.some((r) => r.note);
     const sur = avecNote ? resumes.find((r) => r.note).note.sur : 20;
-    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', ...(avecNote ? ['Note /' + sur] : []), 'Dernière activité', 'Temps total', 'Bloqué'];
+    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', '★ 1er coup', ...(avecNote ? ['Note /' + sur] : []), 'Dernière activité', 'Temps total', 'Bloqué'];
     const lignes = resumes.map((r) => [
       r.classe,
       r.eleves.join(', '),
       ...ORDRE.map((id) => texteCellule(r.cellules[id])),
       `${r.avancement}/13`,
+      r.premierCoup,
       ...(avecNote ? [r.note ? r.note.note : ''] : []),
       dateCourte(r.derniereActivite),
       duree(r.tempsTotal),
@@ -120,9 +122,10 @@
     const taux = tauxReussite(resumes);
     const notes = resumes.filter((r) => r.note).map((r) => r.note.note);
     const moyenne = notes.length ? Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 10) / 10 : '';
-    lignes.push(['', avecNote ? 'Taux de réussite · moyenne' : 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', ...(avecNote ? [moyenne] : []), '', '', '']);
+    lignes.push(['', avecNote ? 'Taux de réussite · moyenne' : 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', '', ...(avecNote ? [moyenne] : []), '', '', '']);
     const legende = [
       `✓ réussi, ● en cours, ○ non commencé ; le nombre est celui des tentatives (clics sur « Vérifier »). ` +
+        `★ 1er coup : exercices réussis du premier coup et sans indice. ` +
         `⚠ bloqué : au moins ${(seuils || SEUILS).tentatives} tentatives ou plus de ${(seuils || SEUILS).minutes} min sur un exercice non réussi.`,
     ];
     return { entete, lignes, legende };

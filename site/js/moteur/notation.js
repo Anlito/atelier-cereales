@@ -22,7 +22,7 @@
     participation: 0.2,
     penaliteIndice: 0.1,
     penaliteIndiceMax: 0.3,
-    essaisGratuits: 2,
+    essaisGratuits: 0,
     penaliteEchec: 0.05,
     penaliteEchecMax: 0.25,
     arrondi: 0.5,
@@ -57,8 +57,10 @@
       const rEchecs = Math.min(b.penaliteEchecMax, Math.max(0, echecs - b.essaisGratuits) * b.penaliteEchec);
       const raisons = [];
       if (rIndices > 0) raisons.push(`${indices} indice${indices > 1 ? 's' : ''} (−${pourcent(rIndices)})`);
-      if (rEchecs > 0) raisons.push(`${echecs} essais ratés avant la réussite (−${pourcent(rEchecs)})`);
-      return { fraction: Math.max(0, 1 - rIndices - rEchecs), raisons: raisons.length ? raisons : ['réussi en autonomie'] };
+      if (rEchecs > 0) raisons.push(`${echecs} essai${echecs > 1 ? 's' : ''} raté${echecs > 1 ? 's' : ''} avant la réussite (−${pourcent(rEchecs)})`);
+      const parfait = indices === 0 && echecs === 0;
+      if (!raisons.length) raisons.push(parfait ? '★ du premier coup, sans indice' : 'réussi en autonomie');
+      return { fraction: Math.max(0, 1 - rIndices - rEchecs), raisons, parfait };
     }
     if (e && e.tentatives > 0) return { fraction: b.participation, raisons: [`commencé, pas encore réussi (${pourcent(b.participation)})`] };
     return { fraction: 0, raisons: [statut === 'en_cours' ? 'ouvert, jamais vérifié' : 'non commencé'] };
@@ -82,7 +84,7 @@
       const attendu = attendus.has(id);
       // Au-delà de l'objectif : seul un exercice réussi rapporte des points (en bonus).
       const fraction = attendu || donnees.exercices[id]?.statut === 'reussi' ? r.fraction : 0;
-      detail.push({ id, coef, attendu, fraction, points: fraction * coef, raisons: attendu ? r.raisons : [fraction ? 'en avance : bonus' : 'pas encore attendu'] });
+      detail.push({ id, coef, attendu, fraction, parfait: !!r.parfait, points: fraction * coef, raisons: attendu ? r.raisons : [fraction ? 'en avance : bonus' : 'pas encore attendu'] });
       obtenu += fraction * coef;
       if (attendu) possible += coef;
     }
@@ -100,7 +102,17 @@
 
   const nombreFr = (x, decimales) => String(Math.round(x * 10 ** (decimales || 1)) / 10 ** (decimales || 1)).replace('.', ',');
 
-  const api = { BAREME_DEFAUT: BAREME, completerBareme: completer, noterEquipe: noter, nombreFr };
+  // Exercices réussis du premier coup et sans indice (pour les valoriser dans l'outil professeur).
+  function premierCoup(donnees) {
+    return Object.keys(donnees.exercices).filter((id) => {
+      const e = donnees.exercices[id];
+      if (!e || e.statut !== 'reussi') return false;
+      const r = avantReussite(e);
+      return r.indices === 0 && r.echecs === 0;
+    });
+  }
+
+  const api = { BAREME_DEFAUT: BAREME, completerBareme: completer, noterEquipe: noter, nombreFr, premierCoup };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign((global.Atelier = global.Atelier || {}), api);
 })(this);

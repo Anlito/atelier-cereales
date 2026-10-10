@@ -48,7 +48,8 @@ test('tableau, détail pour la notation et CSV pour Excel (point-virgule, BOM)',
   P.noterIndice(d, '1', 2);
   P.noterVerification(d, '1', { reussi: true });
   const t = K.tableauClasse([K.resumerEquipe(d)]);
-  assert.equal(t.entete.length, 2 + 14 + 4);
+  assert.equal(t.entete.length, 2 + 14 + 5);
+  assert.ok(t.entete.includes('★ 1er coup'));
   assert.equal(t.lignes[0][2], '✓ 2');
   assert.equal(t.lignes[1][1], 'Taux de réussite');
   const det = K.detailClasse([{ donnees: d }]);

@@ -17,8 +17,9 @@ definirBareme({
   // Retenue par indice ouvert avant la réussite, et retenue maximale.
   "penaliteIndice": 0.1,
   "penaliteIndiceMax": 0.3,
-  // Vérifications ratées sans retenue, puis retenue par vérification ratée en plus, et maximum.
-  "essaisGratuits": 2,
+  // Vérifications ratées sans retenue (0 : seule une réussite du premier coup garde tous les points),
+  // puis retenue par vérification ratée en plus, et maximum.
+  "essaisGratuits": 0,
   "penaliteEchec": 0.05,
   "penaliteEchecMax": 0.25,
   // Arrondi de la note (0.5 = au demi-point, 0.25 = au quart de point, 0 = au centième).
