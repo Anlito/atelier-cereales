@@ -16,6 +16,10 @@ definirExercice({
       { "verifier": { "D3": 1 } }
     ] }
   ],
+  "indices": [
+    "Si le bouton D8 est appuyé, alors on allume la LED D3.",
+    "Blocs : « si … alors », « = », « état sur la broche D8 » et « HAUT », puis « contrôler la LED » dans « alors »."
+  ],
   "aSavoir": "4",
   "solutionReference": {
     "demarrage": [],

@@ -37,6 +37,7 @@
     global.definirExercice = Atelier.catalogue.definirExercice;
     global.definirLexique = (liste) => (Atelier.lexique = liste);
     global.definirClasses = (liste) => (Atelier.classes = liste);
+    global.definirFiches = (fiches) => (Atelier.fiches = fiches);
     global.definirCheminSauvegarde = (chemin) => (Atelier.cheminSauvegarde = chemin);
   }
 })(this);

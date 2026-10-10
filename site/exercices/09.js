@@ -14,6 +14,10 @@ definirExercice({
       { "stable": { "D6": 180 }, "duree": 3 }
     ] }
   ],
+  "indices": [
+    "Le moteur doit aller à 180°, une seule fois.",
+    "Bloc : « contrôler l'angle à 180 ° sur la broche D6 », dans « Au démarrage »."
+  ],
   "aSavoir": "9",
   "solutionReference": {
     "demarrage": [

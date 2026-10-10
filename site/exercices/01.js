@@ -13,6 +13,10 @@ definirExercice({
       { "verifier": { "D3": 1 }, "delai": 0 }
     ] }
   ],
+  "indices": [
+    "Allume la LED D3 une seule fois, au démarrage.",
+    "Utilise le bloc « contrôler la LED » avec HAUT et la broche D3, dans « Au démarrage »."
+  ],
   "aSavoir": "1",
   "solutionReference": {
     "demarrage": [

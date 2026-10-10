@@ -24,6 +24,10 @@ definirExercice({
       { "verifier": { "D3": 0 } }
     ] }
   ],
+  "indices": [
+    "Bouton appuyé : LED allumée. Bouton relâché : LED éteinte.",
+    "Blocs : « si … alors … sinon », la condition « état sur la broche D8 = HAUT », et un « contrôler la LED » dans « alors » et un dans « sinon »."
+  ],
   "aSavoir": "5",
   "solutionReference": {
     "demarrage": [],

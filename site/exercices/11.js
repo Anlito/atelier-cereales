@@ -12,6 +12,10 @@ definirExercice({
       { "sequence": "D6", "valeurs": [0, 90, 180, 90], "intervalle": 2, "intervalles": { "0": [2, 4] }, "duree": 20, "changements": 8 }
     ] }
   ],
+  "indices": [
+    "0°, attendre, 90°, attendre, 180°, attendre, 90°, attendre… puis ça recommence à 0°.",
+    "Blocs : « contrôler l'angle » et « attendre 2 seconde(s) », quatre fois chacun, l'un après l'autre."
+  ],
   "aSavoir": "11",
   "solutionReference": {
     "demarrage": [],

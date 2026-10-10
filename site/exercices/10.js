@@ -12,6 +12,10 @@ definirExercice({
       { "sequence": "D6", "valeurs": [0, 90], "intervalle": 2, "duree": 10, "changements": 4 }
     ] }
   ],
+  "indices": [
+    "Moteur à 0°, attendre 2 secondes, moteur à 90°, attendre 2 secondes… et ça recommence.",
+    "Blocs : deux « contrôler l'angle » et deux « attendre », dans « Répéter indéfiniment »."
+  ],
   "aSavoir": "10",
   "solutionReference": {
     "demarrage": [],

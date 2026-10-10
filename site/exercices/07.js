@@ -29,6 +29,10 @@ definirExercice({
       { "relacher": "D8" }
     ] }
   ],
+  "indices": [
+    "Un « si » pour le bouton PetiteDose, un autre « si » pour le bouton GrandeDose.",
+    "Blocs : deux « si … alors » l'un sous l'autre. Dans chacun, deux « contrôler la LED »."
+  ],
   "aSavoir": "7",
   "solutionReference": {
     "demarrage": [],

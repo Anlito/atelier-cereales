@@ -32,6 +32,10 @@ definirExercice({
       { "verifier": { "D6": 90, "D5": 0 }, "contexte": "après la distribution" }
     ] }
   ],
+  "indices": [
+    "Les boutons PetiteDose et GrandeDose rangent une durée dans CHOIX. Le bouton Trappe ouvre la trappe pendant CHOIX secondes.",
+    "Blocs : « affecter à CHOIX la valeur » (3 ou 7), trois « si … alors », « contrôler l'angle » (0° : ouverte, 90° : fermée) et « attendre » avec CHOIX dedans."
+  ],
   "aSavoir": "13",
   "solutionReference": {
     "demarrage": [

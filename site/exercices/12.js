@@ -24,6 +24,10 @@ definirExercice({
       { "verifier": { "D5": 0 } }
     ] }
   ],
+  "indices": [
+    "Bouton D10 appuyé : moteur à 90°. Sinon : moteur à 0°. Attention, le moteur est sur la broche D5.",
+    "Blocs : « si … alors … sinon », la condition « état sur la broche D10 = HAUT », et deux « contrôler l'angle » sur la broche D5."
+  ],
   "aSavoir": "12",
   "solutionReference": {
     "demarrage": [],

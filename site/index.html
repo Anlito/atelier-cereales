@@ -112,6 +112,14 @@
     <section class="editeur" aria-label="Éditeur de blocs">
       <div class="editeur-blockly"></div>
       <div class="editeur-etiquettes" aria-hidden="true"></div>
+      <aside class="panneau-aide" aria-labelledby="titre-aide" hidden>
+        <div class="panneau-aide-entete">
+          <span class="panneau-aide-icone"></span>
+          <h2 class="panneau-aide-titre" id="titre-aide"></h2>
+          <button type="button" class="panneau-aide-fermer" aria-label="Fermer">×</button>
+        </div>
+        <div class="panneau-aide-corps"></div>
+      </aside>
       <div class="editeur-outils">
         <div class="groupe-outils">
           <button type="button" class="btn-annuler" aria-label="Annuler" title="Annuler (Ctrl+Z)"><span data-icone="annuler"></span></button>
@@ -153,16 +161,29 @@
   </main>
 
   <footer class="aide">
-    <button type="button" class="btn-aide" data-bientot="La fiche « À savoir » arrive bientôt."><span data-icone="info"></span>À savoir</button>
-    <button type="button" class="btn-aide" data-bientot="Les indices arrivent bientôt."><span data-icone="ampoule"></span>Indice<span class="compteur">0/3</span></button>
-    <button type="button" class="btn-aide" data-bientot="Le lexique complet arrive bientôt. Clique sur un mot souligné de la consigne."><span data-icone="livre"></span>Lexique</button>
+    <button type="button" class="btn-aide" data-aide="fiche" aria-expanded="false"><span data-icone="info"></span>À savoir</button>
+    <button type="button" class="btn-aide" data-aide="indice" aria-expanded="false"><span data-icone="ampoule"></span>Indice<span class="compteur compteur-indices">0/3</span></button>
+    <button type="button" class="btn-aide btn-lexique"><span data-icone="livre"></span>Lexique</button>
     <span class="etat-enregistrement" aria-live="polite"></span>
-    <button type="button" class="btn-aide btn-enregistrer" data-bientot="L’enregistrement arrive bientôt. Ton programme est gardé dans ce navigateur."><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
+    <button type="button" class="btn-aide btn-enregistrer"><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
     <button type="button" class="btn-verifier"><span data-icone="coche"></span>Vérifier mon programme</button>
   </footer>
 
   <div class="panneau-verification" role="status" hidden></div>
   <div class="message-bref" role="status" hidden></div>
+
+  <dialog class="dialogue-lexique" aria-label="Lexique">
+    <div class="dialogue-entete">
+      <span data-icone="livre" data-epaisseur="2.4"></span>
+      <strong>Lexique</strong>
+      <button type="button" class="btn-fermer-lexique" aria-label="Fermer">×</button>
+    </div>
+    <div class="lexique-outils">
+      <input type="search" class="lexique-recherche" placeholder="Chercher un mot…" aria-label="Chercher un mot">
+      <label class="lexique-filtre"><input type="checkbox" class="lexique-vus"> Mots déjà vus</label>
+    </div>
+    <div class="lexique-grille" aria-live="polite"></div>
+  </dialog>
 
   <dialog class="dialogue-parcours" aria-label="Choisir un exercice">
     <div class="dialogue-entete">
@@ -201,11 +222,13 @@
 <script src="exercices/13B.js"></script>
 <script src="donnees/lexique.js"></script>
 <script src="donnees/classes.js"></script>
+<script src="donnees/fiches.js"></script>
 <!-- Interface -->
 <script src="js/icones.js"></script>
 <script src="js/blocs.js"></script>
 <script src="js/editeur.js"></script>
 <script src="js/simulateur-vue.js"></script>
+<script src="js/aides.js"></script>
 <script src="js/ecran-exercice.js"></script>
 <script src="js/fichiers.js"></script>
 <script src="js/accueil.js"></script>

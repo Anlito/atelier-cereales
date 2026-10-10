@@ -31,6 +31,10 @@ definirExercice({
       { "impulsion": { "D5": 1 }, "duree": 5, "tolerance": 0.5 }
     ] }
   ],
+  "indices": [
+    "Garde ton programme de l'exercice 7 et ajoute un troisième « si » pour le bouton Trappe : LED Trappe allumée 5 secondes, puis éteinte.",
+    "Blocs : un troisième « si … alors » avec la broche D10. Dedans : « contrôler la LED » pour D3, D4 et D5, « attendre 5 seconde(s) », puis D5 à BAS."
+  ],
   "aSavoir": "8",
   "solutionReference": {
     "demarrage": [],

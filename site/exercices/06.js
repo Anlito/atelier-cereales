@@ -25,6 +25,10 @@ definirExercice({
       { "verifier": { "D3": 0, "D4": 1 } }
     ] }
   ],
+  "indices": [
+    "Bouton appuyé : D3 allumée et D4 éteinte. Sinon, c'est l'inverse.",
+    "Blocs : « si … alors … sinon », avec deux « contrôler la LED » dans « alors » et deux dans « sinon »."
+  ],
   "aSavoir": "6",
   "solutionReference": {
     "demarrage": [],

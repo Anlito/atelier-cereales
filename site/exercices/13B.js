@@ -51,6 +51,10 @@ definirExercice({
         "attendu": "la trappe devrait rester fermée (CHOIX doit revenir à 0 après la distribution)" }
     ] }
   ],
+  "indices": [
+    "Comme pour 13A, mais la trappe s'ouvre seulement si une dose a été choisie, et CHOIX revient à 0 après.",
+    "Blocs : un « si CHOIX ≠ 0 alors » à l'intérieur du « si » du bouton Trappe, et « affecter à CHOIX la valeur 0 » à la fin."
+  ],
   "aSavoir": "13",
   "solutionReference": {
     "demarrage": [

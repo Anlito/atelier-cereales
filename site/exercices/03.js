@@ -16,6 +16,10 @@ definirExercice({
       { "opposees": ["D3", "D4"], "duree": 10 }
     ] }
   ],
+  "indices": [
+    "Quand D3 est allumée, D4 est éteinte. Puis on inverse, toutes les 2 secondes.",
+    "Blocs : quatre « contrôler la LED » et deux « attendre », dans « Répéter indéfiniment »."
+  ],
   "aSavoir": "3",
   "solutionReference": {
     "demarrage": [],

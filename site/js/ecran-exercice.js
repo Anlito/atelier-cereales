@@ -118,6 +118,41 @@
     });
     let vue = null;
 
+    // ----- Aides : indices, fiche « À savoir », lexique -----
+
+    const aides = A.creerAides({
+      indicesOuverts: () => A.progressionExercice(D, etat.exercice.id).indicesOuverts,
+      ouvrirIndice(niveau) {
+        A.noterIndice(D, etat.exercice.id, niveau);
+        majCompteurIndices();
+        aEnregistrer(true);
+      },
+    });
+    function majCompteurIndices() {
+      $('.compteur-indices').textContent = A.progressionExercice(D, etat.exercice.id).indicesOuverts + '/3';
+    }
+    // Mots du lexique déjà rencontrés : ceux des consignes des exercices ouverts par l'équipe.
+    function motsVus() {
+      const vus = new Set();
+      for (const ex of exercices) {
+        if (!D.exercices[ex.id]) continue;
+        lexique.forEach((entree, i) => {
+          if ((entree.formes || []).some((forme) => A.contientMot(ex.consigne, forme))) vus.add(i);
+        });
+      }
+      return vus;
+    }
+    const lexiqueComplet = A.creerLexique(motsVus);
+    $('[data-aide="fiche"]').addEventListener('click', () => {
+      fermerVerification();
+      aides.fiche();
+    });
+    $('[data-aide="indice"]').addEventListener('click', () => {
+      fermerVerification();
+      aides.indice();
+    });
+    $('.btn-lexique').addEventListener('click', () => lexiqueComplet.ouvrir());
+
     // ----- Chargement d'un exercice -----
 
     function ouvrir(ex) {
@@ -138,6 +173,8 @@
       vue = A.creerVueSimulateur($('.simulateur'), ex, { basculerBouton });
       afficher();
       A.noterOuverture(D, ex.id);
+      aides.changerExercice(ex);
+      majCompteurIndices();
       aEnregistrer(true);
     }
 
@@ -177,6 +214,7 @@
       if (e.key === 'Escape') {
         fermerBulle();
         fermerVerification();
+        aides.fermer();
       }
     });
 
@@ -377,11 +415,6 @@
     $('.btn-zoom-plus').addEventListener('click', () => editeur.zoomer(1));
     $('.btn-recentrer').addEventListener('click', editeur.recentrer);
 
-    // ----- Aides (étape 4) et enregistrement (étape 5) : pas encore branchés -----
-
-    for (const b of document.querySelectorAll('[data-bientot]:not(.btn-enregistrer)')) {
-      b.addEventListener('click', () => message(b.dataset.bientot));
-    }
     let minuteur = null;
     function message(texte, duree) {
       const t = $('.message-bref');

@@ -12,6 +12,10 @@ definirExercice({
       { "sequence": "D3", "valeurs": [1, 0], "intervalle": 2, "duree": 10, "changements": 4 }
     ] }
   ],
+  "indices": [
+    "Allume la LED, attends 2 secondes, éteins-la, attends encore 2 secondes… et ça recommence.",
+    "Blocs : deux « contrôler la LED » et deux « attendre », dans « Répéter indéfiniment »."
+  ],
   "aSavoir": "2",
   "solutionReference": {
     "demarrage": [],
