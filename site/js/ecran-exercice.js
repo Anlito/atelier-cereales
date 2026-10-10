@@ -81,7 +81,8 @@
     }
   }
 
-  // session : { donnees (progression de l'équipe), handle (fichier de l'équipe, ou null) }
+  // session : { donnees (progression de l'équipe), handle (fichier de l'équipe, ou null),
+  //             lecture (mode enseignant : rien n'est enregistré), exercice, programme (à ouvrir) }
   function demarrer(session) {
     poserIcones($('.ecran-exercice'));
     $('.ecran-exercice').hidden = false;
@@ -100,11 +101,25 @@
       nonEnregistre: false, // modifications pas encore écrites dans le fichier
     };
     const D = etat.donnees;
-    // Mode enseignant provisoire (?enseignant=1) : tous les exercices sont ouverts.
-    const toutDebloquer = new URLSearchParams(location.search).has('enseignant');
+    // Mode enseignant (?enseignant=1, ou programme ouvert depuis prof.html) : tout est ouvert,
+    // la solution peut être affichée, et rien n'est enregistré (ni fichier, ni copie de secours).
+    const lecture = !!session.lecture;
+    const toutDebloquer = lecture;
 
     $('.equipe-noms').textContent = D.equipe.eleves.join(', ');
     $('.equipe-classe').textContent = D.equipe.classe ? '· ' + D.equipe.classe : '';
+    if (lecture) {
+      document.body.classList.add('mode-enseignant');
+      $('.entete-equipe').insertAdjacentHTML('afterbegin', '<span class="badge-enseignant">Mode enseignant · rien n’est enregistré</span>');
+      $('.btn-solution').hidden = false;
+      $('.btn-enregistrer').hidden = true;
+      $('.etat-enregistrement').hidden = true;
+    }
+    $('.btn-solution').addEventListener('click', () => {
+      if (!confirm('Remplacer le programme affiché par la solution de référence ?')) return;
+      editeur.charger(etat.exercice, A.versBlockly(etat.exercice.solutionReference));
+      arreter();
+    });
 
     const editeur = A.creerEditeur($('.editeur'), {
       modifie() {
@@ -478,6 +493,7 @@
 
     // Note une modification. Avec le fichier de l'équipe, il est réécrit tout seul (tout de suite, ou après 10 s).
     function aEnregistrer(maintenant) {
+      if (lecture) return;
       A.fichiers.sauverSecours(D);
       etat.nonEnregistre = true;
       majEtatEnregistrement();
@@ -488,6 +504,7 @@
 
     let enCours = null;
     async function enregistrer(automatique) {
+      if (lecture) return null;
       if (enCours) return enCours;
       A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
       A.fichiers.sauverSecours(D);
@@ -528,6 +545,7 @@
 
     // Rappel à la fermeture de l'onglet si le fichier n'est pas à jour.
     addEventListener('beforeunload', (e) => {
+      if (lecture) return;
       A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
       A.fichiers.sauverSecours(D);
       if (etat.nonEnregistre) {
@@ -542,10 +560,12 @@
     }, 1000);
 
     let depart = exercices.find((e) => e.id === A.exerciceAReprendre(D)) || exercices[0];
-    const demande = new URLSearchParams(location.search).get('exercice');
+    const demande = session.exercice || new URLSearchParams(location.search).get('exercice');
     if (demande && A.estDebloque(D, demande, { toutDebloquer })) depart = exercices.find((e) => e.id === demande) || depart;
 
     ouvrir(depart);
+    // Programme précis à montrer (ex. celui d'une vérification de l'historique, ouvert depuis prof.html).
+    if (session.programme) editeur.charger(depart, session.programme.blocks ? session.programme : A.versBlockly(session.programme));
     majCommandes();
     majEtatEnregistrement();
     A.ecran = { ouvrir, editeur, etat };

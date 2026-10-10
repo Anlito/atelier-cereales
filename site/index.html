@@ -164,6 +164,7 @@
     <button type="button" class="btn-aide" data-aide="fiche" aria-expanded="false"><span data-icone="info"></span>À savoir</button>
     <button type="button" class="btn-aide" data-aide="indice" aria-expanded="false"><span data-icone="ampoule"></span>Indice<span class="compteur compteur-indices">0/3</span></button>
     <button type="button" class="btn-aide btn-lexique"><span data-icone="livre"></span>Lexique</button>
+    <button type="button" class="btn-aide btn-solution" hidden><span data-icone="oeil"></span>Solution</button>
     <span class="etat-enregistrement" aria-live="polite"></span>
     <button type="button" class="btn-aide btn-enregistrer"><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
     <button type="button" class="btn-verifier"><span data-icone="coche"></span>Vérifier mon programme</button>
@@ -235,7 +236,26 @@
 <script>
   Atelier.ajusterEchelle();
   addEventListener('resize', Atelier.ajusterEchelle);
-  Atelier.demarrerAccueil(Atelier.demarrerEcranExercice);
+  (function () {
+    var q = new URLSearchParams(location.search);
+    // Programme d'une équipe ouvert depuis l'outil professeur (prof.html).
+    if (q.has('revue')) {
+      try {
+        var r = JSON.parse(localStorage.getItem('atelier-cereales-revue'));
+        if (r && r.donnees) {
+          document.title = 'Lecture · ' + r.donnees.equipe.eleves.join(', ');
+          return Atelier.demarrerEcranExercice({ donnees: r.donnees, handle: null, lecture: true, exercice: r.exercice, programme: r.programme });
+        }
+      } catch (e) { /* on ouvre l'accueil */ }
+    }
+    // Mode enseignant : pas d'accueil, une équipe fictive, rien n'est enregistré.
+    if (q.has('enseignant')) {
+      return Atelier.demarrerEcranExercice({
+        donnees: Atelier.creerProgression({ eleves: ['Mode enseignant'], classe: '' }), handle: null, lecture: true,
+      });
+    }
+    Atelier.demarrerAccueil(Atelier.demarrerEcranExercice);
+  })();
 </script>
 </body>
 </html>

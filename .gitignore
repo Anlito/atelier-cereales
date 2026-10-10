@@ -4,3 +4,5 @@ node_modules/
 .claude/
 # Copie de travail du ZIP de maquettes (référence, non publiée)
 _source_zip/
+# Sauvegardes d’exemple (recréées par « npm run exemples »)
+exemples/

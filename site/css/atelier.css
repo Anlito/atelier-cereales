@@ -399,6 +399,10 @@ button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
 .liste-exercices button:disabled .liste-numero { background: var(--gris); }
 .liste-exercices button:disabled:hover { border-color: var(--bord); }
 
+/* Mode enseignant */
+.badge-enseignant { margin-right: 0.5rem; padding: 0.125rem 0.625rem; border-radius: 999px; background: var(--encre); color: #FFFFFF; font-weight: 700; font-size: 0.8125rem; }
+.mode-enseignant .btn-solution { margin-left: auto; }
+
 /* État de l'enregistrement, à côté du bouton */
 .etat-enregistrement { margin-left: auto; font-size: 0.875rem; color: var(--texte-2); white-space: nowrap; }
 .etat-enregistrement.a-faire { color: #8A5300; font-weight: 700; }

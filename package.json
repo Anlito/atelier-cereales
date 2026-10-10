@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "vendor": "node tools/vendor.js",
-    "start": "node tools/serve.js"
+    "start": "node tools/serve.js",
+    "exemples": "node tools/exemples-equipes.js"
   },
   "devDependencies": {
     "blockly": "^13.3.0"

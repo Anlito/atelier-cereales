@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace professeur — Atelier du distributeur de céréales</title>
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/atelier.css">
+<link rel="stylesheet" href="css/prof.css">
+</head>
+<body class="page-prof">
+<header class="prof-entete">
+  <img src="img/favicon.svg" alt="" width="40" height="40">
+  <div>
+    <h1>Espace professeur</h1>
+    <p>Atelier du distributeur de céréales · les fichiers sont lus dans ce navigateur : rien n’est envoyé ni enregistré sur le site.</p>
+  </div>
+  <a class="btn-secondaire prof-lien-atelier" href="index.html?enseignant=1" target="_blank" rel="noopener">Ouvrir l’atelier en mode enseignant</a>
+</header>
+
+<main class="prof-contenu">
+  <section class="prof-import" aria-label="Importer les sauvegardes">
+    <div class="zone-depot" tabindex="0">
+      <strong>Glisse ici les fichiers .json des équipes</strong>
+      <span>ou</span>
+      <div class="prof-boutons">
+        <label class="btn-principal btn-fichiers">Choisir des fichiers<input type="file" class="entree-fichiers" accept=".json,application/json" multiple hidden></label>
+        <button type="button" class="btn-principal btn-dossier-classe" hidden>Choisir le dossier de la classe</button>
+      </div>
+      <span class="zone-depot-aide">Le dossier de la classe (ex. DISTRIBUTEUR DE CEREALES) : tous les dossiers des équipes sont lus d’un coup.</span>
+    </div>
+    <div class="prof-messages" aria-live="polite"></div>
+  </section>
+
+  <section class="prof-outils" aria-label="Filtres et exports" hidden>
+    <label>Classe <select class="filtre-classe"></select></label>
+    <label>Trier par
+      <select class="tri">
+        <option value="equipe">équipe</option>
+        <option value="avancement">avancement</option>
+        <option value="activite">dernière activité</option>
+      </select>
+    </label>
+    <label class="case"><input type="checkbox" class="filtre-bloquees"> Équipes bloquées seulement</label>
+    <fieldset class="seuils">
+      <legend>Alerte « bloqué »</legend>
+      <label><input type="number" class="seuil-tentatives" min="1" max="99" value="6"> tentatives</label>
+      <span>ou</span>
+      <label><input type="number" class="seuil-minutes" min="1" max="240" value="20"> min</label>
+    </fieldset>
+    <div class="prof-exports">
+      <button type="button" class="btn-secondaire btn-csv">CSV</button>
+      <button type="button" class="btn-secondaire btn-xlsx">Excel</button>
+      <button type="button" class="btn-secondaire btn-imprimer">Imprimer</button>
+    </div>
+  </section>
+
+  <section class="prof-resultats" hidden>
+    <h2 class="titre-impression">Atelier du distributeur de céréales — <span class="titre-classe"></span></h2>
+    <div class="prof-tableau-zone"><table class="prof-tableau"></table></div>
+    <p class="prof-legende"></p>
+  </section>
+</main>
+
+<dialog class="prof-detail" aria-labelledby="detail-titre">
+  <div class="detail-entete">
+    <h2 id="detail-titre"></h2>
+    <button type="button" class="btn-fermer-detail" aria-label="Fermer">×</button>
+  </div>
+  <div class="detail-corps"></div>
+</dialog>
+
+<script src="js/moteur/programme.js"></script>
+<script src="js/moteur/simulation.js"></script>
+<script src="js/moteur/validation.js"></script>
+<script src="js/moteur/catalogue.js"></script>
+<script src="js/moteur/progression.js"></script>
+<script src="js/moteur/classe.js"></script>
+<script src="js/moteur/xlsx.js"></script>
+<script src="exercices/parametres.js"></script>
+<script src="exercices/01.js"></script>
+<script src="exercices/02.js"></script>
+<script src="exercices/03.js"></script>
+<script src="exercices/04.js"></script>
+<script src="exercices/05.js"></script>
+<script src="exercices/06.js"></script>
+<script src="exercices/07.js"></script>
+<script src="exercices/08.js"></script>
+<script src="exercices/09.js"></script>
+<script src="exercices/10.js"></script>
+<script src="exercices/11.js"></script>
+<script src="exercices/12.js"></script>
+<script src="exercices/13A.js"></script>
+<script src="exercices/13B.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/blocs.js"></script>
+<script src="js/aides.js"></script>
+<script src="js/prof.js"></script>
+</body>
+</html>
