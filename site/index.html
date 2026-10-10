@@ -8,7 +8,76 @@
 <link rel="stylesheet" href="css/atelier.css">
 </head>
 <body>
-<div class="ecran-exercice">
+<div class="ecran-accueil" hidden>
+  <div class="accueil-carte">
+    <div class="accueil-titre">
+      <img src="img/favicon.svg" alt="" width="48" height="48">
+      <div>
+        <h1>Atelier du distributeur de céréales</h1>
+        <p>Programme en blocs et regarde le résultat dans le simulateur.</p>
+      </div>
+    </div>
+
+    <section class="accueil-panneau" data-panneau="choix">
+      <div class="accueil-reprendre" hidden>
+        <div>
+          <strong>Reprendre le travail de <span class="reprendre-equipe"></span></strong>
+          <span class="reprendre-date"></span>
+        </div>
+        <button type="button" class="btn-principal btn-reprendre">Reprendre<span data-icone="suivant" data-epaisseur="2.8"></span></button>
+        <button type="button" class="btn-lien btn-pas-nous">Ce n’est pas notre équipe</button>
+      </div>
+      <div class="accueil-choix">
+        <button type="button" class="grand-choix btn-nouvelle">
+          <span data-icone="equipe" data-epaisseur="2.4"></span>
+          <strong>Nouvelle équipe</strong>
+          <span>On commence le projet.</span>
+        </button>
+        <button type="button" class="grand-choix btn-ouvrir">
+          <span data-icone="disquette" data-epaisseur="2.4"></span>
+          <strong>Ouvrir notre sauvegarde</strong>
+          <span>On continue notre travail.</span>
+        </button>
+      </div>
+      <p class="accueil-erreur" role="alert" hidden></p>
+    </section>
+
+    <section class="accueil-panneau" data-panneau="equipe" hidden>
+      <h2>Qui est dans l’équipe ?</h2>
+      <form class="formulaire-equipe" novalidate>
+        <div class="champs-prenoms">
+          <label>Prénom 1<input class="champ-prenom" autocomplete="off" maxlength="20" required></label>
+          <label>Prénom 2<input class="champ-prenom" autocomplete="off" maxlength="20"></label>
+          <label>Prénom 3<input class="champ-prenom" autocomplete="off" maxlength="20"></label>
+        </div>
+        <label class="label-classe">Classe<select class="champ-classe"></select></label>
+        <p class="accueil-erreur" role="alert" hidden></p>
+        <div class="accueil-actions">
+          <button type="button" class="btn-secondaire btn-retour-choix">Retour</button>
+          <button type="submit" class="btn-principal">Suivant<span data-icone="suivant" data-epaisseur="2.8"></span></button>
+        </div>
+      </form>
+    </section>
+
+    <section class="accueil-panneau" data-panneau="dossier" hidden>
+      <h2>Le dossier de ton équipe</h2>
+      <p class="avec-acces">Ton travail sera enregistré dans ce dossier, sur le réseau :</p>
+      <p class="sans-acces-texte">Sur ce navigateur, « Enregistrer » télécharge le fichier <strong class="nom-fichier"></strong>. Range-le ensuite dans ce dossier :</p>
+      <div class="chemin"></div>
+      <p class="avec-acces dossier-aide">Clique sur « Choisir le dossier », va jusqu’au dossier <strong class="nom-dossier-equipe"></strong> et valide.
+        S’il n’existe pas encore, choisis le dossier <strong>DISTRIBUTEUR DE CEREALES</strong> : il sera créé pour toi.</p>
+      <div class="dossier-resultat" aria-live="polite"></div>
+      <p class="accueil-erreur" role="alert" hidden></p>
+      <div class="accueil-actions">
+        <button type="button" class="btn-secondaire btn-retour-equipe">Retour</button>
+        <button type="button" class="btn-principal btn-choisir-dossier"><span data-icone="disquette" data-epaisseur="2.4"></span>Choisir le dossier</button>
+        <button type="button" class="btn-principal btn-commencer-sans-dossier" hidden>Commencer<span data-icone="suivant" data-epaisseur="2.8"></span></button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="ecran-exercice" hidden>
 
   <header class="entete">
     <button type="button" class="btn-parcours"><span data-icone="retour" data-epaisseur="2.8"></span>Parcours</button>
@@ -87,6 +156,7 @@
     <button type="button" class="btn-aide" data-bientot="La fiche « À savoir » arrive bientôt."><span data-icone="info"></span>À savoir</button>
     <button type="button" class="btn-aide" data-bientot="Les indices arrivent bientôt."><span data-icone="ampoule"></span>Indice<span class="compteur">0/3</span></button>
     <button type="button" class="btn-aide" data-bientot="Le lexique complet arrive bientôt. Clique sur un mot souligné de la consigne."><span data-icone="livre"></span>Lexique</button>
+    <span class="etat-enregistrement" aria-live="polite"></span>
     <button type="button" class="btn-aide btn-enregistrer" data-bientot="L’enregistrement arrive bientôt. Ton programme est gardé dans ce navigateur."><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
     <button type="button" class="btn-verifier"><span data-icone="coche"></span>Vérifier mon programme</button>
   </footer>
@@ -99,7 +169,7 @@
       <strong>Choisir un exercice</strong>
       <button type="button" class="btn-fermer-parcours" aria-label="Fermer">×</button>
     </div>
-    <p class="dialogue-note">Version d’essai : tous les exercices sont ouverts. Le parcours avec déblocage arrive à l’étape 5.</p>
+    <p class="dialogue-note"><strong class="dialogue-avancement"></strong> · Réussis un exercice pour ouvrir le suivant.</p>
     <div class="liste-exercices"></div>
   </dialog>
 </div>
@@ -112,6 +182,7 @@
 <script src="js/moteur/simulation.js"></script>
 <script src="js/moteur/validation.js"></script>
 <script src="js/moteur/catalogue.js"></script>
+<script src="js/moteur/progression.js"></script>
 <!-- Données modifiables par le professeur -->
 <script src="exercices/parametres.js"></script>
 <script src="exercices/01.js"></script>
@@ -129,12 +200,19 @@
 <script src="exercices/13A.js"></script>
 <script src="exercices/13B.js"></script>
 <script src="donnees/lexique.js"></script>
+<script src="donnees/classes.js"></script>
 <!-- Interface -->
 <script src="js/icones.js"></script>
 <script src="js/blocs.js"></script>
 <script src="js/editeur.js"></script>
 <script src="js/simulateur-vue.js"></script>
 <script src="js/ecran-exercice.js"></script>
-<script>Atelier.demarrerEcranExercice();</script>
+<script src="js/fichiers.js"></script>
+<script src="js/accueil.js"></script>
+<script>
+  Atelier.ajusterEchelle();
+  addEventListener('resize', Atelier.ajusterEchelle);
+  Atelier.demarrerAccueil(Atelier.demarrerEcranExercice);
+</script>
 </body>
 </html>

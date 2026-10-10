@@ -74,12 +74,17 @@
 
   // ---------- Écran ----------
 
-  function demarrer() {
-    ajusterEchelle();
-    addEventListener('resize', ajusterEchelle);
-    for (const el of document.querySelectorAll('[data-icone]')) {
+  // Icônes déclarées dans le HTML par data-icone.
+  function poserIcones(racine) {
+    for (const el of racine.querySelectorAll('[data-icone]')) {
       el.outerHTML = el.dataset.icone === 'lecture' ? A.LECTURE : A.icone(el.dataset.icone, { epaisseur: el.dataset.epaisseur });
     }
+  }
+
+  // session : { donnees (progression de l'équipe), handle (fichier de l'équipe, ou null) }
+  function demarrer(session) {
+    poserIcones($('.ecran-exercice'));
+    $('.ecran-exercice').hidden = false;
 
     const exercices = A.catalogue.exercices();
     const lexique = A.lexique || [];
@@ -90,18 +95,22 @@
       sim: null,
       servos: {}, // position affichée de chaque servo
       rejeu: null,
-      programmes: lireBrouillons(),
+      donnees: session.donnees,
+      handle: session.handle,
+      nonEnregistre: false, // modifications pas encore écrites dans le fichier
     };
+    const D = etat.donnees;
+    // Mode enseignant provisoire (?enseignant=1) : tous les exercices sont ouverts.
+    const toutDebloquer = new URLSearchParams(location.search).has('enseignant');
 
-    // Équipe (l'accueil arrive à l'étape 5).
-    $('.equipe-noms').textContent = 'Équipe d’essai';
-    $('.equipe-classe').textContent = '';
+    $('.equipe-noms').textContent = D.equipe.eleves.join(', ');
+    $('.equipe-classe').textContent = D.equipe.classe ? '· ' + D.equipe.classe : '';
 
     const editeur = A.creerEditeur($('.editeur'), {
       modifie() {
         if (etat.mode !== 'arrete') arreter();
         fermerVerification();
-        enregistrerBrouillon();
+        programmeModifie();
       },
       zoom(pourcent) {
         $('.zoom-valeur').textContent = pourcent + ' %';
@@ -112,7 +121,8 @@
     // ----- Chargement d'un exercice -----
 
     function ouvrir(ex) {
-      if (etat.exercice) etat.programmes[etat.exercice.id] = editeur.sauvegarder();
+      if (!A.estDebloque(D, ex.id, { toutDebloquer })) return;
+      if (etat.exercice) A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
       arreter();
       fermerVerification();
       fermerBulle();
@@ -124,10 +134,11 @@
       $('.consigne-texte').innerHTML = c.html;
       $('.consigne').classList.toggle('longue', c.longue);
       $('.consigne-courte').textContent = ex.consigne.replace(/\s*\n\s*/g, ' ');
-      editeur.charger(ex, etat.programmes[ex.id]);
+      editeur.charger(ex, A.progressionExercice(D, ex.id).programme);
       vue = A.creerVueSimulateur($('.simulateur'), ex, { basculerBouton });
       afficher();
-      enregistrerBrouillon();
+      A.noterOuverture(D, ex.id);
+      aEnregistrer(true);
     }
 
     // ----- Consigne : réduire / afficher, bulle de définition -----
@@ -299,6 +310,20 @@
       fermerBulle();
       const { programme, horsProgramme, incomplets } = editeur.lire();
       const r = A.valider(etat.exercice, programme);
+      const notes = [];
+      if (horsProgramme.length)
+        notes.push('Un bloc est resté seul, hors du programme : il ne s’exécute pas. Accroche-le dans « Au démarrage » ou « Répéter indéfiniment ».');
+      if (incomplets.length) notes.push('Un bloc a une case vide : complète-la.');
+      // L'élève ne voit que le premier écart ; le professeur retrouve tous les écarts dans l'historique.
+      const ecarts = r.reussi
+        ? []
+        : (etat.exercice.scenarios || [])
+            .map((sc) => A.jouerScenario(etat.exercice, programme, sc))
+            .filter((x) => !x.reussi)
+            .map((x) => x.message);
+      A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
+      A.noterVerification(D, etat.exercice.id, { reussi: r.reussi, message: r.message, ecarts, notes, programme });
+      aEnregistrer(true);
       const panneau = $('.panneau-verification');
       panneau.classList.toggle('reussi', r.reussi);
       if (r.reussi) {
@@ -306,17 +331,13 @@
         panneau.innerHTML =
           `<div class="verif-titre">${A.icone('coche', { couleur: '#2E7D32', epaisseur: 2.8 })}Ton programme fonctionne.</div>` +
           '<p>Le simulateur fait exactement ce que demande la consigne.</p>' +
+          (etat.handle ? '' : '<p class="verif-note">Pense à enregistrer ton travail dans le dossier de ton équipe.</p>') +
           '<div class="verif-actions">' +
           (suivant ? `<button type="button" class="btn-principal btn-suivant">Exercice suivant${A.icone('suivant', { epaisseur: 2.8 })}</button>` : '') +
           '<button type="button" class="btn-secondaire btn-fermer-verif">Fermer</button></div>';
         if (suivant) $('.btn-suivant', panneau).addEventListener('click', () => ouvrir(suivant));
+        majParcours();
       } else {
-        const notes = [];
-        if (horsProgramme.length)
-          notes.push(
-            'Un bloc est resté seul, hors du programme : il ne s’exécute pas. Accroche-le dans « Au démarrage » ou « Répéter indéfiniment ».',
-          );
-        if (incomplets.length) notes.push('Un bloc a une case vide : complète-la.');
         panneau.innerHTML =
           `<div class="verif-titre">${A.icone('ampoule', { couleur: '#1A6E8E' })}Le test montre une différence</div>` +
           `<p class="verif-message">${echapper(r.message)}</p>` +
@@ -358,67 +379,138 @@
 
     // ----- Aides (étape 4) et enregistrement (étape 5) : pas encore branchés -----
 
-    for (const b of document.querySelectorAll('[data-bientot]')) {
+    for (const b of document.querySelectorAll('[data-bientot]:not(.btn-enregistrer)')) {
       b.addEventListener('click', () => message(b.dataset.bientot));
     }
     let minuteur = null;
-    function message(texte) {
+    function message(texte, duree) {
       const t = $('.message-bref');
       t.textContent = texte;
       t.hidden = false;
       clearTimeout(minuteur);
-      minuteur = setTimeout(() => (t.hidden = true), 2600);
+      minuteur = setTimeout(() => (t.hidden = true), duree || 2600);
     }
 
-    // ----- Choix de l'exercice (provisoire, en attendant l'écran Parcours) -----
+    // ----- Parcours (provisoire, en attendant l'écran dessiné) : statut et déblocage -----
 
     const liste = $('.liste-exercices');
-    liste.innerHTML = exercices
-      .map((ex, i) => `<button type="button" data-i="${i}"><span class="liste-numero">${ex.id}</span>${echapper(ex.titre)}</button>`)
-      .join('');
+    function majParcours() {
+      $('.dialogue-avancement').textContent = A.avancement(D) + '/13 exercices réussis';
+      liste.innerHTML = exercices
+        .map((ex, i) => {
+          const p = D.exercices[ex.id];
+          const ouvert = A.estDebloque(D, ex.id, { toutDebloquer });
+          const statut = !ouvert ? 'verrouille' : p ? p.statut : 'non_commence';
+          const symbole = { verrouille: '🔒', reussi: '✓', en_cours: '●', non_commence: '○' }[statut];
+          const mot = { verrouille: 'verrouillé', reussi: 'réussi', en_cours: 'en cours', non_commence: 'à faire' }[statut];
+          return (
+            `<button type="button" data-i="${i}" class="statut-${statut}"${ouvert ? '' : ' disabled'}>` +
+            `<span class="liste-numero">${ex.id}</span><span class="liste-titre">${echapper(ex.titre)}</span>` +
+            `<span class="liste-statut"><span aria-hidden="true">${symbole}</span> ${mot}</span></button>`
+          );
+        })
+        .join('');
+    }
     liste.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-i]');
-      if (!b) return;
+      if (!b || b.disabled) return;
       $('.dialogue-parcours').close();
       ouvrir(exercices[Number(b.dataset.i)]);
     });
-    $('.btn-parcours').addEventListener('click', () => $('.dialogue-parcours').showModal());
+    $('.btn-parcours').addEventListener('click', () => {
+      majParcours();
+      $('.dialogue-parcours').showModal();
+    });
     $('.btn-fermer-parcours').addEventListener('click', () => $('.dialogue-parcours').close());
 
-    // ----- Brouillon dans le navigateur (copie de secours) -----
+    // ----- Enregistrement : copie de secours à chaque modification, fichier de l'équipe -----
 
-    function lireBrouillons() {
-      try {
-        return JSON.parse(localStorage.getItem('atelier-cereales-brouillon') || '{}').programmes || {};
-      } catch {
-        return {};
+    let minuteurFichier = null;
+    let minuteurSecours = null;
+    function programmeModifie() {
+      clearTimeout(minuteurSecours);
+      minuteurSecours = setTimeout(() => {
+        A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
+        aEnregistrer(false);
+      }, 800);
+    }
+
+    // Note une modification. Avec le fichier de l'équipe, il est réécrit tout seul (tout de suite, ou après 10 s).
+    function aEnregistrer(maintenant) {
+      A.fichiers.sauverSecours(D);
+      etat.nonEnregistre = true;
+      majEtatEnregistrement();
+      if (!etat.handle) return;
+      clearTimeout(minuteurFichier);
+      minuteurFichier = setTimeout(() => enregistrer(true), maintenant ? 0 : 10000);
+    }
+
+    let enCours = null;
+    async function enregistrer(automatique) {
+      if (enCours) return enCours;
+      A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
+      A.fichiers.sauverSecours(D);
+      majEtatEnregistrement('…');
+      enCours = (async () => {
+        try {
+          const r = await A.fichiers.enregistrer(D, etat.handle, { silencieux: automatique });
+          if (r.ok) {
+            if (r.handle && r.handle !== etat.handle) {
+              etat.handle = r.handle;
+              A.fichiers.memoriserHandle(r.handle);
+            }
+            etat.nonEnregistre = false;
+            etat.dernierEnregistrement = new Date();
+            if (r.telecharge) message(`Le fichier « ${A.fichiers.nomFichier(D)} » est dans Téléchargements : range-le dans le dossier de ton équipe.`, 6000);
+            else if (!automatique) message('C’est enregistré dans le dossier de ton équipe.');
+          }
+        } catch {
+          if (!automatique) message('L’enregistrement n’a pas marché. Clique encore sur « Enregistrer » et choisis le dossier de ton équipe.', 6000);
+          else etat.handle = null;
+        } finally {
+          enCours = null;
+          majEtatEnregistrement();
+        }
+      })();
+      return enCours;
+    }
+    $('.btn-enregistrer').addEventListener('click', () => enregistrer(false));
+
+    function majEtatEnregistrement(texte) {
+      const el = $('.etat-enregistrement');
+      if (texte) el.textContent = 'Enregistrement' + texte;
+      else if (!etat.nonEnregistre && etat.dernierEnregistrement)
+        el.textContent = 'Enregistré à ' + etat.dernierEnregistrement.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      else el.textContent = etat.nonEnregistre ? 'Pas encore enregistré' : '';
+      el.classList.toggle('a-faire', !texte && etat.nonEnregistre && !etat.handle);
+    }
+
+    // Rappel à la fermeture de l'onglet si le fichier n'est pas à jour.
+    addEventListener('beforeunload', (e) => {
+      A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
+      A.fichiers.sauverSecours(D);
+      if (etat.nonEnregistre) {
+        e.preventDefault();
+        e.returnValue = '';
       }
-    }
-    function enregistrerBrouillon() {
-      try {
-        if (etat.exercice) etat.programmes[etat.exercice.id] = editeur.sauvegarder();
-        localStorage.setItem(
-          'atelier-cereales-brouillon',
-          JSON.stringify({ exercice: etat.exercice && etat.exercice.id, programmes: etat.programmes }),
-        );
-      } catch {
-        /* navigation privée ou stockage plein : la copie de secours est simplement ignorée */
-      }
-    }
-    let depart = exercices[0];
-    try {
-      const id = JSON.parse(localStorage.getItem('atelier-cereales-brouillon') || '{}').exercice;
-      depart = exercices.find((e) => e.id === id) || depart;
-    } catch {
-      /* rien */
-    }
+    });
+
+    // Temps passé : seulement l'activité réelle (onglet visible et actif).
+    setInterval(() => {
+      if (etat.exercice && document.visibilityState === 'visible' && document.hasFocus()) A.ajouterTemps(D, etat.exercice.id, 1);
+    }, 1000);
+
+    let depart = exercices.find((e) => e.id === A.exerciceAReprendre(D)) || exercices[0];
     const demande = new URLSearchParams(location.search).get('exercice');
-    if (demande) depart = exercices.find((e) => e.id === demande) || depart;
+    if (demande && A.estDebloque(D, demande, { toutDebloquer })) depart = exercices.find((e) => e.id === demande) || depart;
 
     ouvrir(depart);
     majCommandes();
+    majEtatEnregistrement();
     A.ecran = { ouvrir, editeur, etat };
   }
 
   A.demarrerEcranExercice = demarrer;
+  A.ajusterEchelle = ajusterEchelle;
+  A.poserIcones = poserIcones;
 })(this);
