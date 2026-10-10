@@ -20,6 +20,11 @@
   const BROCHES_BOUTON = ['D8', 'D9', 'D10'];
   const BROCHES_SERVO = ['D5', 'D6'];
   const menu = (liste) => liste.map((b) => [b, b]);
+  // Pour une LED, on dit aussi ce que fait l'état : HAUT = allumée, BAS = éteinte.
+  const HAUT_BAS_LED = [
+    ['HAUT (1) : allumée', '1'],
+    ['BAS (0) : éteinte', '0'],
+  ];
   const HAUT_BAS = [
     ['HAUT (1)', '1'],
     ['BAS (0)', '0'],
@@ -47,7 +52,7 @@
       message0: '%1 contrôler la LED à l’état %2 sur la broche %3',
       args0: [
         image('lumiere', 'LED'),
-        { type: 'field_dropdown', name: 'ETAT', options: HAUT_BAS },
+        { type: 'field_dropdown', name: 'ETAT', options: HAUT_BAS_LED },
         { type: 'field_dropdown', name: 'BROCHE', options: menu(BROCHES_LED) },
       ],
       previousStatement: null,

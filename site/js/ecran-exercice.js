@@ -310,7 +310,7 @@
           if (!sim) etats[c.broche] = etat.servos[c.broche] = 0;
         }
       }
-      vue.afficher(etats);
+      vue.afficher(etats, !!sim);
       editeur.surligner(sim ? sim.blocEnCours : null);
       $('.chrono-valeur').textContent = chrono(sim ? sim.t : 0);
     }

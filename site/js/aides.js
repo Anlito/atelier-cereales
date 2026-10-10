@@ -17,6 +17,7 @@
     const pastille = (texte) => (trous ? trou : `<span class="pb-champ">${echapper(texte)}</span>`);
     const image = (nom) => `<img class="pb-icone" alt="" src="${A.imageIcone(nom, '#1F2A30', 2.6)}">`;
     const hautBas = (v) => (v ? 'HAUT (1)' : 'BAS (0)');
+    const hautBasLed = (v) => (v ? 'HAUT (1) : allumée' : 'BAS (0) : éteinte');
 
     function expression(e) {
       if (e === null || e === undefined) return '<span class="pb-vide" aria-label="case vide"></span>';
@@ -41,7 +42,7 @@
       const style = (c) => `style="background:${c}"`;
       switch (i.bloc) {
         case 'led_etat':
-          return `<div class="pb-bloc" ${style(C().lumiere)}>${image('lumiere')} contrôler la LED à l’état ${pastille(hautBas(i.etat))} sur la broche ${pastille(i.broche)}</div>`;
+          return `<div class="pb-bloc" ${style(C().lumiere)}>${image('lumiere')} contrôler la LED à l’état ${pastille(hautBasLed(i.etat))} sur la broche ${pastille(i.broche)}</div>`;
         case 'attendre':
           return `<div class="pb-bloc" ${style(C().bleu)}>attendre ${expression(i.duree)} seconde(s)</div>`;
         case 'servo_angle':

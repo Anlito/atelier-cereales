@@ -248,7 +248,7 @@
         const pastille = el.querySelector('.pastille-etat');
         if (c.type === 'led') {
           el.classList.toggle('actif', !!valeur);
-          pastille.textContent = valeur ? '● Allumée' : '○ Éteinte';
+          pastille.textContent = valeur ? '● Allumée (HAUT)' : '○ Éteinte (BAS)';
         } else if (c.type === 'bouton') {
           el.classList.toggle('actif', !!valeur);
           el.querySelector('.bouton-poussoir').setAttribute('aria-pressed', valeur ? 'true' : 'false');
@@ -263,7 +263,7 @@
 
     // Distributeur : voyants (LED nommées PetiteDose / GrandeDose / Trappe) et trappe.
     const distri = racine.querySelector('.distributeur');
-    function majDistributeur(etats) {
+    function majDistributeur(etats, enMarche) {
       if (!distri) return;
       for (const c of composants) {
         if (c.type !== 'led' || !COULEURS_LED[c.nom]) continue;
@@ -279,14 +279,15 @@
       if (servo) ouverture = Math.min(1, Math.max(0, (90 - (etats[servo.broche] || 0)) / 90));
       else if (ledTrappe) ouverture = etats[ledTrappe.broche] ? 1 : 0;
       distri.querySelector('.trappe').style.transform = `rotate(${ouverture * 80}deg)`;
-      distri.classList.toggle('ouverte', ouverture > 0.6);
+      // Les céréales ne tombent que pendant la simulation.
+      distri.classList.toggle('ouverte', ouverture > 0.6 && !!enMarche);
       distri.querySelector('.trappe-etat').textContent = ouverture > 0.6 ? 'Trappe ouverte' : 'Trappe fermée';
     }
 
     // etats : { broche: valeur } (LED 0/1, servo en degrés, boutons 0/1)
-    function afficher(etats) {
+    function afficher(etats, enMarche) {
       for (const c of composants) maj(c.broche, etats[c.broche] || 0);
-      majDistributeur(etats);
+      majDistributeur(etats, enMarche);
     }
 
     return { afficher };
