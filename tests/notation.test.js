@@ -64,3 +64,17 @@ test('le fichier donnees/notation.js est complet et égal au barème par défaut
   });
   assert.deepEqual(JSON.parse(JSON.stringify(bareme)), JSON.parse(JSON.stringify(N.BAREME_DEFAUT)));
 });
+
+test('note évolutive : calculée sur les N exercices attendus, le reste en bonus', () => {
+  const d = equipe();
+  for (const id of ['1', '2', '3']) P.noterVerification(d, id, { reussi: true });
+  assert.equal(N.noterEquipe(d, { objectif: 3 }).note, 20);
+  assert.ok(N.noterEquipe(d, { objectif: 6 }).note < 20);
+  P.noterVerification(d, '5', { reussi: false, message: 'm' });
+  const r = N.noterEquipe(d, { objectif: 4, arrondi: 0 });
+  assert.ok(r.note < 20, 'exercice 4 attendu mais pas fait');
+  assert.equal(r.detail.find((x) => x.id === '5').points, 0, 'commencé au-delà de l’objectif : rien');
+  P.noterVerification(d, '4', { reussi: true });
+  P.noterVerification(d, '5', { reussi: true });
+  assert.equal(N.noterEquipe(d, { objectif: 4 }).note, 20, 'en avance : bonus, plafonné');
+});

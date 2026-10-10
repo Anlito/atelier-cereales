@@ -7,9 +7,11 @@
     "test": "node --test tests/*.test.js",
     "vendor": "node tools/vendor.js",
     "start": "node tools/serve.js",
-    "exemples": "node tools/exemples-equipes.js"
+    "exemples": "node tools/exemples-equipes.js",
+    "recette": "node tools/recette.js"
   },
   "devDependencies": {
-    "blockly": "^13.3.0"
+    "blockly": "^13.3.0",
+    "puppeteer-core": "^25.13.0"
   }
 }

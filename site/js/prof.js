@@ -356,7 +356,7 @@
   }
   function resumerBareme() {
     $('.bareme-resume').textContent =
-      `· sur ${bareme.sur}, −${Math.round(bareme.penaliteIndice * 100)} % par indice, ` +
+      `· sur ${bareme.sur}, ${bareme.objectif} exercices attendus, −${Math.round(bareme.penaliteIndice * 100)} % par indice, ` +
       `−${Math.round(bareme.penaliteEchec * 100)} % par essai raté au-delà de ${bareme.essaisGratuits}, ` +
       `commencé : ${Math.round(bareme.participation * 100)} %, bonus 13B : +${A.nombreFr(bareme.bonus13B)}`;
   }

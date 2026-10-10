@@ -14,6 +14,9 @@
 
   const BAREME = {
     sur: 20,
+    // Exercices attendus à ce moment du projet (les N premiers) : la note est calculée sur eux ;
+    // ceux réussis au-delà rapportent leurs points en bonus. 13 = tout le parcours.
+    objectif: 13,
     coefficients: { 1: 1, 2: 1, 3: 1, 4: 1.5, 5: 1.5, 6: 1.5, 7: 1.5, 8: 2, 9: 1, 10: 1, 11: 1.5, 12: 1.5, '13A': 3 },
     bonus13B: 1,
     participation: 0.2,
@@ -71,12 +74,17 @@
     const detail = [];
     let obtenu = 0;
     let possible = 0;
+    const ordre = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A'];
+    const attendus = new Set(ordre.slice(0, Math.max(1, Math.min(13, Math.round(b.objectif) || 13))));
     for (const [id, coef] of Object.entries(b.coefficients)) {
       if (!(coef > 0)) continue;
       const r = noterExercice(donnees.exercices[id], b);
-      detail.push({ id, coef, fraction: r.fraction, points: r.fraction * coef, raisons: r.raisons });
-      obtenu += r.fraction * coef;
-      possible += coef;
+      const attendu = attendus.has(id);
+      // Au-delà de l'objectif : seul un exercice réussi rapporte des points (en bonus).
+      const fraction = attendu || donnees.exercices[id]?.statut === 'reussi' ? r.fraction : 0;
+      detail.push({ id, coef, attendu, fraction, points: fraction * coef, raisons: attendu ? r.raisons : [fraction ? 'en avance : bonus' : 'pas encore attendu'] });
+      obtenu += fraction * coef;
+      if (attendu) possible += coef;
     }
     const e13B = donnees.exercices['13B'];
     const bonus = e13B && e13B.statut === 'reussi' ? b.bonus13B : 0;
@@ -85,7 +93,7 @@
     // Points de chaque exercice ramenés sur la note (ex. 1,4 / 1,5 point).
     for (const d of detail) {
       d.pointsNote = possible ? (b.sur * d.points) / possible : 0;
-      d.pointsNoteMax = possible ? (b.sur * d.coef) / possible : 0;
+      d.pointsNoteMax = possible && d.attendu ? (b.sur * d.coef) / possible : 0;
     }
     return { note, sur: b.sur, detail, bonus, brute };
   }
