@@ -52,7 +52,7 @@
       message0: '%1 contrôler la LED à l’état %2 sur la broche %3',
       args0: [
         image('lumiere', 'LED'),
-        { type: 'field_dropdown', name: 'ETAT', options: HAUT_BAS_LED },
+        { type: 'field_dropdown', name: 'ETAT', options: HAUT_BAS },
         { type: 'field_dropdown', name: 'BROCHE', options: menu(BROCHES_LED) },
       ],
       previousStatement: null,
@@ -228,6 +228,16 @@
     if (defini) return;
     defini = true;
     Blockly.common.defineBlocksWithJsonArray(DEFINITIONS);
+    // Menu HAUT/BAS du bloc LED : « : allumée / : éteinte » pendant les premiers exercices seulement
+    // (A.aideLed est réglé à l'ouverture de chaque exercice, voir parametres.js).
+    const initLed = Blockly.Blocks.led_etat.init;
+    Blockly.Blocks.led_etat.init = function () {
+      initLed.call(this);
+      const entree = this.getField('ETAT').getParentInput();
+      const rang = entree.fieldRow.findIndex((f) => f.name === 'ETAT');
+      entree.removeField('ETAT');
+      entree.insertFieldAt(rang, new Blockly.FieldDropdown(() => (A.aideLed ? HAUT_BAS_LED : HAUT_BAS)), 'ETAT');
+    };
     const style = (c) => ({ colourPrimary: c, colourSecondary: c, colourTertiary: assombrir(c) });
     const blockStyles = {};
     for (const [cle, c] of Object.entries(COULEURS)) blockStyles[cle] = style(c);

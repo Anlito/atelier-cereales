@@ -158,6 +158,9 @@
     function ouvrir(ex) {
       if (!A.estDebloque(D, ex.id, { toutDebloquer })) return;
       if (etat.exercice) A.noterProgramme(D, etat.exercice.id, editeur.sauvegarder());
+      // Aide « allumée / éteinte » dans le bloc LED pendant les premiers exercices (voir parametres.js).
+      const limite = Number(A.catalogue.parametres.aideLedJusquAExercice);
+      A.aideLed = parseInt(ex.id, 10) <= (Number.isNaN(limite) ? 5 : limite);
       arreter();
       fermerVerification();
       fermerBulle();

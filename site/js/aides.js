@@ -17,7 +17,7 @@
     const pastille = (texte) => (trous ? trou : `<span class="pb-champ">${echapper(texte)}</span>`);
     const image = (nom) => `<img class="pb-icone" alt="" src="${A.imageIcone(nom, '#1F2A30', 2.6)}">`;
     const hautBas = (v) => (v ? 'HAUT (1)' : 'BAS (0)');
-    const hautBasLed = (v) => (v ? 'HAUT (1) : allumée' : 'BAS (0) : éteinte');
+    const hautBasLed = (v) => (A.aideLed ? (v ? 'HAUT (1) : allumée' : 'BAS (0) : éteinte') : hautBas(v));
 
     function expression(e) {
       if (e === null || e === undefined) return '<span class="pb-vide" aria-label="case vide"></span>';
