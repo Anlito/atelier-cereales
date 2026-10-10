@@ -10,6 +10,7 @@
   const titre = (id) => (exercices.find((e) => e.id === id) || {}).titre || '';
 
   let fichiers = []; // { nom, texte } : tout ce qui a été importé
+  let bareme = A.completerBareme(A.bareme);
   let fusion = { equipes: [], invalides: [] };
 
   // ---------- Import ----------
@@ -111,7 +112,11 @@
   function selection() {
     const s = seuils();
     const classe = $('.filtre-classe').value;
-    let liste = fusion.equipes.map((eq) => ({ eq, r: A.resumerEquipe(eq.donnees, s) }));
+    let liste = fusion.equipes.map((eq) => {
+      const r = A.resumerEquipe(eq.donnees, s);
+      r.note = A.noterEquipe(eq.donnees, bareme);
+      return { eq, r };
+    });
     if (classe) liste = liste.filter((x) => x.r.classe === classe);
     if ($('.filtre-bloquees').checked) liste = liste.filter((x) => x.r.bloque);
     const tri = $('.tri').value;
@@ -119,6 +124,7 @@
     liste.sort((a, b) => {
       if (tri === 'avancement') return b.r.avancement - a.r.avancement || nom(a).localeCompare(nom(b));
       if (tri === 'activite') return (b.r.derniereActivite || '').localeCompare(a.r.derniereActivite || '');
+      if (tri === 'note') return b.r.note.note - a.r.note.note || nom(a).localeCompare(nom(b));
       return nom(a).localeCompare(nom(b), 'fr');
     });
     return liste;
@@ -145,6 +151,7 @@
   function dessiner() {
     const avecDonnees = fusion.equipes.length > 0;
     $('.prof-outils').hidden = !avecDonnees;
+    $('.prof-bareme').hidden = !avecDonnees;
     $('.prof-resultats').hidden = !avecDonnees;
     if (!avecDonnees) return;
     majClasses();
@@ -153,8 +160,8 @@
     $('.titre-classe').textContent = $('.filtre-classe').value ? 'classe ' + $('.filtre-classe').value : 'toutes les classes';
     let h = '<thead><tr><th scope="col" class="col-equipe">Équipe</th>';
     for (const id of ORDRE) h += `<th scope="col" title="${echapper(titre(id))}">${id}</th>`;
-    h += '<th scope="col">Avancement</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>';
-    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 4}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
+    h += `<th scope="col">Avancement</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
+    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 5}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
     liste.forEach((x, i) => {
       const r = x.r;
       h +=
@@ -162,13 +169,16 @@
         `<th scope="row" class="col-equipe"><span class="nom-equipe">${echapper(r.eleves.join(', '))}</span>` +
         `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
-        `<td class="nombre">${r.avancement}/13</td><td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
+        `<td class="nombre">${r.avancement}/13</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
+        `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
       void i;
     });
     const taux = A.tauxReussite(liste.map((x) => x.r));
     h += '</tbody><tfoot><tr><th scope="row" class="col-equipe">Taux de réussite</th>';
     for (const id of ORDRE) h += `<td class="nombre">${liste.length ? Math.round(taux[id] * 100) + ' %' : ''}</td>`;
-    h += '<td colspan="3"></td></tr></tfoot>';
+    const notes = liste.map((x) => x.r.note.note);
+    const moyenne = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : 0;
+    h += `<td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
     $('.prof-tableau').innerHTML = h;
     $('.prof-legende').textContent =
       `✓ réussi · ● en cours · ○ non commencé. Le nombre est celui des tentatives (clics sur « Vérifier »). ` +
@@ -207,18 +217,31 @@
     global.open('index.html?revue=1', '_blank', 'noopener');
   }
 
+  // « 1,2 / 1,6 » et la raison des retenues.
+  function pointsHtml(note, id) {
+    const x = note.detail.find((y) => y.id === id);
+    if (!x) return id === '13B' ? (note.bonus ? `<strong>bonus +${A.nombreFr(note.bonus)}</strong>` : '<span class="points-raison">bonus si réussi</span>') : '';
+    return (
+      `<strong class="nombre">${A.nombreFr(x.pointsNote, 2)} / ${A.nombreFr(x.pointsNoteMax, 2)}</strong>` +
+      `<span class="points-raison">${x.raisons.map(echapper).join(' · ')}</span>`
+    );
+  }
+
   function ouvrirDetail(eq) {
     const d = eq.donnees;
     const r = A.resumerEquipe(d, seuils());
+    const note = A.noterEquipe(d, bareme);
     const dialogue = $('.prof-detail');
     $('#detail-titre').textContent = `${d.equipe.eleves.join(', ')}${d.equipe.classe ? ' · ' + d.equipe.classe : ''}`;
     let h =
+      `<p class="detail-note">Note : <strong>${A.nombreFr(note.note, 2)}/${note.sur}</strong>` +
+      `${note.bonus ? ` (dont bonus 13B : +${A.nombreFr(note.bonus)})` : ''}</p>` +
       `<p class="detail-resume"><strong>${r.avancement}/13</strong> exercices réussis · ${A.dureeLisible(r.tempsTotal)} de travail · ` +
       `dernière activité ${echapper(heure(r.derniereActivite))} · fichier ${echapper(eq.fichier)}` +
       `${d.exercice13 && d.exercice13.versionReussie ? ' · exercice 13 réussi en version ' + d.exercice13.versionReussie : ''}</p>`;
     h +=
       '<table class="detail-tableau"><thead><tr><th>Exercice</th><th>Statut</th><th>Tentatives</th><th>Échecs</th><th>Indices</th>' +
-      '<th>Temps</th><th>Première réussite</th><th></th></tr></thead><tbody>';
+      '<th>Temps</th><th>Première réussite</th><th>Points</th><th></th></tr></thead><tbody>';
     for (const id of ORDRE) {
       const c = r.cellules[id];
       const e = d.exercices[id];
@@ -227,6 +250,7 @@
         `<td class="statut-${c.statut}">${A.SYMBOLES[c.statut]} ${A.MOTS_STATUT[c.statut]}${c.bloque ? ' ⚠' : ''}</td>` +
         `<td class="nombre">${c.tentatives}</td><td class="nombre">${c.echecs}</td><td class="nombre">${c.indices}/3</td>` +
         `<td class="nombre">${c.temps ? A.dureeLisible(c.temps) : ''}</td><td>${echapper(heure(c.premiereReussite))}</td>` +
+        `<td>${pointsHtml(note, id)}</td>` +
         `<td>${e && e.programme ? `<button type="button" class="btn-lien" data-ouvrir="${id}">Lancer le programme</button>` : ''}</td></tr>`;
     }
     h += '</tbody></table>';
@@ -307,7 +331,7 @@
   $('.btn-xlsx').addEventListener('click', () => {
     const liste = selection();
     const t = A.tableauClasse(liste.map((x) => x.r), seuils());
-    const det = A.detailClasse(liste.map((x) => x.eq), seuils());
+    const det = A.detailClasse(liste.map((x) => x.eq), seuils(), bareme);
     const octets = A.classeurXlsx([
       { nom: 'Classe', entete: t.entete, lignes: [...t.lignes, [], t.legende] },
       { nom: 'Détail par exercice', entete: det.entete, lignes: det.lignes },
@@ -315,4 +339,40 @@
     telecharger(octets, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', nomExport('xlsx'));
   });
   $('.btn-imprimer').addEventListener('click', () => global.print());
+
+  // ---------- Barème réglable dans la page ----------
+
+  const zoneBareme = $('.prof-bareme');
+  $('.bareme-coefs').innerHTML = Object.keys(A.BAREME_DEFAUT.coefficients)
+    .map((id) => `<label title="${echapper(titre(id))}">Ex. ${id} <input type="number" data-coef="${id}" min="0" max="10" step="0.5"></label>`)
+    .join('');
+  function remplirBareme() {
+    for (const el of zoneBareme.querySelectorAll('[data-b]')) {
+      const v = bareme[el.dataset.b];
+      el.value = el.hasAttribute('data-pourcent') ? Math.round(v * 100) : String(v);
+    }
+    for (const el of zoneBareme.querySelectorAll('[data-coef]')) el.value = bareme.coefficients[el.dataset.coef];
+    resumerBareme();
+  }
+  function resumerBareme() {
+    $('.bareme-resume').textContent =
+      `· sur ${bareme.sur}, −${Math.round(bareme.penaliteIndice * 100)} % par indice, ` +
+      `−${Math.round(bareme.penaliteEchec * 100)} % par essai raté au-delà de ${bareme.essaisGratuits}, ` +
+      `commencé : ${Math.round(bareme.participation * 100)} %, bonus 13B : +${A.nombreFr(bareme.bonus13B)}`;
+  }
+  zoneBareme.addEventListener('input', (e) => {
+    const el = e.target;
+    const v = Number(el.value);
+    if (el.value === '' || !Number.isFinite(v) || v < 0) return;
+    if (el.dataset.coef) bareme.coefficients[el.dataset.coef] = v;
+    else if (el.dataset.b) bareme[el.dataset.b] = el.hasAttribute('data-pourcent') ? v / 100 : v;
+    resumerBareme();
+    dessiner();
+  });
+  $('.btn-bareme-fichier').addEventListener('click', () => {
+    bareme = A.completerBareme(A.bareme);
+    remplirBareme();
+    dessiner();
+  });
+  remplirBareme();
 })(this);

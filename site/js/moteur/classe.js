@@ -5,6 +5,7 @@
   'use strict';
 
   const P = typeof module === 'object' && module.exports ? require('./progression.js') : global.Atelier;
+  const N = typeof module === 'object' && module.exports ? require('./notation.js') : global.Atelier;
 
   const ORDRE = P.ORDRE_PARCOURS;
   const SEUILS = { tentatives: 6, minutes: 20 };
@@ -101,19 +102,25 @@
   }
 
   // Tableau récapitulatif (lignes de cellules texte), utilisé par le CSV et l'Excel.
+  // Si les résumés portent une note (r.note, calculée par notation.js), une colonne « Note » est ajoutée.
   function tableau(resumes, seuils) {
-    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', 'Dernière activité', 'Temps total', 'Bloqué'];
+    const avecNote = resumes.some((r) => r.note);
+    const sur = avecNote ? resumes.find((r) => r.note).note.sur : 20;
+    const entete = ['Classe', 'Équipe', ...ORDRE.map((id) => 'Ex. ' + id), 'Avancement', ...(avecNote ? ['Note /' + sur] : []), 'Dernière activité', 'Temps total', 'Bloqué'];
     const lignes = resumes.map((r) => [
       r.classe,
       r.eleves.join(', '),
       ...ORDRE.map((id) => texteCellule(r.cellules[id])),
       `${r.avancement}/13`,
+      ...(avecNote ? [r.note ? r.note.note : ''] : []),
       dateCourte(r.derniereActivite),
       duree(r.tempsTotal),
       r.bloque ? 'oui' : '',
     ]);
     const taux = tauxReussite(resumes);
-    lignes.push(['', 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', '', '', '']);
+    const notes = resumes.filter((r) => r.note).map((r) => r.note.note);
+    const moyenne = notes.length ? Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 10) / 10 : '';
+    lignes.push(['', avecNote ? 'Taux de réussite · moyenne' : 'Taux de réussite', ...ORDRE.map((id) => Math.round(taux[id] * 100) + ' %'), '', ...(avecNote ? [moyenne] : []), '', '', '']);
     const legende = [
       `✓ réussi, ● en cours, ○ non commencé ; le nombre est celui des tentatives (clics sur « Vérifier »). ` +
         `⚠ bloqué : au moins ${(seuils || SEUILS).tentatives} tentatives ou plus de ${(seuils || SEUILS).minutes} min sur un exercice non réussi.`,
@@ -122,15 +129,18 @@
   }
 
   // Détail : une ligne par équipe et par exercice commencé (pour la notation).
-  function detail(equipes, seuils) {
+  // Avec un barème, on ajoute les points obtenus sur la note et le détail des retenues.
+  function detail(equipes, seuils, bareme) {
     const entete = [
       'Classe', 'Équipe', 'Exercice', 'Statut', 'Tentatives', 'Échecs avant réussite', 'Indices ouverts',
       'Temps (min)', 'Première réussite', 'Bloqué', 'Dernier écart signalé',
+      ...(bareme ? ['Points', 'Points possibles', 'Calcul'] : []),
     ];
     const lignes = [];
     for (const eq of equipes) {
       const d = eq.donnees;
       const r = resumer(d, seuils);
+      const note = bareme ? N.noterEquipe(d, bareme) : null;
       for (const id of ORDRE) {
         const e = d.exercices[id];
         if (!e) continue;
@@ -142,10 +152,18 @@
         lignes.push([
           r.classe, r.eleves.join(', '), id, MOTS[c.statut], c.tentatives, echecsAvant, c.indices,
           Math.round(c.temps / 60), dateCourte(c.premiereReussite), c.bloque ? 'oui' : '', dernierEchec ? dernierEchec.message : '',
+          ...(note ? pointsExercice(note, id) : []),
         ]);
       }
     }
     return { entete, lignes };
+  }
+
+  function pointsExercice(note, id) {
+    const x = note.detail.find((y) => y.id === id);
+    if (!x) return ['', '', id === '13B' && note.bonus ? `bonus +${note.bonus}` : 'ne compte pas'];
+    const arr = (v) => Math.round(v * 100) / 100;
+    return [arr(x.pointsNote), arr(x.pointsNoteMax), x.raisons.join(' ; ')];
   }
 
   // CSV pour Excel en français : séparateur point-virgule, UTF-8 avec BOM.

@@ -39,6 +39,7 @@
         <option value="equipe">équipe</option>
         <option value="avancement">avancement</option>
         <option value="activite">dernière activité</option>
+        <option value="note">note</option>
       </select>
     </label>
     <label class="case"><input type="checkbox" class="filtre-bloquees"> Équipes bloquées seulement</label>
@@ -54,6 +55,32 @@
       <button type="button" class="btn-secondaire btn-imprimer">Imprimer</button>
     </div>
   </section>
+
+  <details class="prof-bareme" hidden>
+    <summary>Barème de la note <span class="bareme-resume"></span></summary>
+    <div class="bareme-corps">
+      <p class="bareme-explication">Pour chaque exercice : <strong>réussi</strong> = tous ses points, moins des retenues d’autonomie
+        (indices ouverts et essais ratés <em>avant</em> la réussite) ; <strong>commencé sans réussir</strong> = une part des points ;
+        <strong>non commencé</strong> = 0. Le défi 13B donne un bonus. Ces réglages ne durent que le temps de la page :
+        pour les garder, modifie <code>donnees/notation.js</code>.</p>
+      <div class="bareme-reglages">
+        <label>Note sur <input type="number" data-b="sur" min="1" max="100" step="1"></label>
+        <label>Bonus 13B (points) <input type="number" data-b="bonus13B" min="0" max="20" step="0.5"></label>
+        <label>Commencé sans réussir <input type="number" data-b="participation" data-pourcent min="0" max="100" step="5"> %</label>
+        <label>Retenue par indice <input type="number" data-b="penaliteIndice" data-pourcent min="0" max="100" step="5"> %</label>
+        <label>Retenue indices au plus <input type="number" data-b="penaliteIndiceMax" data-pourcent min="0" max="100" step="5"> %</label>
+        <label>Essais ratés sans retenue <input type="number" data-b="essaisGratuits" min="0" max="50" step="1"></label>
+        <label>Retenue par essai raté en plus <input type="number" data-b="penaliteEchec" data-pourcent min="0" max="100" step="1"> %</label>
+        <label>Retenue essais au plus <input type="number" data-b="penaliteEchecMax" data-pourcent min="0" max="100" step="5"> %</label>
+        <label>Arrondi
+          <select data-b="arrondi"><option value="0.5">au demi-point</option><option value="0.25">au quart de point</option><option value="1">au point</option><option value="0">au centième</option></select>
+        </label>
+      </div>
+      <p class="bareme-titre-coefs">Coefficients (0 = l’exercice ne compte pas)</p>
+      <div class="bareme-coefs"></div>
+      <button type="button" class="btn-secondaire btn-bareme-fichier">Revenir au barème du fichier</button>
+    </div>
+  </details>
 
   <section class="prof-resultats" hidden>
     <h2 class="titre-impression">Atelier du distributeur de céréales — <span class="titre-classe"></span></h2>
@@ -75,6 +102,7 @@
 <script src="js/moteur/validation.js"></script>
 <script src="js/moteur/catalogue.js"></script>
 <script src="js/moteur/progression.js"></script>
+<script src="js/moteur/notation.js"></script>
 <script src="js/moteur/classe.js"></script>
 <script src="js/moteur/xlsx.js"></script>
 <script src="exercices/parametres.js"></script>
@@ -92,6 +120,7 @@
 <script src="exercices/12.js"></script>
 <script src="exercices/13A.js"></script>
 <script src="exercices/13B.js"></script>
+<script src="donnees/notation.js"></script>
 <script src="js/icones.js"></script>
 <script src="js/blocs.js"></script>
 <script src="js/aides.js"></script>

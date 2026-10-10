@@ -109,3 +109,22 @@ body.page-prof { overflow: auto; background: var(--fond); }
   .classe-equipe { color: #000; }
   .prof-legende { color: #000; font-size: 8pt; }
 }
+
+/* Barème et note */
+.prof-bareme { background: #FFFFFF; border: 1px solid var(--bord); border-radius: 0.75rem; }
+.prof-bareme > summary { padding: 0.75rem 1rem; cursor: pointer; font-weight: 700; }
+.bareme-resume { font-weight: 400; color: var(--texte-2); font-size: 0.875rem; }
+.bareme-corps { padding: 0 1rem 1rem; }
+.bareme-explication { margin: 0 0 0.75rem; color: var(--texte-2); }
+.bareme-reglages, .bareme-coefs { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.bareme-reglages label, .bareme-coefs label { display: flex; align-items: center; gap: 0.375rem; font-weight: 600; }
+.bareme-corps input[type="number"], .bareme-corps select {
+  height: 2.5rem; padding: 0 0.5rem; border: 2px solid var(--bord); border-radius: 0.5rem; font: 400 0.9375rem var(--police);
+}
+.bareme-corps input[type="number"] { width: 4.75rem; }
+.bareme-titre-coefs { margin: 1rem 0 0.5rem; font-weight: 700; }
+.btn-bareme-fichier { margin-top: 1rem; height: 2.5rem; }
+.prof-tableau .note { font-weight: 800; font-size: 1rem; }
+.detail-note { margin: 0 0 0.25rem; font-size: 1.125rem; }
+.points-raison { display: block; font-size: 0.8125rem; color: var(--texte-2); }
+@media print { .prof-bareme { display: none !important; } }

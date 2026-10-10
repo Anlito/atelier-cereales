@@ -26,8 +26,9 @@ function verifier(d, ex, programme) {
   const r = valider(ex, programme);
   const ecarts = r.reussi ? [] : ex.scenarios.map((sc) => jouerScenario(ex, programme, sc)).filter((x) => !x.reussi).map((x) => x.message);
   P.noterVerification(d, ex.id, { reussi: r.reussi, message: r.message, ecarts, programme });
-  const h = d.exercices[ex.id].historique;
-  h[h.length - 1].date = iso();
+  const e = d.exercices[ex.id];
+  e.historique[e.historique.length - 1].date = iso();
+  if (r.reussi && e.historique.filter((h) => h.type === 'verification' && h.reussi).length === 1) e.premiereReussite = iso();
 }
 
 // profil : jusqu'où l'équipe est allée, combien d'erreurs et d'indices par exercice.
