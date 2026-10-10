@@ -68,7 +68,7 @@ module.exports = {
     {
       nom: 'mauvais bouton',
       programme: prog([], [si(appuye('D9'), [led('D3', 1)])]),
-      message: 'Quand le bouton D8 est appuyé, la LED D3 devrait être allumée. Dans ton programme, elle reste éteinte.',
+      message: 'Quand le bouton D8 est appuyé, la LED D3 devrait être allumée. Dans ton programme, elle reste éteinte. Ton programme lit un bouton sur la broche D9',
     },
     {
       nom: 'condition inversée (BAS)',

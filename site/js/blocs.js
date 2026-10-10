@@ -16,8 +16,11 @@
   };
 
   // Broches proposées dans les menus.
-  const BROCHES_LED = ['D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11'];
-  const BROCHES_BOUTON = ['D8', 'D9', 'D10'];
+  // Toutes les broches numériques D2 à D13 pour les LED et les boutons : c'est à l'élève de lire la consigne
+  // et de choisir la bonne (le bloc de la palette part toujours de D2, il ne donne pas la réponse).
+  const BROCHES_NUMERIQUES = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13'];
+  const BROCHES_LED = BROCHES_NUMERIQUES;
+  const BROCHES_BOUTON = BROCHES_NUMERIQUES;
   const BROCHES_SERVO = ['D5', 'D6'];
   const menu = (liste) => liste.map((b) => [b, b]);
   // Pour une LED, on dit aussi ce que fait l'état : HAUT = allumée, BAS = éteinte.
@@ -185,17 +188,14 @@
     attendre: { inputs: { DUREE: { shadow: { type: 'nombre', fields: { NUM: 1 } } } } },
     servo_angle: { inputs: { ANGLE: { shadow: { type: 'nombre', fields: { NUM: 90 } } } } },
     affecter: { inputs: { VALEUR: { shadow: { type: 'nombre', fields: { NUM: 0 } } } } },
-    led_etat: { fields: { ETAT: '1', BROCHE: 'D3' } },
+    led_etat: { fields: { ETAT: '1', BROCHE: 'D2' } },
   };
 
   // Palette d'un exercice : seulement ses blocs autorisés ; une catégorie vide n'apparaît pas.
   function palette(blocsAutorises, composants) {
     const autorises = new Set(blocsAutorises || []);
-    // Les menus de broches proposent d'abord la broche des composants de l'exercice.
-    const premiere = (type) => {
-      const c = (composants || []).find((x) => x.type === type);
-      return c && c.broche;
-    };
+    // Les blocs de la palette ne donnent pas la broche de l'exercice : l'élève la choisit en lisant la consigne.
+    void composants;
     const contenu = [];
     for (const cat of CATEGORIES) {
       const blocs = cat.blocs.filter((t) => autorises.has(t));
@@ -213,9 +213,6 @@
         },
         contents: blocs.map((type) => {
           const forme = JSON.parse(JSON.stringify(FORMES_PALETTE[type] || {}));
-          if (type === 'led_etat' && premiere('led')) forme.fields.BROCHE = premiere('led');
-          if (type === 'bouton_etat' && premiere('bouton')) forme.fields = { BROCHE: premiere('bouton') };
-          if (type === 'servo_angle' && premiere('servo')) forme.fields = { BROCHE: premiere('servo') };
           return Object.assign({ kind: 'block', type }, forme);
         }),
       });

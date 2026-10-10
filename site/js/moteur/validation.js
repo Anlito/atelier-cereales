@@ -115,12 +115,29 @@
     }
 
     // Une sortie attendue jamais écrite, mais une autre broche du même genre l'a été : on le dit.
-    function indiceBroche(broche) {
+    const declarees = new Set((exercice.composants || []).map((x) => x.broche));
+    function indiceSortie(broche) {
       if (sim.journal.some((e) => e.broche === broche && e.type !== 'entree')) return '';
       const c = composant(exercice, broche);
-      const declarees = new Set((exercice.composants || []).map((x) => x.broche));
       const autre = sim.journal.find((e) => e.type === c.type && !declarees.has(e.broche));
       return autre ? `Ton programme agit sur la broche ${autre.broche} : vérifie la broche choisie dans le bloc.` : '';
+    }
+    // Le programme lit un bouton sur une broche où il n'y a pas de bouton (ex. D9 au lieu de D8).
+    const boutonsLus = (() => {
+      const lus = new Set();
+      const voir = (x) => {
+        if (!x || typeof x !== 'object') return;
+        if (Array.isArray(x)) return x.forEach(voir);
+        if (x.bloc === 'bouton_etat' && x.broche) lus.add(x.broche);
+        for (const v of Object.values(x)) if (v && typeof v === 'object') voir(v);
+      };
+      voir(programme);
+      return [...lus].filter((b) => !declarees.has(b));
+    })();
+    function indiceBroche(broche) {
+      const sortie = indiceSortie(broche);
+      if (sortie || !boutons.length || !boutonsLus.length) return sortie;
+      return `Ton programme lit un bouton sur la broche ${boutonsLus[0]} : vérifie la broche choisie dans le bloc « état sur la broche ».`;
     }
 
     const ecart = (message) => ({ reussi: false, message, temps: curseur, entrees, journal: sim.journal });
