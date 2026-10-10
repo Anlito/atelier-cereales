@@ -175,7 +175,7 @@
     return zip(fichiers);
   }
 
-  const api = { classeurXlsx: classeur, crc32 };
+  const api = { classeurXlsx: classeur, crc32, zip };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign((global.Atelier = global.Atelier || {}), api);
 })(this);

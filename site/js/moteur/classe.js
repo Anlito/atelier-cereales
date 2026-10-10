@@ -8,7 +8,7 @@
   const N = typeof module === 'object' && module.exports ? require('./notation.js') : global.Atelier;
 
   const ORDRE = P.ORDRE_PARCOURS;
-  const SEUILS = { tentatives: 6, minutes: 20 };
+  const SEUILS = { tentatives: 6, minutes: 10 };
 
   // fichiers : [{ nom, texte }] → { equipes, invalides }
   // Si une équipe a plusieurs fichiers, on garde le plus récent (modifieLe) et on le signale.

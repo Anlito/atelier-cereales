@@ -6,3 +6,5 @@ node_modules/
 _source_zip/
 # Sauvegardes d’exemple (recréées par « npm run exemples »)
 exemples/
+# Archive ZIP (recréée par « npm run archive »)
+dist/
