@@ -1,0 +1,389 @@
+/* Atelier du distributeur de céréales — d'après les maquettes Claude Design (écran 1366×768).
+   Toutes les tailles sont en rem : 1rem = 16 px à 1366×768 et jusqu'à 20 px en 1920×1080
+   (la taille racine est réglée par ecran-exercice.js). */
+
+:root {
+  --orange: #FAB22B;
+  --orange-survol: #F5A50F;
+  --bleu: #1A6E8E;
+  --bleu-fonce: #12506A;
+  --bleu-pale: #E6F1F5;
+  --consigne-fond: #FFF4DD;
+  --consigne-texte: #8A5300;
+  --consigne-bord: #F0D9A8;
+  --encre: #1F2A30;
+  --texte-2: #4F5D66;
+  --bord: #D5DEE3;
+  --fond: #F4F7F9;
+  --gris: #7C8B94;
+  --gris-bord: #B8C4CA;
+  --gris-fond: #EEF2F4;
+  --signal: #FFC400;
+  --police: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--fond);
+  color: var(--encre);
+  font: 400 0.9375rem/1.4 var(--police);
+  overflow: hidden;
+}
+button { font-family: var(--police); color: inherit; }
+button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+.icone { width: 1.375rem; height: 1.375rem; flex: none; display: block; }
+
+/* ---------- Grille de l'écran : 52 | auto | 1fr | 68 ---------- */
+
+.ecran-exercice {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 3.25rem auto minmax(0, 1fr) 4.25rem;
+  grid-template-columns: minmax(0, 1fr);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- En-tête ---------- */
+
+.entete {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0 0.75rem;
+  background: #FFFFFF; border-bottom: 1px solid var(--bord);
+  min-width: 0;
+}
+.btn-parcours {
+  display: flex; align-items: center; gap: 0.375rem;
+  height: 2.75rem; padding: 0 0.875rem 0 0.625rem;
+  border: 2px solid var(--bord); border-radius: 0.625rem; background: #FFFFFF;
+  font-weight: 600; font-size: 0.9375rem; cursor: pointer; flex: none;
+}
+.btn-parcours .icone { width: 1.25rem; height: 1.25rem; }
+.btn-parcours:hover { background: #EDF2F5; }
+.entete-titre { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+.pastille-exercice {
+  display: inline-flex; align-items: center; height: 1.875rem; padding: 0 0.75rem;
+  border-radius: 999px; background: var(--bleu); color: #FFFFFF;
+  font-weight: 700; font-size: 0.9375rem; white-space: nowrap; flex: none;
+}
+.titre-exercice { font-size: 1.1875rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entete-equipe {
+  margin-left: auto; display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.9375rem; color: var(--texte-2); white-space: nowrap; flex: none;
+}
+.entete-equipe .icone { stroke: var(--bleu) !important; }
+.equipe-noms { font-weight: 600; color: var(--encre); }
+
+/* ---------- Consigne ---------- */
+
+.zone-consigne { padding: 0.625rem 0.75rem 0; position: relative; z-index: 5; }
+.consigne {
+  display: flex; gap: 0.875rem; align-items: flex-start;
+  background: var(--consigne-fond); border-left: 6px solid var(--orange); border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+}
+.consigne-libelle {
+  display: flex; align-items: center; gap: 0.5rem; flex: none;
+  color: var(--consigne-texte); font-weight: 700; font-size: 1rem; padding-top: 0.125rem;
+}
+.consigne-texte { flex: 1; min-width: 0; font-size: 1.0625rem; line-height: 1.45; }
+.consigne-texte p { margin: 0; text-wrap: pretty; }
+.consigne-courte {
+  display: none; margin: 0; flex: 1; min-width: 0;
+  font-size: 1.0625rem; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.consigne.reduite .consigne-texte { display: none; }
+.consigne.reduite .consigne-courte { display: block; }
+.consigne.longue .consigne-texte { font-size: 0.84375rem; line-height: 1.35; }
+.consigne-colonnes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 1rem; }
+.consigne-colonnes > div { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.consigne-colonnes > div:first-child > p:first-child { font-weight: 600; }
+.consigne-etiquettes { display: flex; flex-wrap: wrap; gap: 0.25rem 0.375rem; }
+.consigne-etiquette { padding: 1px 0.5rem; border-radius: 0.375rem; background: #FFFFFF; border: 1px solid var(--consigne-bord); }
+.mot-cle {
+  background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer;
+  text-decoration: underline dotted var(--consigne-texte); text-decoration-thickness: 2px; text-underline-offset: 4px;
+}
+.mot-cle:hover { background: rgba(250, 178, 43, 0.25); border-radius: 3px; }
+.consigne-bascule {
+  flex: none; display: flex; align-items: center; gap: 0.375rem;
+  height: 2.75rem; margin: -0.5rem -0.5rem -0.5rem 0; padding: 0 0.75rem;
+  border: 2px solid var(--consigne-bord); border-radius: 0.625rem; background: #FFFFFF;
+  color: var(--consigne-texte); font-weight: 600; font-size: 0.9375rem; cursor: pointer;
+}
+.consigne-bascule .icone { width: 1.125rem; height: 1.125rem; }
+
+.bulle {
+  position: absolute; top: calc(100% + 4px); left: 9.375rem; width: 22.5rem;
+  background: #FFFFFF; border: 2px solid var(--bleu); border-radius: 0.75rem;
+  box-shadow: 0 10px 28px rgba(31, 42, 48, 0.2);
+  padding: 0.625rem 0.625rem 0.875rem 1rem;
+  display: flex; flex-direction: column; gap: 0.25rem;
+}
+.bulle[hidden] { display: none; }
+.bulle-entete { display: flex; align-items: center; gap: 0.5rem; }
+.bulle-entete .icone { stroke: var(--bleu) !important; }
+.bulle-mot { font-size: 1.0625rem; }
+.bulle-fermer {
+  margin-left: auto; width: 2.75rem; height: 2.75rem; border: none; background: transparent;
+  border-radius: 0.5rem; font-size: 1.5rem; color: var(--texte-2); cursor: pointer;
+}
+.bulle-fermer:hover { background: #EDF2F5; }
+.bulle-definition { margin: 0; padding-right: 0.5rem; font-size: 0.9375rem; line-height: 1.45; }
+
+/* ---------- Zone principale : éditeur 60 % | simulateur 40 % ---------- */
+
+.principal {
+  display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);
+  gap: 0.75rem; padding: 0.625rem 0.75rem; min-height: 0;
+}
+
+/* ---------- Éditeur ---------- */
+
+.editeur {
+  position: relative; background: #FFFFFF; border: 1px solid var(--bord); border-radius: 0.75rem;
+  overflow: hidden; min-height: 0;
+}
+.editeur-blockly { position: absolute; inset: 0; }
+.editeur-etiquettes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 20; }
+.etiquette-bloc {
+  position: absolute; transform: translateY(-50%);
+  display: inline-flex; align-items: center; height: 1.625rem; padding: 0 0.625rem;
+  border-radius: 999px; font-size: 0.8125rem; font-weight: 700; white-space: nowrap;
+}
+.etiquette-en-cours { background: var(--signal); color: var(--encre); }
+.etiquette-hors { background: #FFFFFF; color: var(--encre); border: 2px dashed var(--encre); }
+
+/* Palette des catégories (boîte à outils de Blockly) */
+.editeur .blocklyToolbox {
+  background: #FAFBFC; border-right: 1px solid var(--bord);
+  padding: 0.375rem; width: 5.75rem; overflow-y: auto;
+}
+.editeur .blocklyToolboxCategoryGroup { display: flex; flex-direction: column; gap: 0.125rem; }
+.editeur .blocklyToolboxCategory.cat-ligne {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 3.875rem; padding: 0.25rem 0.125rem; margin: 0;
+  border: none !important; border-radius: 0.625rem; background: transparent !important; cursor: pointer;
+}
+.editeur .blocklyToolboxCategory.cat-ligne:hover { background: #EDF2F5 !important; }
+.editeur .blocklyToolboxCategory.cat-choisie { background: var(--bleu-pale) !important; box-shadow: inset 0 0 0 2px var(--bleu); }
+.editeur .blocklyTreeRowContentContainer { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+.editeur .cat-tuile {
+  width: 2.125rem; height: 2.125rem; border-radius: 0.5625rem;
+  background-repeat: no-repeat; background-position: center; background-size: 1.375rem;
+}
+.editeur .cat-libelle { font: 600 0.8125rem var(--police); color: var(--encre); padding: 0; }
+.editeur .blocklyFlyoutBackground { fill: #EAF0F3; fill-opacity: 1; }
+
+/* Blocs : texte foncé et gras sur la couleur pastel (contraste > 7:1) */
+.editeur .blocklyText,
+.editeur .blocklyEditableText > text,
+.editeur .blocklyNonEditableText > text { fill: var(--encre) !important; font-weight: 700; }
+.editeur .blocklyDropdownText { fill: var(--encre) !important; }
+.editeur .blocklyMainBackground { stroke: none; }
+.editeur .bloc-en-cours > .blocklyPath {
+  stroke: var(--signal) !important; stroke-width: 5px !important;
+  filter: drop-shadow(0 0 0.6px var(--encre)) drop-shadow(0 0 0.6px var(--encre));
+}
+.editeur .bloc-hors-programme > .blocklyPath {
+  stroke: var(--encre) !important; stroke-width: 3px !important; stroke-dasharray: 7 5;
+}
+
+/* Outils en bas à droite (la corbeille de Blockly est tout au bord) */
+.editeur-outils {
+  position: absolute; right: 5.25rem; bottom: 0.75rem; z-index: 30;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.groupe-outils {
+  display: flex; align-items: center; border: 2px solid var(--bord); border-radius: 0.625rem;
+  background: #FFFFFF; overflow: hidden;
+}
+.groupe-outils button {
+  width: 2.75rem; height: 2.5rem; border: none; background: transparent; cursor: pointer;
+  font-size: 1.375rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.groupe-outils button + button { border-left: 1px solid var(--bord); }
+.groupe-outils button:hover { background: #EDF2F5; }
+.groupe-outils .icone { width: 1.25rem; height: 1.25rem; }
+.zoom-valeur { min-width: 3.25rem; text-align: center; font-size: 0.875rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- Simulateur ---------- */
+
+.simulateur {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  background: #FFFFFF; border: 1px solid var(--bord); border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem 0.75rem; min-height: 0; overflow: hidden;
+}
+.simu-titre { display: flex; align-items: center; gap: 0.5rem; flex: none; font-size: 1rem; font-weight: 700; }
+.simu-note { font-size: 0.8125rem; font-weight: 600; color: var(--bleu-fonce); background: var(--bleu-pale); border-radius: 999px; padding: 0 0.625rem; }
+.simu-note:empty { display: none; }
+.chrono { margin-left: auto; display: flex; align-items: center; gap: 0.375rem; font-weight: 700; font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.chrono .icone { stroke: var(--bleu) !important; }
+
+.simu-carte { flex: 1 1 0; min-height: 2.5rem; display: flex; gap: 0.5rem; padding: 0 0.25rem; }
+.simu-carte-dessin { flex: 1 1 0; min-width: 0; display: flex; }
+.carte-arduino { width: 100%; height: 100%; display: block; }
+.carte-etiquette { fill: #FFFFFF; font: 700 5.5px var(--police); }
+.carte-titre { fill: #FFFFFF; font: 700 7px var(--police); letter-spacing: 1px; }
+.carte-nom { fill: #FFFFFF; font: 800 22px var(--police); letter-spacing: 2px; opacity: 0.9; }
+.simu-milieu { display: flex; gap: 0.5rem; flex: none; min-height: 0; }
+.simu-milieu .simu-composants { flex: 1; min-width: 0; align-content: start; }
+.simu-distributeur { display: none; }
+.avec-distributeur .simu-distributeur { display: block; flex: none; width: 8.5rem; }
+.distributeur { width: 100%; height: auto; display: block; }
+.voyant-nom, .trappe-etat { fill: var(--encre); font: 700 7px var(--police); }
+.trappe { transition: transform 0.25s linear; }
+.grain-chute { opacity: 0; }
+.distributeur.ouverte .grain-chute { animation: chute 0.8s linear infinite; }
+@keyframes chute {
+  0% { transform: translateY(0); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(78px); opacity: 0; }
+}
+
+.simu-composants { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.125rem, 1fr)); gap: 0.375rem; flex: none; }
+.composant {
+  display: flex; align-items: center; gap: 0.75rem; min-height: 3.75rem; padding: 0.375rem 0.625rem;
+  background: #FFFFFF; border: 2px solid var(--bord); border-left: 6px solid var(--famille); border-radius: 0.75rem;
+}
+.composant.compact { gap: 0.5rem; min-height: 2.75rem; padding: 0.1875rem 0.5rem; }
+.composant.survol { border-color: var(--bleu); border-left-color: var(--famille); box-shadow: 0 0 0 3px var(--signal); }
+.composant-dessin { flex: none; width: 3.25rem; height: 3.25rem; }
+.composant.compact .composant-dessin { width: 2.25rem; height: 2.25rem; }
+.composant-dessin svg { width: 100%; height: 100%; display: block; }
+.bouton-poussoir {
+  width: 3.75rem; height: 3.75rem; min-width: 2.75rem; min-height: 2.75rem; padding: 2px;
+  border: 2px solid #9AA8B0; border-radius: 0.625rem; background: var(--fond); cursor: pointer;
+}
+.composant.compact .bouton-poussoir { width: 2.75rem; height: 2.75rem; }
+.bouton-poussoir:hover { background: #E6EDF1; }
+.bouton-capuchon { transition: y 0.08s, height 0.08s; }
+.composant-bouton.actif .bouton-capuchon { y: 23px; height: 7px; }
+.composant-led.actif .led-halo { opacity: 0.3; }
+.composant-led.actif .led-verre { fill: var(--led); stroke: #5B3A00; }
+.composant-led.actif .led-socle { fill: #5B3A00; }
+.composant-led.actif .led-reflet { opacity: 0.55; }
+.composant-texte { display: flex; flex-direction: column; gap: 0.1875rem; min-width: 0; flex: 1; }
+.composant-nom { display: flex; align-items: center; gap: 0.375rem; font-weight: 700; font-size: 0.9375rem; line-height: 1.2; }
+.composant.compact .composant-nom { font-size: 0.8125rem; }
+.composant-fil { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.composant-etat { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.pastille-etat {
+  display: inline-flex; align-items: center; height: 1.625rem; padding: 0 0.5625rem;
+  border-radius: 999px; border: 2px solid var(--encre); background: #FFFFFF;
+  font-weight: 700; font-size: 0.875rem; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.composant.compact .pastille-etat { height: 1.375rem; font-size: 0.8125rem; }
+.composant-led.actif .pastille-etat, .composant-bouton.actif .pastille-etat { background: var(--encre); color: #FFFFFF; }
+.composant-aide { font-size: 0.8125rem; color: var(--texte-2); }
+.servo-texte { fill: var(--texte-2); font: 700 6px var(--police); }
+
+/* Commandes */
+.simu-commandes { display: flex; align-items: center; gap: 0.375rem; flex: none; }
+.btn-lancer, .btn-commande {
+  display: flex; align-items: center; gap: 0.375rem; height: 3rem; border-radius: 0.625rem;
+  font-weight: 700; font-size: 1rem; cursor: pointer; white-space: nowrap;
+}
+.btn-lancer .icone, .btn-commande .icone { width: 1.125rem; height: 1.125rem; }
+.btn-lancer {
+  padding: 0 0.875rem; border: none; background: var(--bleu); color: #FFFFFF;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+}
+.btn-lancer:hover { background: #17627F; }
+.btn-lancer.actif { background: var(--bleu-fonce); box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.3), 0 0 0 3px var(--signal); }
+.btn-commande { padding: 0 0.625rem; border: 2px solid var(--bleu); background: #FFFFFF; color: var(--bleu-fonce); }
+.btn-commande:hover:not(:disabled) { background: var(--bleu-pale); }
+.btn-commande:disabled { background: var(--gris-fond); border: 2px dashed var(--gris-bord); color: var(--gris); cursor: not-allowed; }
+.vitesse { display: flex; margin-left: auto; border: 2px solid var(--bleu); border-radius: 0.625rem; overflow: hidden; flex: none; }
+.btn-vitesse {
+  width: 2.75rem; height: 2.75rem; border: none; background: #FFFFFF; color: var(--bleu-fonce);
+  font-weight: 600; font-size: 0.9375rem; cursor: pointer;
+}
+.btn-vitesse + .btn-vitesse { border-left: 2px solid var(--bleu); }
+.btn-vitesse[aria-pressed="true"] { background: var(--bleu); color: #FFFFFF; font-weight: 700; }
+
+/* ---------- Barre d'aide ---------- */
+
+.aide {
+  display: flex; align-items: center; gap: 0.625rem; padding: 0 0.75rem;
+  background: #FFFFFF; border-top: 1px solid var(--bord);
+}
+.btn-aide {
+  display: flex; align-items: center; gap: 0.5rem; height: 3rem; padding: 0 1rem;
+  border: 2px solid var(--bord); border-radius: 0.625rem; background: #FFFFFF;
+  font-weight: 600; font-size: 1rem; cursor: pointer;
+}
+.btn-aide:hover { background: #EDF2F5; }
+.btn-aide .icone { stroke: var(--bleu) !important; }
+.compteur {
+  display: inline-flex; align-items: center; height: 1.625rem; padding: 0 0.5625rem; border-radius: 999px;
+  background: var(--bleu-pale); color: var(--bleu-fonce); font-size: 0.875rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.btn-enregistrer { margin-left: auto; }
+.btn-verifier {
+  display: flex; align-items: center; gap: 0.625rem; height: 3.25rem; padding: 0 1.5rem;
+  border: none; border-radius: 0.75rem; background: var(--orange); color: var(--encre);
+  font-weight: 700; font-size: 1.125rem; cursor: pointer; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16);
+}
+.btn-verifier:hover { background: var(--orange-survol); }
+.btn-verifier .icone { width: 1.5rem; height: 1.5rem; }
+
+/* ---------- Retour de vérification ---------- */
+
+.panneau-verification {
+  position: absolute; right: 0.75rem; bottom: 4.75rem; z-index: 50; width: min(34rem, calc(100% - 1.5rem));
+  background: #FFFFFF; border: 2px solid var(--bleu); border-left: 8px solid var(--bleu); border-radius: 0.75rem;
+  box-shadow: 0 12px 40px rgba(31, 42, 48, 0.18); padding: 0.875rem 1rem 1rem;
+}
+.panneau-verification.reussi { border-color: #2E7D32; }
+.panneau-verification[hidden] { display: none; }
+.verif-titre { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.125rem; }
+.panneau-verification p { margin: 0.5rem 0 0; font-size: 1rem; line-height: 1.45; }
+.verif-note { color: var(--texte-2); font-size: 0.9375rem !important; }
+.verif-actions { display: flex; gap: 0.5rem; margin-top: 0.875rem; }
+.btn-principal, .btn-secondaire {
+  display: flex; align-items: center; gap: 0.5rem; height: 3rem; padding: 0 1rem;
+  border-radius: 0.625rem; font-weight: 700; font-size: 1rem; cursor: pointer;
+}
+.btn-principal { border: none; background: var(--bleu); color: #FFFFFF; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22); }
+.btn-principal:hover { background: #17627F; }
+.btn-secondaire { border: 2px solid var(--bord); background: #FFFFFF; }
+.btn-secondaire:hover { background: #EDF2F5; }
+
+.message-bref {
+  position: absolute; left: 50%; bottom: 5rem; transform: translateX(-50%); z-index: 60;
+  background: var(--encre); color: #FFFFFF; padding: 0.625rem 1rem; border-radius: 0.625rem;
+  font-weight: 600; box-shadow: 0 10px 28px rgba(31, 42, 48, 0.25); max-width: 40rem;
+}
+.message-bref[hidden] { display: none; }
+
+/* ---------- Choix d'exercice (provisoire) ---------- */
+
+.dialogue-parcours {
+  width: min(36rem, 92vw); border: 2px solid var(--bleu); border-radius: 0.75rem; padding: 1rem;
+  box-shadow: 0 12px 40px rgba(31, 42, 48, 0.25); color: var(--encre);
+}
+.dialogue-parcours::backdrop { background: rgba(31, 42, 48, 0.35); }
+.dialogue-entete { display: flex; align-items: center; font-size: 1.125rem; }
+.dialogue-entete button { margin-left: auto; width: 2.75rem; height: 2.75rem; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; border-radius: 0.5rem; }
+.dialogue-note { margin: 0.25rem 0 0.75rem; color: var(--texte-2); font-size: 0.875rem; }
+.liste-exercices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.375rem; }
+.liste-exercices button {
+  display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0.25rem 0.625rem;
+  border: 2px solid var(--bord); border-radius: 0.625rem; background: #FFFFFF; font-weight: 600; text-align: left; cursor: pointer;
+}
+.liste-exercices button:hover { background: var(--bleu-pale); border-color: var(--bleu); }
+.liste-numero {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; height: 1.75rem;
+  border-radius: 999px; background: var(--bleu); color: #FFFFFF; font-size: 0.875rem; font-weight: 700;
+}
+
+/* Beaucoup de composants (exercice 13) : cartes compactes sur trois colonnes */
+.simu-composants.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3125rem; }
+.avec-distributeur .simu-composants.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.simu-composants.compact .composant { gap: 0.375rem; padding: 0.1875rem 0.375rem; border-left-width: 5px; }
+.simu-composants.compact .composant-nom { font-size: 0.75rem; align-items: flex-start; }
+.simu-composants.compact .composant-fil { margin-top: 0.2rem; }
+.simu-composants.compact .pastille-etat { height: 1.25rem; font-size: 0.75rem; padding: 0 0.4375rem; }

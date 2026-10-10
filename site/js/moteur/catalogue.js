@@ -35,5 +35,6 @@
     Atelier.catalogue = creerCatalogue();
     global.definirParametres = Atelier.catalogue.definirParametres;
     global.definirExercice = Atelier.catalogue.definirExercice;
+    global.definirLexique = (liste) => (Atelier.lexique = liste);
   }
 })(this);

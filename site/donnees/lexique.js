@@ -1,0 +1,37 @@
+// Lexique : chaque mot tient en deux phrases et un pictogramme.
+// « formes » : les façons dont le mot apparaît dans les consignes (il y sera souligné).
+// Première version rédigée par Claude, à relire par le professeur.
+definirLexique([
+  { "mot": "Broche", "icone": "lumiere", "formes": ["broche", "broches"],
+    "definition": "Un petit trou de la carte où l'on branche un composant. Chaque broche a un nom, comme D3." },
+  { "mot": "HAUT (1) et BAS (0)", "icone": "info", "formes": ["HAUT", "BAS"],
+    "definition": "HAUT (1) : la broche envoie du courant, ou le bouton est appuyé. BAS (0) : pas de courant, ou le bouton est relâché." },
+  { "mot": "LED", "icone": "lumiere", "formes": ["LED", "LEDs"],
+    "definition": "Une petite lampe qui s'allume quand sa broche est à HAUT. C'est un actionneur." },
+  { "mot": "Bouton poussoir", "icone": "bouton", "formes": ["BOUTON", "bouton"],
+    "definition": "Un bouton qu'on appuie avec le doigt. C'est un capteur : il dit à la carte s'il est appuyé (HAUT) ou relâché (BAS)." },
+  { "mot": "Capteur", "icone": "bouton", "formes": ["capteur"],
+    "definition": "Un composant qui donne une information à la carte, comme un bouton. Le programme lit cette information pour décider." },
+  { "mot": "Actionneur", "icone": "moteur", "formes": ["actionneur"],
+    "definition": "Un composant qui agit sur le monde réel, comme une LED ou un moteur. C'est le programme qui le commande." },
+  { "mot": "Servo-moteur", "icone": "moteur", "formes": ["servo moteur", "servo-moteur", "servomoteur", "moteur"],
+    "definition": "Un moteur qui se place à un angle précis, entre 0° et 180°. C'est un actionneur." },
+  { "mot": "Angle", "icone": "moteur", "formes": ["angle"],
+    "definition": "La position du bras du servo-moteur, en degrés (°). 0° : bras à droite, 90° : bras vers le haut, 180° : bras à gauche." },
+  { "mot": "Carte Arduino", "icone": "variables", "formes": ["carte"],
+    "definition": "Un petit ordinateur qui exécute le programme. Les composants sont branchés sur ses broches." },
+  { "mot": "Programme", "icone": "crayon", "formes": ["programme"],
+    "definition": "La liste des blocs que la carte exécute, dans l'ordre, de haut en bas. Tu le construis en assemblant des blocs." },
+  { "mot": "Boucle", "icone": "recommencer", "formes": ["boucle"],
+    "definition": "Une partie du programme qui recommence sans fin. Ici, c'est le bloc « Répéter indéfiniment »." },
+  { "mot": "Condition (si, alors, sinon)", "icone": "decisions", "formes": ["Si", "si", "alors", "sinon", "Sinon"],
+    "definition": "Une règle : SI c'est vrai, ALORS on fait quelque chose. SINON, on fait autre chose." },
+  { "mot": "Variable", "icone": "variables", "formes": ["variable"],
+    "definition": "Une boîte avec une étiquette, son nom, qui garde une valeur. Ici, la variable s'appelle CHOIX." },
+  { "mot": "Valeur", "icone": "variables", "formes": ["valeur"],
+    "definition": "Ce qu'on range dans une variable ou ce qu'on compare, par exemple 3 ou HAUT. Elle peut changer pendant le programme." },
+  { "mot": "Seconde", "icone": "temps", "formes": ["secondes", "seconde", "2s"],
+    "definition": "Une unité de temps : 1 seconde, c'est le temps de dire « un crocodile ». On peut écrire 0.5 pour une demi-seconde." },
+  { "mot": "Simulateur", "icone": "info", "formes": ["simulateur"],
+    "definition": "L'écran à droite qui montre ce que fait ton programme, sans vraie carte. Tu peux y appuyer sur les boutons." }
+]);

@@ -4,6 +4,11 @@
   "private": true,
   "description": "Atelier de programmation en blocs du distributeur de céréales (5e), avec simulateur en direct",
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "vendor": "node tools/vendor.js",
+    "start": "node tools/serve.js"
+  },
+  "devDependencies": {
+    "blockly": "^13.3.0"
   }
 }
