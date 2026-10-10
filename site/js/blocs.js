@@ -238,6 +238,22 @@
       entree.removeField('ETAT');
       entree.insertFieldAt(rang, new Blockly.FieldDropdown(() => (A.aideLed ? HAUT_BAS_LED : HAUT_BAS)), 'ETAT');
     };
+    // Pastille « ? » sur « Au démarrage » et « Répéter indéfiniment » : un clic ouvre l'explication
+    // des deux blocs (A.surAideChapeau est branché par l'écran d'exercice).
+    const ICONE_AIDE =
+      'data:image/svg+xml,' +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#FFFFFF" stroke="#1F2A30" stroke-width="2"/>' +
+          '<text x="12" y="17" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15" font-weight="800" fill="#1A6E8E">?</text></svg>',
+      );
+    for (const type of ['demarrage', 'boucle']) {
+      const init = Blockly.Blocks[type].init;
+      Blockly.Blocks[type].init = function () {
+        init.call(this);
+        const aide = new Blockly.FieldImage(ICONE_AIDE, 24, 24, 'Aide sur ce bloc', () => A.surAideChapeau && A.surAideChapeau(type));
+        this.inputList[0].appendField(aide, 'AIDE');
+      };
+    }
     const style = (c) => ({ colourPrimary: c, colourSecondary: c, colourTertiary: assombrir(c) });
     const blockStyles = {};
     for (const [cle, c] of Object.entries(COULEURS)) blockStyles[cle] = style(c);

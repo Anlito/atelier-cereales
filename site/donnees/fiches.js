@@ -13,6 +13,16 @@
 //   { "type": "variable", "nom": "CHOIX", "valeur": 3 } une boîte avec une étiquette
 // Une fiche peut aussi avoir des « etapes » (construction pas à pas avec Précédent / Suivant).
 definirFiches({
+  "demarrage-boucle": {
+    "titre": "« Au démarrage » et « Répéter indéfiniment »",
+    "lignes": [
+      "« Au démarrage » : les blocs placés dedans s'exécutent une seule fois, quand la carte s'allume.",
+      "« Répéter indéfiniment » : les blocs placés dedans s'exécutent de haut en bas, puis tout recommence au début, sans fin.",
+      "La carte fait d'abord « Au démarrage », puis « Répéter indéfiniment » pour toujours.",
+      "Exemple : pour allumer une LED et la laisser allumée, « Au démarrage » suffit. Pour la faire clignoter, il faut « Répéter indéfiniment »."
+    ],
+    "schema": { "type": "deroulement" }
+  },
   "1": {
     "titre": "La LED et la broche",
     "lignes": [

@@ -143,6 +143,11 @@
       return vus;
     }
     const lexiqueComplet = A.creerLexique(motsVus);
+    // Pastille « ? » des blocs « Au démarrage » et « Répéter indéfiniment ».
+    A.surAideChapeau = () => {
+      fermerVerification();
+      aides.explication('demarrage-boucle');
+    };
     $('[data-aide="fiche"]').addEventListener('click', () => {
       fermerVerification();
       aides.fiche();

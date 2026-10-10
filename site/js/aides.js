@@ -190,6 +190,25 @@
     );
   }
 
+  // Au démarrage (une fois), puis Répéter indéfiniment (sans fin).
+  function deroulement() {
+    return (
+      '<svg class="schema-svg" viewBox="0 0 300 116" role="img" aria-label="Au démarrage une fois, puis Répéter indéfiniment sans fin">' +
+      '<rect x="4" y="34" width="112" height="44" rx="14" fill="#86C595" stroke="#1F2A30" stroke-width="1.5"/>' +
+      '<text x="60" y="54" text-anchor="middle" class="schema-texte">Au démarrage</text>' +
+      '<text x="60" y="69" text-anchor="middle" class="schema-petit">une seule fois</text>' +
+      '<path d="M118 56h40m-7-7 7 7-7 7" fill="none" stroke="#1F2A30" stroke-width="2.2" stroke-linecap="round"/>' +
+      '<rect x="162" y="34" width="134" height="44" rx="14" fill="#86C595" stroke="#1F2A30" stroke-width="1.5"/>' +
+      '<text x="229" y="54" text-anchor="middle" class="schema-texte">Répéter indéfiniment</text>' +
+      '<text x="229" y="69" text-anchor="middle" class="schema-petit">puis sans fin</text>' +
+      '<path d="M270 80c0 26-82 26-82 0" fill="none" stroke="#1A6E8E" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<path d="M182 86l6-7 6 7" fill="none" stroke="#1A6E8E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<text x="229" y="112" text-anchor="middle" class="schema-petit">on recommence au début</text>' +
+      '<text x="60" y="22" text-anchor="middle" class="schema-petit">la carte s’allume</text>' +
+      '</svg>'
+    );
+  }
+
   function schemaHtml(s) {
     if (!s) return '';
     switch (s.type) {
@@ -207,6 +226,8 @@
         return servoSchema(s.angles);
       case 'capteur-actionneur':
         return capteurActionneur();
+      case 'deroulement':
+        return deroulement();
       case 'variable':
         return variableSchema(s.nom || 'CHOIX', s.valeur === undefined ? 3 : s.valeur);
       default:
@@ -241,6 +262,15 @@
     panneau.querySelector('.panneau-aide-fermer').addEventListener('click', fermer);
 
     // ----- Fiche « À savoir » -----
+
+    // Fiche choisie par sa clé (ex. l'explication des blocs « Au démarrage » et « Répéter indéfiniment »).
+    function explication(cle) {
+      const f = (A.fiches || {})[cle];
+      if (!f) return;
+      ouvrir('explication', 'info', f.titre,
+        '<ul class="fiche-lignes">' + f.lignes.map((l) => `<li>${echapper(l)}</li>`).join('') + '</ul>' +
+          `<div class="fiche-schema">${schemaHtml(f.schema)}</div>`);
+    }
 
     function fiche() {
       if (ouvert === 'fiche') return fermer();
@@ -319,6 +349,7 @@
       },
       fiche,
       indice,
+      explication,
       fermer,
     };
   }
