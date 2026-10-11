@@ -524,6 +524,15 @@
     return h + '</tbody></table>';
   }
 
+  // Programme du distributeur envoyé dans la vraie carte (maquette).
+  function envoisHtml(d) {
+    const v = (d.envoisCarte || []).filter((x) => x.reussi);
+    if (!v.length) return '<p class="detail-resume">Programme envoyé dans la carte Arduino : pas encore.</p>';
+    const der = v[v.length - 1];
+    return `<p class="detail-resume">Programme envoyé dans la carte Arduino : <strong>${v.length} fois</strong>, ` +
+      `dernière fois le ${echapper(heure(der.date))} (version ${echapper(der.version)}).</p>`;
+  }
+
   // « 1,2 / 1,6 » et la raison des retenues.
   function pointsHtml(note, id) {
     const x = note.detail.find((y) => y.id === id);
@@ -556,7 +565,8 @@
       `${note.bonus ? ` (dont bonus 13B : +${A.nombreFr(note.bonus)})` : ''}</p>` +
       `<p class="detail-resume"><strong>${r.avancement}/13</strong> exercices réussis, dont <strong>★ ${r.premierCoup}</strong> du premier coup sans indice · ${A.dureeLisible(r.tempsTotal)} de travail · ` +
       `dernière activité ${echapper(heure(r.derniereActivite))} · fichier ${echapper(eq.fichier)}` +
-      `${d.exercice13 && d.exercice13.versionReussie ? ' · exercice 13 réussi en version ' + d.exercice13.versionReussie : ''}</p>`;
+      `${d.exercice13 && d.exercice13.versionReussie ? ' · exercice 13 réussi en version ' + d.exercice13.versionReussie : ''}</p>` +
+      envoisHtml(d);
     h +=
       '<table class="detail-tableau"><thead><tr><th>Exercice</th><th>Statut</th><th>Tentatives</th><th>Échecs</th><th>Indices</th>' +
       '<th>Temps</th><th>Première réussite</th><th>Points</th><th></th></tr></thead><tbody>';

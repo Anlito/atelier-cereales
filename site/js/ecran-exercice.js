@@ -391,9 +391,12 @@
           '<p>Le simulateur fait exactement ce que demande la consigne.</p>' +
           (session.handle ? '' : '<p class="verif-note">Pense à enregistrer ton travail dans le dossier de ton équipe.</p>') +
           '<div class="verif-actions">' +
+          (/^13/.test(etat.exercice.id) && A.envoiCarte ? '<button type="button" class="btn-principal btn-envoi-carte">Envoyer dans la carte Arduino</button>' : '') +
           (suivant ? `<button type="button" class="btn-principal btn-suivant">Exercice suivant${A.icone('suivant', { epaisseur: 2.8 })}</button>` : '') +
           '<button type="button" class="btn-secondaire btn-fermer-verif">Fermer</button></div>';
         if (suivant) $('.btn-suivant', panneau).addEventListener('click', () => ouvrir(suivant));
+        const envoi = $('.btn-envoi-carte', panneau);
+        if (envoi) envoi.addEventListener('click', () => A.envoiCarte.ouvrir(session));
         majParcours();
       } else {
         panneau.innerHTML =

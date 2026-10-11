@@ -9,7 +9,8 @@
     "start": "node tools/serve.js",
     "exemples": "node tools/exemples-equipes.js",
     "recette": "node tools/recette.js",
-    "archive": "node tools/archive.js"
+    "archive": "node tools/archive.js",
+    "firmware": "node tools/firmware.js"
   },
   "devDependencies": {
     "blockly": "^13.3.0",

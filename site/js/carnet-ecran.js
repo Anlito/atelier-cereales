@@ -399,7 +399,17 @@
           `<span class="liste-numero">${ex.id}</span><span class="liste-titre">${echapper(ex.titre)}</span>` +
           `<span class="liste-statut"><span aria-hidden="true">${symbole}</span> ${mot}${p && p.tentatives ? ` · ${p.tentatives} vérification${p.tentatives > 1 ? 's' : ''}` : ''}</span></button>`;
       }
-      return h + '</div></section>';
+      // Fin du parcours : le programme du distributeur peut aller dans la vraie carte.
+      const version = A.envoiCarte.versionPossible(D, session.lecture);
+      h += '</div><div class="tester-maquette">' +
+        `<h3>${A.icone('lumiere', { epaisseur: 2.4 })}Tester sur la maquette</h3>` +
+        (version
+          ? `<p>Ton programme du distributeur est validé${version === '13B' ? ' (défi compris)' : ''} : envoie-le dans la carte Arduino de ta maquette.</p>` +
+            '<button type="button" class="btn-principal btn-envoi-carte">Envoyer le programme dans la carte Arduino</button>'
+          : '<p>Quand l’exercice 13 sera réussi, tu pourras envoyer le programme du distributeur dans la carte Arduino de ta maquette.</p>' +
+            '<button type="button" class="btn-principal btn-envoi-carte" disabled>Envoyer le programme dans la carte Arduino</button>') +
+        '</div>';
+      return h + '</section>';
     }
 
     // ---------- 6. Câblage ----------
@@ -431,6 +441,7 @@
       if (!b || !racine.contains(b)) return;
       if (b.dataset.verifier) return verifier(b.dataset.verifier);
       if (b.dataset.exercice) return A.ouvrirExercice(b.dataset.exercice);
+      if (b.classList.contains('btn-envoi-carte')) return A.envoiCarte.ouvrir(session);
       if (b.dataset.couleur) {
         K.couleurs[b.dataset.broche] = K.couleurs[b.dataset.broche] === b.dataset.couleur ? undefined : b.dataset.couleur;
         if (!K.couleurs[b.dataset.broche]) delete K.couleurs[b.dataset.broche];

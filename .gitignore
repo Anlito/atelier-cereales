@@ -8,3 +8,5 @@ _source_zip/
 exemples/
 # Archive ZIP (recréée par « npm run archive »)
 dist/
+# Bibliothèques Arduino du projet (recréées par « npm run firmware »)
+tools/arduino-libs/

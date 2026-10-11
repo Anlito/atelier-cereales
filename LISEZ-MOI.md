@@ -37,6 +37,13 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
    tout seul (à chaque vérification et peu après une modification).
 6. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
+7. **Tester sur la maquette** : quand l'exercice 13A est réussi, « Envoyer le programme dans la carte Arduino »
+   (onglet Programmation du carnet, ou message de réussite de l'exercice 13) envoie le programme du distributeur
+   dans la carte branchée en USB (Chrome ou Edge, aussi depuis le dossier réseau). C'est le programme de la
+   solution de référence (13B si le défi est réussi) : celui de l'équipe a réussi les mêmes tests, il fait la même
+   chose. Boutons attendus : modules bouton (HAUT = appuyé). Chaque envoi est noté pour le professeur.
+   Si une broche ou une solution de l'exercice 13 change, recompiler avec « npm run firmware » (les fichiers
+   site/firmware/distributeur_13A.ino et _13B.ino s'ouvrent aussi dans l'IDE Arduino).
 
 ## 3. Outil professeur (`prof.html`)
 
