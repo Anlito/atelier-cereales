@@ -422,7 +422,7 @@
       const stock = C.couleursCables || [];
       let h = '<section class="carte-carnet"><h2>Câblage du distributeur</h2>' +
         '<p class="regle"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>. ' +
-        'Pour le câble de signal, choisis une couleur parmi celles en stock (si le câble de signal d’un bouton est noir, son GND est marron). Les broches sont les mêmes que dans les exercices de programmation.</p>' +
+        'Pour le câble de signal, choisis une couleur parmi celles en stock. Les broches sont les mêmes que dans les exercices de programmation.</p>' +
         '<table class="table-cablage"><thead><tr><th>Composant</th><th>Rôle</th><th>Couleur du câble de signal</th><th>Broche</th></tr></thead><tbody>';
       for (const l of lignes) {
         const couleurs = (Array.isArray(stock) ? stock : stock[l.type]) || [];

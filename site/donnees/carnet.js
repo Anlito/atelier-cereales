@@ -83,7 +83,7 @@ definirCarnet({
     "bouton": [
       { "nom": "rouge", "code": "#E53935" }, { "nom": "jaune", "code": "#FDD835" },
       { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" },
-      { "nom": "noir", "code": "#212121" }, { "nom": "blanc", "code": "#F5F5F5" }
+      { "nom": "blanc", "code": "#F5F5F5" }
     ]
   },
   "couleurServo": { "nom": "orange", "code": "#F07020" }
