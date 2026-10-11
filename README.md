@@ -1,4 +1,4 @@
-# Atelier du distributeur de céréales
+# Projet distributeur de céréales
 
 Site statique où des élèves de 5e programment en blocs (Blockly, en français) les 13 exercices du projet
 « distributeur de céréales » et voient le résultat dans un simulateur en direct. Sans compte ni serveur :

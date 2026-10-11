@@ -525,7 +525,7 @@
     if (A.ecran && A.ecran.arreter) A.ecran.arreter();
     $('.ecran-exercice').hidden = true;
     $('.ecran-carnet').hidden = false;
-    document.title = 'Carnet de projet — Atelier du distributeur';
+    document.title = 'Carnet de projet — Distributeur de céréales';
     carnet.montrer(onglet);
   }
   function ouvrirExercice(id) {

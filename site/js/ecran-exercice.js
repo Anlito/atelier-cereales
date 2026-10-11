@@ -182,7 +182,7 @@
       etat.exercice = ex;
       $('.pastille-exercice').textContent = 'Exercice ' + ex.id;
       $('.titre-exercice').textContent = ex.titre;
-      document.title = `Exercice ${ex.id} · ${ex.titre} — Atelier du distributeur`;
+      document.title = `Exercice ${ex.id} · ${ex.titre} — Projet distributeur de céréales`;
       const c = consigneHtml(ex.consigne, lexique);
       $('.consigne-texte').innerHTML = c.html;
       $('.consigne').classList.toggle('longue', c.longue);

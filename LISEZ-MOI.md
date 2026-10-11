@@ -1,4 +1,4 @@
-# Atelier du distributeur de céréales — LISEZ-MOI (professeur)
+# Projet distributeur de céréales — LISEZ-MOI (professeur)
 
 Un atelier de programmation en blocs, avec simulateur en direct, pour les 13 exercices du projet
 « distributeur de céréales » (5e). Pas de compte, pas de serveur : tout se passe dans le navigateur,
