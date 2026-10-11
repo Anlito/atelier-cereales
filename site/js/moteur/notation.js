@@ -29,11 +29,16 @@
     penaliteEchec: 0.05,
     penaliteEchecMax: 0.25,
     arrondi: 0.5,
+    // Exercices du carnet de projet notés (coefficient) ; la problématique et l'algorigramme du
+    // distributeur ne sont pas notés (le professeur voit quand même leur travail).
+    carnet: { classement: 1, mouvement: 1, trappe: 1 },
   };
+  const NOMS_CARNET = { classement: 'Carnet · classement', mouvement: 'Carnet · algorigramme 1', trappe: 'Carnet · algorigramme 2' };
 
   function completer(bareme) {
     const b = Object.assign({}, BAREME, bareme || {});
     b.coefficients = Object.assign({}, BAREME.coefficients, (bareme && bareme.coefficients) || {});
+    b.carnet = Object.assign({}, BAREME.carnet, (bareme && bareme.carnet) || {});
     return b;
   }
 
@@ -69,6 +74,22 @@
     return { fraction: 0, raisons: [statut === 'en_cours' ? 'ouvert, jamais vérifié' : 'non commencé'] };
   }
 
+  // Partie du carnet : d'après les vérifications gardées dans le fichier ({ date, reussi, bien, total }).
+  function noterPartieCarnet(donnees, partie, b) {
+    const v = ((donnees.carnet && donnees.carnet.verifications) || {})[partie] || [];
+    const premiere = v.findIndex((x) => x.reussi);
+    if (premiere >= 0) {
+      const echecs = premiere;
+      const rEchecs = Math.min(b.penaliteEchecMax, Math.max(0, echecs - b.essaisGratuits) * b.penaliteEchec);
+      const raisons = rEchecs > 0
+        ? [`${echecs} vérification${echecs > 1 ? 's' : ''} ratée${echecs > 1 ? 's' : ''} avant la réussite (−${pourcent(rEchecs)})`]
+        : [echecs === 0 ? '★ réussi du premier coup' : 'réussi'];
+      return { fraction: 1 - rEchecs, raisons, parfait: echecs === 0 };
+    }
+    if (v.length) return { fraction: b.participation, raisons: [`commencé, pas encore réussi (${pourcent(b.participation)})`] };
+    return { fraction: 0, raisons: ['non commencé'] };
+  }
+
   function arrondir(x, pas) {
     return pas > 0 ? Math.round(x / pas) * pas : Math.round(x * 100) / 100;
   }
@@ -96,6 +117,14 @@
       detail.push({ id, coef, attendu, fraction, parfait: !!r.parfait, points: fraction * coef, raisons });
       obtenu += fraction * coef;
       if (attendu) possible += coef;
+    }
+    // Exercices du carnet : même principe (réussi = tous les points moins les vérifications ratées avant).
+    for (const [partie, coef] of Object.entries(b.carnet)) {
+      if (!(coef > 0)) continue;
+      const r = noterPartieCarnet(donnees, partie, b);
+      detail.push({ id: 'carnet:' + partie, carnet: true, partie, nom: NOMS_CARNET[partie] || partie, coef, attendu: true, ...r, points: r.fraction * coef });
+      obtenu += r.fraction * coef;
+      possible += coef;
     }
     const e13B = donnees.exercices['13B'];
     const bonus = e13B && e13B.statut === 'reussi' ? b.bonus13B : 0;

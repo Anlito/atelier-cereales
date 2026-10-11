@@ -25,6 +25,10 @@ definirBareme({
   "essaisGratuits": 0,
   "penaliteEchec": 0.05,
   "penaliteEchecMax": 0.25,
+  // Exercices du carnet de projet notés et leur coefficient (0 = ne compte pas). Même principe que la
+  // programmation : réussi = tous les points, moins les vérifications ratées avant la réussite.
+  // La problématique et l'algorigramme du distributeur ne sont pas notés (leur travail reste visible).
+  "carnet": { "classement": 1, "mouvement": 1, "trappe": 1 },
   // Arrondi de la note (0.5 = au demi-point, 0.25 = au quart de point, 0 = au centième).
   "arrondi": 0.5
 });

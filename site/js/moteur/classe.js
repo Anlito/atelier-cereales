@@ -180,6 +180,25 @@
         ]);
       }
     }
+    // Parties du carnet de projet vérifiées (classement, algorigrammes) : une ligne chacune.
+    const NOMS = { classement: 'Carnet · classement', mouvement: 'Carnet · algorigramme 1', trappe: 'Carnet · algorigramme 2', final: 'Carnet · algorigramme du distributeur' };
+    for (const eq of equipes) {
+      const d = eq.donnees;
+      const v = (d.carnet && d.carnet.verifications) || {};
+      const note = bareme ? N.noterEquipe(d, bareme) : null;
+      for (const p of Object.keys(NOMS)) {
+        const liste = v[p] || [];
+        if (!liste.length) continue;
+        const premiere = liste.findIndex((x) => x.reussi);
+        const x = note && note.detail.find((y) => y.id === 'carnet:' + p);
+        const arr = (n) => Math.round(n * 100) / 100;
+        lignes.push([
+          d.equipe.classe || '', d.equipe.eleves.join(', '), NOMS[p], premiere >= 0 ? 'réussi' : 'en cours', liste.length,
+          premiere >= 0 ? premiere : liste.length, '', '', premiere >= 0 ? dateCourte(liste[premiere].date) : '', '', '',
+          ...(note ? (x ? [arr(x.pointsNote), arr(x.pointsNoteMax), x.raisons.join(' ; ')] : ['', '', 'non noté']) : []),
+        ]);
+      }
+    }
     return { entete, lignes };
   }
 

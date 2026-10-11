@@ -461,7 +461,34 @@
     return A.avancementCarnet(d.carnet, A.carnet, ex13 ? ex13.composants : []);
   }
 
-  function carnetHtml(d) {
+  // Réponses de l'équipe, élément par élément ou case par case, avec ✓ / ✗.
+  function reponsesHtml(K, C, p) {
+    const ligne = (etiquette, valeur, juste) =>
+      `<li class="${juste === true ? 'rep-juste' : juste === false ? 'rep-faux' : 'rep-vide'}">` +
+      `<span class="rep-marque" aria-hidden="true">${juste === true ? '✓' : juste === false ? '✗' : '○'}</span>` +
+      `<strong>${echapper(etiquette)}</strong> : ${valeur ? echapper(valeur) : '<em>vide</em>'}</li>`;
+    if (p === 'classement') {
+      const titres = Object.fromEntries((C.colonnes || []).map((c) => [c.cle, c.titre]));
+      return '<ul class="reponses">' + (C.classement || []).map((e) => {
+        const place = K.classement[e.nom];
+        return ligne(e.nom, place ? titres[place] || place : '', place ? place === e.place : null);
+      }).join('') + '</ul>';
+    }
+    const algo = p === 'final' ? null : (C.algorigrammes || []).find((a) => a.id === p);
+    const attendu = p === 'final' ? C.algoFinal.cases : A.attenduLineaire(algo);
+    const r = A.corrigerAlgo(K.algos[p] || {}, attendu, p === 'final' ? C.algoFinal.groupes : []);
+    const etiquette = (sid) => {
+      if (p !== 'final') return 'Étape ' + sid.slice(1);
+      const m = sid.match(/^s(\d+)([LR]?)$/);
+      return (m[2] === 'L' ? 'Petite dose, case ' : m[2] === 'R' ? 'Grande dose, case ' : 'Début, case ') + m[1];
+    };
+    return '<ul class="reponses">' + Object.keys(attendu).map((sid) => {
+      const t = (K.algos[p] || {})[sid];
+      return ligne(etiquette(sid), t, t ? !r.mal.includes(sid) : null);
+    }).join('') + '</ul>';
+  }
+
+  function carnetHtml(d, note) {
     const K = A.completerCarnet(d.carnet);
     const C = A.carnet || {};
     const etats = A.etatsCarnet(K, C, ex13 ? ex13.composants : []);
@@ -474,19 +501,25 @@
       return `${v.length} vérification${v.length > 1 ? 's' : ''}` +
         (reussie >= 0 ? ` · réussi à la ${reussie + 1}${reussie ? 'e' : 're'}` : ` · dernière : ${der.bien}/${der.total}`);
     };
+    // Points : les parties notées (barème), « non noté » pour les autres.
+    const points = (p) => (note.detail.some((x) => x.id === 'carnet:' + p) ? pointsHtml(note, 'carnet:' + p) : '<span class="points-raison">non noté</span>');
     const ligne = (p, contenu) =>
       `<tr><th scope="row">${A.NOMS_PARTIES_CARNET[p]}</th><td class="statut-${etats[p] === 'fait' ? 'reussi' : etats[p] === 'en_cours' ? 'en_cours' : 'non_commence'}">${mot[etats[p]]}</td>` +
-      `<td>${contenu || ''}</td></tr>`;
+      `<td>${contenu || ''}</td><td>${points(p)}</td></tr>`;
+    const avecReponses = (p) => {
+      const commence = p === 'classement' ? Object.keys(K.classement).length : Object.keys(K.algos[p] || {}).length;
+      return (verifs(p) || '') + (commence ? `<details class="voir-reponses"><summary>Voir leurs réponses</summary>${reponsesHtml(K, C, p)}</details>` : '');
+    };
     const idees = K.idees.filter((x) => x && x.trim());
     const couleurs = A.lignesCablage(ex13 ? ex13.composants : [])
       .filter((l) => !l.couleurImposee)
       .map((l) => `${l.broche} ${echapper(K.couleurs[l.broche] || '—')}`)
       .join(' · ');
     let h = `<h3>Carnet de projet · ${A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length}/${A.PARTIES_CARNET.length}</h3>`;
-    h += '<table class="detail-tableau carnet-detail"><tbody>';
+    h += '<table class="detail-tableau carnet-detail"><thead><tr><th>Partie</th><th>État</th><th>Travail</th><th>Points</th></tr></thead><tbody>';
     h += ligne('idees', idees.length ? '<ol>' + idees.map((i) => `<li>${echapper(i)}</li>`).join('') + '</ol>' : '');
     h += ligne('definition', K.definition ? `« ${echapper(K.definition)} »` : '');
-    for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += ligne(p, verifs(p));
+    for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += ligne(p, avecReponses(p));
     h += ligne('cablage', couleurs);
     return h + '</tbody></table>';
   }
@@ -540,7 +573,7 @@
     }
     h += '</tbody></table>';
 
-    h += carnetHtml(d);
+    h += carnetHtml(d, note);
 
     // Historique : chaque vérification (avec tous les écarts et le programme du moment) et chaque indice.
     h += '<h3>Historique</h3>';
@@ -632,15 +665,21 @@
   // ---------- Barème réglable dans la page ----------
 
   const zoneBareme = $('.prof-bareme');
-  $('.bareme-coefs').innerHTML = Object.keys(A.BAREME_DEFAUT.coefficients)
-    .map((id) => `<label title="${echapper(titre(id))}">Ex. ${id} <input type="number" data-coef="${id}" min="0" max="10" step="0.5"></label>`)
-    .join('');
+  const NOMS_CARNET_BAREME = { classement: 'Carnet · classement', mouvement: 'Carnet · algorigramme 1', trappe: 'Carnet · algorigramme 2' };
+  $('.bareme-coefs').innerHTML =
+    Object.keys(A.BAREME_DEFAUT.coefficients)
+      .map((id) => `<label title="${echapper(titre(id))}">Ex. ${id} <input type="number" data-coef="${id}" min="0" max="10" step="0.5"></label>`)
+      .join('') +
+    Object.keys(A.BAREME_DEFAUT.carnet)
+      .map((p) => `<label>${NOMS_CARNET_BAREME[p]} <input type="number" data-coef-carnet="${p}" min="0" max="10" step="0.5"></label>`)
+      .join('');
   function remplirBareme() {
     for (const el of zoneBareme.querySelectorAll('[data-b]')) {
       const v = bareme[el.dataset.b];
       el.value = el.hasAttribute('data-pourcent') ? Math.round(v * 100) : String(v);
     }
     for (const el of zoneBareme.querySelectorAll('[data-coef]')) el.value = bareme.coefficients[el.dataset.coef];
+    for (const el of zoneBareme.querySelectorAll('[data-coef-carnet]')) el.value = bareme.carnet[el.dataset.coefCarnet];
     resumerBareme();
   }
   function resumerBareme() {
@@ -655,6 +694,7 @@
     const v = Number(el.value);
     if (el.value === '' || !Number.isFinite(v) || v < 0) return;
     if (el.dataset.coef) bareme.coefficients[el.dataset.coef] = v;
+    else if (el.dataset.coefCarnet) bareme.carnet[el.dataset.coefCarnet] = v;
     else if (el.dataset.b) bareme[el.dataset.b] = el.hasAttribute('data-pourcent') ? v / 100 : v;
     resumerBareme();
     dessiner();

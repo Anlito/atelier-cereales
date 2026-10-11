@@ -64,6 +64,11 @@ Panneau « Barème » de `prof.html` (réglages valables le temps de la page), o
 - **commencé sans réussir** : 20 % des points ; **non commencé** : 0 ; **13B réussi** : +1 point ;
 - **exercices attendus** : la note est calculée sur les N premiers exercices attendus à ce moment du projet
   (à augmenter au fil des séances). Un exercice réussi en avance ne compense pas les erreurs (réglage « avance »).
+- **carnet de projet** : le **classement** et les **deux algorigrammes d'entraînement** sont notés de la même façon
+  (coefficient 1 chacun) : tous les points s'ils sont réussis à la première vérification, −5 % par vérification
+  ratée avant la réussite, 20 % s'ils sont commencés sans être réussis. La **problématique** et l'**algorigramme du
+  distributeur** ne sont pas notés : le détail de chaque équipe montre quand même leur travail (idées, définition,
+  et « Voir leurs réponses » case par case avec ✓ / ✗). Les coefficients du carnet se règlent dans le Barème.
 
 Les élèves sont prévenus dans le panneau des indices qu'un indice enlève un peu de points.
 

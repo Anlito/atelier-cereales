@@ -160,3 +160,14 @@ body.page-prof { overflow: auto; background: var(--fond); }
 /* Carnet de projet dans le détail d'une équipe */
 .carnet-detail th { width: 14rem; }
 .carnet-detail ol { margin: 0; padding-left: 1.25rem; }
+
+/* Réponses de l'équipe dans le carnet */
+.voir-reponses { margin-top: 0.25rem; }
+.voir-reponses summary { cursor: pointer; color: var(--bleu-fonce); font-weight: 700; }
+.reponses { list-style: none; margin: 0.375rem 0 0; padding: 0; columns: 2; column-gap: 1.5rem; font-size: 0.875rem; }
+.reponses li { break-inside: avoid; padding: 0.125rem 0; }
+.rep-marque { display: inline-block; width: 1.25rem; font-weight: 800; }
+.rep-juste .rep-marque { color: #1B5E20; }
+.rep-faux .rep-marque { color: #B71C1C; }
+.rep-faux { color: #7F1D1D; }
+.rep-vide { color: var(--gris); }
