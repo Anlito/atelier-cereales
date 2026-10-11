@@ -15,8 +15,13 @@ const ex13 = chargerExercices().find((e) => e.id === '13A');
 
 test('le fichier du carnet est complet', () => {
   assert.ok(contenu.problematique.length > 20);
-  assert.equal(contenu.classement.length, 14);
-  for (const e of contenu.classement) assert.ok(['capteur', 'carte', 'actionneur'].includes(e.place), e.nom);
+  assert.equal(contenu.classement.length, 15);
+  for (const e of contenu.classement) {
+    assert.ok(['capteur', 'carte', 'actionneur'].includes(e.place), e.nom);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'site', e.image)), 'image absente : ' + e.image);
+  }
+  assert.deepEqual([...contenu.colonnes.map((c) => c.cle)], ['capteur', 'carte', 'actionneur']);
+  for (const c of contenu.colonnes) assert.ok(c.explication.length > 40, c.cle);
   assert.equal(contenu.algorigrammes.length, 2);
   assert.equal(Object.keys(contenu.algoFinal.cases).length, 18);
   for (const g of contenu.algoFinal.groupes) for (const c of g) assert.ok(contenu.algoFinal.cases[c], c);
@@ -29,7 +34,7 @@ test('classement : bien placés, mal placés, non placés', () => {
   assert.equal(r.reussi, false);
   assert.deepEqual(r.mal, ['Souris']);
   assert.deepEqual(r.nonPlaces, ['Moteur']);
-  assert.equal(r.bien, 12);
+  assert.equal(r.bien, 13);
 });
 
 test('algorigramme : ordre libre dans un groupe, textes en double acceptés', () => {

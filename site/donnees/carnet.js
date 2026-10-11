@@ -7,22 +7,31 @@ definirCarnet({
   "nombreIdees": 4,
   "questionObjet": "Un objet ou système technique, c'est quoi ? Écris la définition avec tes propres mots.",
 
-  // Classement : chaque élément et sa bonne colonne (capteur, carte ou actionneur).
+  // Classement : les trois colonnes (avec l'explication du « ? ») et chaque élément, son image et sa bonne colonne.
+  "colonnes": [
+    { "cle": "capteur", "titre": "Capteurs", "aide": "Reçoivent une information",
+      "explication": "Un capteur prend une information dans le monde réel (un appui, une distance, la lumière, un son…) et l'envoie à la carte programmable. Exemples : un bouton, un micro." },
+    { "cle": "carte", "titre": "Carte programmable", "aide": "Traite et décide",
+      "explication": "La carte programmable reçoit les informations des capteurs, exécute le programme et décide quoi faire. Exemples : la carte Arduino de notre distributeur, un Raspberry Pi." },
+    { "cle": "actionneur", "titre": "Actionneurs", "aide": "Agissent sur le monde",
+      "explication": "Un actionneur agit sur le monde réel quand la carte le lui demande : il bouge, éclaire ou fait du bruit. Exemples : un moteur, une LED, une enceinte." }
+  ],
   "classement": [
-    { "nom": "Capteur de distance", "place": "capteur" },
-    { "nom": "Clavier", "place": "capteur" },
-    { "nom": "Bouton", "place": "capteur" },
-    { "nom": "Carte Arduino", "place": "carte" },
-    { "nom": "Ampoule", "place": "actionneur" },
-    { "nom": "Unité centrale", "place": "carte" },
-    { "nom": "Micro", "place": "capteur" },
-    { "nom": "Souris", "place": "capteur" },
-    { "nom": "Raspberry Pi", "place": "carte" },
-    { "nom": "Pompe à eau", "place": "actionneur" },
-    { "nom": "Écran", "place": "actionneur" },
-    { "nom": "Enceinte", "place": "actionneur" },
-    { "nom": "Capteur d'humidité", "place": "capteur" },
-    { "nom": "Moteur", "place": "actionneur" }
+    { "nom": "Capteur de distance", "image": "img/objets/distance.png", "place": "capteur" },
+    { "nom": "Clavier", "image": "img/objets/clavier.png", "place": "capteur" },
+    { "nom": "Bouton", "image": "img/objets/bouton.png", "place": "capteur" },
+    { "nom": "Carte Arduino", "image": "img/objets/arduino.png", "place": "carte" },
+    { "nom": "Ampoule", "image": "img/objets/ampoule.png", "place": "actionneur" },
+    { "nom": "Unité centrale", "image": "img/objets/unite-centrale.png", "place": "carte" },
+    { "nom": "Micro", "image": "img/objets/micro.png", "place": "capteur" },
+    { "nom": "Souris", "image": "img/objets/souris.png", "place": "capteur" },
+    { "nom": "Raspberry Pi", "image": "img/objets/raspberry.png", "place": "carte" },
+    { "nom": "Pompe à eau", "image": "img/objets/pompe-a-eau.png", "place": "actionneur" },
+    { "nom": "Écran", "image": "img/objets/ecran.png", "place": "actionneur" },
+    { "nom": "Enceinte", "image": "img/objets/enceinte.png", "place": "actionneur" },
+    { "nom": "Capteur d'humidité", "image": "img/objets/humidite.png", "place": "capteur" },
+    { "nom": "Moteur", "image": "img/objets/moteur.png", "place": "actionneur" },
+    { "nom": "Photorésistance", "image": "img/objets/photoresistance.png", "place": "capteur" }
   ],
 
   // Petits algorigrammes d'entraînement : les étapes dans le bon ordre (de haut en bas).

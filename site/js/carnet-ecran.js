@@ -16,10 +16,12 @@
     { cle: 'programmation', titre: 'Programmation', icone: 'lumiere', parties: [] },
     { cle: 'cablage', titre: 'Câblage', icone: 'bouton', parties: ['cablage'] },
   ];
-  const COLONNES = [
-    { cle: 'capteur', titre: 'Capteurs', aide: 'Reçoivent une information', couleur: '#1E88E5' },
-    { cle: 'carte', titre: 'Carte programmable', aide: 'Traite et décide', couleur: '#7B1FA2' },
-    { cle: 'actionneur', titre: 'Actionneurs', aide: 'Agissent sur le monde', couleur: '#E65100' },
+  // Couleurs des colonnes ; titres et explications du « ? » dans donnees/carnet.js.
+  const COULEURS_COLONNES = { capteur: '#1E88E5', carte: '#7B1FA2', actionneur: '#E65100' };
+  const COLONNES_DEFAUT = [
+    { cle: 'capteur', titre: 'Capteurs', aide: 'Reçoivent une information', explication: '' },
+    { cle: 'carte', titre: 'Carte programmable', aide: 'Traite et décide', explication: '' },
+    { cle: 'actionneur', titre: 'Actionneurs', aide: 'Agissent sur le monde', explication: '' },
   ];
 
   // Mélange stable (le même ordre pendant toute la séance), à partir d'une graine.
@@ -130,22 +132,39 @@
     // ---------- 2. Objet automatisé : classement ----------
 
     function objet() {
+      const colonnes = C.colonnes || COLONNES_DEFAUT;
       const restants = melanger(C.classement || [], graine + 'c').filter((e) => !K.classement[e.nom]);
       const revoir = ui.revoir.classement || [];
-      const pastille = (nom, place) =>
-        `<button type="button" class="pastille-classe${ui.choisi === nom ? ' choisie' : ''}${revoir.includes(nom) ? ' a-revoir' : ''}" ` +
-        `data-element="${echapper(nom)}"${place ? ` data-place="${place}"` : ''} draggable="true">${echapper(nom)}` +
-        `${place ? '<span class="retirer" aria-hidden="true">×</span>' : ''}</button>`;
+      // Carte d'un élément : image et nom (petite version une fois placée dans une colonne).
+      const carteObjet = (e, place) =>
+        `<button type="button" class="carte-objet${place ? ' placee' : ''}${ui.choisi === e.nom ? ' choisie' : ''}${revoir.includes(e.nom) ? ' a-revoir' : ''}" ` +
+        `data-element="${echapper(e.nom)}"${place ? ` data-place="${place}"` : ''} draggable="true" ` +
+        `aria-label="${echapper(e.nom)}${place ? ' : remettre dans la liste' : ''}">` +
+        (e.image ? `<img src="${echapper(e.image)}" alt="" draggable="false">` : '') +
+        `<span class="carte-objet-nom">${echapper(e.nom)}</span>` +
+        `${place ? '<span class="retirer" aria-hidden="true">×</span>' : ''}${revoir.includes(e.nom) ? '<span class="marque">à revoir</span>' : ''}</button>`;
       let h = '<section class="carte-carnet"><h2>Classement : capteur, carte programmable ou actionneur ?</h2>' +
+        // La chaîne d'un objet automatisé, comme dans la présentation.
+        '<div class="chaine" aria-label="Capteurs, puis carte programmable, puis actionneurs">' +
+        colonnes.map((c, i) =>
+          `<span class="chaine-maillon" style="--col:${COULEURS_COLONNES[c.cle]}">${echapper(c.titre)}</span>` +
+          (i < colonnes.length - 1 ? `<span class="chaine-fleche">${i === 0 ? 'l’information' : 'les ordres'} →</span>` : ''),
+        ).join('') +
+        '</div>' +
         '<p class="mode-emploi"><strong>1.</strong> Clique sur un élément (ou fais-le glisser), <strong>2.</strong> clique sur sa colonne. ' +
-        'Clique sur un élément déjà placé pour le remettre dans la liste.</p>' +
-        `<div class="reserve" data-zone="reserve"><span class="reserve-titre">À classer : ${restants.length}</span>` +
-        (restants.length ? restants.map((e) => pastille(e.nom)).join('') : '<span class="tout-place">Tous les éléments sont placés.</span>') +
+        'Clique sur un élément déjà placé pour le remettre dans la liste. Le <strong>?</strong> explique chaque colonne.</p>' +
+        `<div class="reserve reserve-objets" data-zone="reserve"><span class="reserve-titre">À classer : ${restants.length}</span>` +
+        (restants.length ? restants.map((e) => carteObjet(e)).join('') : '<span class="tout-place">Tous les éléments sont placés.</span>') +
         '</div><div class="colonnes">';
-      for (const col of COLONNES) {
+      for (const col of colonnes) {
         const dedans = (C.classement || []).filter((e) => K.classement[e.nom] === col.cle);
-        h += `<div class="colonne" data-colonne="${col.cle}" style="--col:${col.couleur}"><div class="colonne-titre">${col.titre}<small>${col.aide}</small></div>` +
-          `<div class="colonne-corps">${dedans.map((e) => pastille(e.nom, col.cle)).join('') || '<span class="vide">Clique ici pour placer</span>'}</div></div>`;
+        const ouverte = ui.aideColonne === col.cle;
+        h += `<div class="colonne" data-colonne="${col.cle}" style="--col:${COULEURS_COLONNES[col.cle]}">` +
+          `<div class="colonne-titre"><span class="colonne-nom">${echapper(col.titre)}` +
+          (col.explication ? `<button type="button" class="aide-colonne" data-aide-colonne="${col.cle}" aria-expanded="${ouverte}" aria-label="Qu’est-ce que c’est : ${echapper(col.titre)} ?">?</button>` : '') +
+          `</span><small>${echapper(col.aide)}</small></div>` +
+          (ouverte ? `<p class="explication-colonne">${echapper(col.explication)}</p>` : '') +
+          `<div class="colonne-corps">${dedans.map((e) => carteObjet(e, col.cle)).join('') || '<span class="vide">Clique ici pour placer</span>'}</div></div>`;
       }
       h += '</div>' + boutonVerifier('classement', 'Vérifier mon classement') + '</section>';
       return h;
@@ -418,6 +437,11 @@
         modifie(false);
         return montrer();
       }
+      // « ? » d'une colonne : ouvre ou ferme son explication.
+      if (b.dataset.aideColonne) {
+        ui.aideColonne = ui.aideColonne === b.dataset.aideColonne ? null : b.dataset.aideColonne;
+        return montrer();
+      }
       // Classement
       if (b.dataset.element) {
         if (b.dataset.place) return placerElement(b.dataset.element, null);
@@ -440,7 +464,7 @@
     // Clic sur une colonne du classement
     racine.addEventListener('click', (e) => {
       const col = e.target.closest('[data-colonne]');
-      if (!col || e.target.closest('button[data-place]') || typeof ui.choisi !== 'string') return;
+      if (!col || e.target.closest('button[data-place], .aide-colonne') || typeof ui.choisi !== 'string') return;
       placerElement(ui.choisi, col.dataset.colonne);
     });
     racine.addEventListener('dragstart', (e) => {

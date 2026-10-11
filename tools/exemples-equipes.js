@@ -90,8 +90,8 @@ function remplirCarnet(d, niveau) {
   }
   if (niveau >= 2) {
     for (const e of contenu.classement) K.classement[e.nom] = e.place;
-    Cn.noterVerificationCarnet(d, 'classement', { reussi: false, bien: 12, total: 14 });
-    Cn.noterVerificationCarnet(d, 'classement', { reussi: true, bien: 14, total: 14 });
+    Cn.noterVerificationCarnet(d, 'classement', { reussi: false, bien: 13, total: 15 });
+    Cn.noterVerificationCarnet(d, 'classement', { reussi: true, bien: 15, total: 15 });
     for (const a of contenu.algorigrammes) {
       K.algos[a.id] = Cn.attenduLineaire(a);
       Cn.noterVerificationCarnet(d, a.id, { reussi: true, bien: 5, total: 5 });
