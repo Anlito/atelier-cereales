@@ -73,10 +73,18 @@ definirCarnet({
     "groupes": [["s1", "s2", "s3", "s4"], ["s6L", "s7L"], ["s9L", "s10L"], ["s6R", "s7R"], ["s9R", "s10R"]]
   },
 
-  // Câblage : couleurs proposées pour le câble de signal (le câble GND est toujours marron ou noir).
-  "couleursCables": [
-    { "nom": "rouge", "code": "#E53935" }, { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" },
-    { "nom": "jaune", "code": "#FDD835" }, { "nom": "blanc", "code": "#F5F5F5" }, { "nom": "violet", "code": "#7B1FA2" }
-  ],
+  // Câblage : couleurs proposées pour le câble de signal, selon le stock de câbles de chaque composant.
+  // (Le câble GND est toujours marron ou noir.)
+  "couleursCables": {
+    "led": [
+      { "nom": "rouge", "code": "#E53935" }, { "nom": "jaune", "code": "#FDD835" },
+      { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" }
+    ],
+    "bouton": [
+      { "nom": "rouge", "code": "#E53935" }, { "nom": "jaune", "code": "#FDD835" },
+      { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" },
+      { "nom": "noir", "code": "#212121" }, { "nom": "blanc", "code": "#F5F5F5" }
+    ]
+  },
   "couleurServo": { "nom": "orange", "code": "#F07020" }
 });

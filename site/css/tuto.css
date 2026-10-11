@@ -1,0 +1,81 @@
+/* Tutoriel Arduino et câblage — même charte que l'atelier. */
+
+html:has(body.page-tuto), body.page-tuto { height: auto; }
+body.page-tuto { overflow: auto; background: var(--fond); }
+.tuto-entete {
+  display: flex; align-items: center; gap: 0.875rem; padding: 0.625rem 1.25rem; background: #FFFFFF; border-bottom: 1px solid var(--bord);
+}
+.tuto-entete h1 { margin: 0; font-size: 1.25rem; }
+.tuto-entete p { margin: 0; color: var(--texte-2); font-size: 0.875rem; }
+.tuto-position { margin-left: auto; color: var(--texte-2); font-weight: 700; }
+.tuto-rubriques {
+  position: sticky; top: 0; z-index: 10; display: flex; gap: 0.375rem; flex-wrap: wrap; padding: 0.625rem 1.25rem;
+  background: var(--bleu-fonce);
+}
+.tuto-rubriques button {
+  min-height: 2.75rem; padding: 0 0.875rem; border: none; border-radius: 0.625rem; background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85); font-weight: 700; font-size: 0.9375rem; cursor: pointer;
+}
+.tuto-rubriques button:hover { background: rgba(255, 255, 255, 0.2); }
+.tuto-rubriques button[aria-current="page"] { background: var(--orange); color: var(--encre); }
+.tuto-contenu { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+.rubrique { background: #FFFFFF; border: 1px solid var(--bord); border-left: 6px solid var(--orange); border-radius: 0.875rem; padding: 1.5rem 1.75rem 1.75rem; }
+.surtitre { margin: 0 0 0.375rem; color: var(--bleu); font-weight: 800; font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.grand-titre { margin: 0 0 0.75rem; font-size: 1.875rem; color: var(--bleu-fonce); }
+.chapo { margin: 0 0 1rem; font-size: 1.0625rem; line-height: 1.6; color: var(--texte-2); }
+.rubrique h3 { margin: 1.5rem 0 0.5rem; font-size: 1.1875rem; color: var(--bleu-fonce); }
+.rubrique p, .rubrique li, .rubrique dd { line-height: 1.6; }
+.attention { margin: 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: #FFF4DD; border-left: 4px solid var(--orange); font-weight: 600; color: #5B3A00; }
+.info { margin: 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--bleu-pale); border-left: 4px solid var(--bleu); }
+.encadre { padding: 0.75rem 1rem; border: 2px solid var(--bleu); border-radius: 0.75rem; background: var(--bleu-pale); line-height: 1.6; }
+.encadre strong:first-child { display: block; margin-bottom: 0.25rem; }
+.lien { border: none; background: none; padding: 0; color: var(--bleu-fonce); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.photo { margin: 1rem 0; text-align: center; }
+.photo img { max-width: 100%; height: auto; border-radius: 0.75rem; }
+.chaine-tuto { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.maillon { padding: 0.5rem 1rem; border-radius: 0.75rem; color: #FFFFFF; font-weight: 700; }
+.maillon.capteur { background: #1E88E5; }
+.maillon.carte { background: #7B1FA2; }
+.maillon.actionneur { background: #E65100; }
+.fleche { color: var(--texte-2); font-weight: 700; font-size: 0.875rem; }
+.usages { columns: 2; padding-left: 1.25rem; }
+.parties dt { margin-top: 0.625rem; font-weight: 800; }
+.parties dd { margin: 0.125rem 0 0; color: var(--texte-2); }
+.parties .attention { display: block; margin-top: 0.375rem; }
+.etapes { padding-left: 0; list-style: none; counter-reset: etape; }
+.etapes > li { position: relative; padding: 0.375rem 0 0.75rem 2.75rem; counter-increment: etape; }
+.etapes > li::before {
+  content: counter(etape); position: absolute; left: 0; top: 0.25rem; width: 2rem; height: 2rem; border-radius: 999px;
+  background: var(--bleu); color: #FFFFFF; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+.fausse-fenetre { margin: 0.625rem 0 0.25rem; max-width: 22rem; border: 1px solid #C8CDD2; border-radius: 0.75rem; background: #FFFFFF; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); overflow: hidden; font-size: 0.875rem; }
+.ff-titre { padding: 0.625rem 0.875rem; font-weight: 700; }
+.ff-ligne { padding: 0.375rem 0.875rem; border-top: 1px solid #EEF0F2; }
+.ff-ligne.choisie { background: #E3F2FD; font-weight: 700; box-shadow: inset 4px 0 0 var(--bleu); }
+.ff-boutons { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.625rem 0.875rem; border-top: 1px solid #EEF0F2; }
+.ff-bouton { padding: 0.25rem 0.875rem; border-radius: 999px; border: 1px solid #C8CDD2; }
+.ff-bouton.plein { background: var(--bleu); border-color: var(--bleu); color: #FFFFFF; }
+.tableau-distributeur { margin-top: 0.5rem; }
+.filtres { display: flex; gap: 0.5rem; margin-bottom: 0.875rem; }
+.filtres button { min-height: 2.75rem; padding: 0 1rem; border: 2px solid var(--bord); border-radius: 999px; background: #FFFFFF; font-weight: 700; cursor: pointer; }
+.filtres button[aria-pressed="true"] { background: var(--bleu-fonce); border-color: var(--bleu-fonce); color: #FFFFFF; }
+.liste-composants { display: grid; gap: 0.5rem; }
+.fiche-composant { border: 2px solid var(--bord); border-radius: 0.75rem; background: #FFFFFF; overflow: hidden; }
+.fiche-composant.ouverte { border-color: var(--bleu); }
+.fiche-entete { display: flex; align-items: center; gap: 0.875rem; width: 100%; padding: 0.5rem 0.875rem; border: none; background: none; cursor: pointer; text-align: left; font: inherit; }
+.fiche-entete img { width: 4rem; height: 4rem; object-fit: contain; flex: none; }
+.fiche-nom { flex: 1; font-weight: 800; font-size: 1.0625rem; }
+.chevron { font-size: 1.25rem; transition: transform 0.2s; }
+.ouverte .chevron { transform: rotate(180deg); }
+.fiche-corps { padding: 0 1rem 1rem 5.75rem; }
+.fiche-corps h4 { margin: 0 0 0.375rem; }
+.fiche-corps ul { margin: 0; padding: 0; list-style: none; }
+.fiche-corps li { display: flex; align-items: center; gap: 0.625rem; padding: 0.25rem 0; }
+.fil { width: 1.75rem; height: 0.5rem; border-radius: 999px; flex: none; }
+.cartes-rubriques { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.625rem; margin-top: 1.25rem; }
+.cartes-rubriques button { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; min-height: 4.5rem; padding: 0.75rem 1rem; border: 2px solid var(--bord); border-radius: 0.75rem; background: #FFFFFF; text-align: left; cursor: pointer; font: inherit; }
+.cartes-rubriques button:hover { border-color: var(--bleu); background: var(--bleu-pale); }
+.cartes-rubriques span { color: var(--texte-2); font-size: 0.875rem; }
+.tuto-suivant { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; }
+.tuto-suivant .btn-principal { margin-left: auto; }
+@media (max-width: 700px) { .usages { columns: 1; } .fiche-corps { padding-left: 1rem; } }

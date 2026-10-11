@@ -41,5 +41,6 @@
     global.definirCarnet = (carnet) => (Atelier.carnet = carnet);
     global.definirBareme = (bareme) => (Atelier.bareme = bareme);
     global.definirCheminSauvegarde = (chemin) => (Atelier.cheminSauvegarde = chemin);
+    global.definirComposantsTuto = (liste) => (Atelier.composantsTuto = liste);
   }
 })(this);

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutoriel Arduino et câblage — Atelier du distributeur</title>
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/atelier.css">
+<link rel="stylesheet" href="css/carnet.css">
+<link rel="stylesheet" href="css/tuto.css">
+</head>
+<body class="page-tuto">
+<header class="tuto-entete">
+  <img src="img/favicon.svg" alt="" width="40" height="40">
+  <div>
+    <h1>Arduino et câblage</h1>
+    <p>Tutoriel · Projet distributeur de céréales</p>
+  </div>
+  <span class="tuto-position" aria-live="polite"></span>
+</header>
+
+<nav class="tuto-rubriques" aria-label="Rubriques du tutoriel">
+  <button type="button" data-rubrique="accueil">Accueil</button>
+  <button type="button" data-rubrique="arduino">1. L’Arduino</button>
+  <button type="button" data-rubrique="platine">2. Platine de test</button>
+  <button type="button" data-rubrique="protocoles">3. Protocoles</button>
+  <button type="button" data-rubrique="cablage">4. Le câblage</button>
+  <button type="button" data-rubrique="banc">5. Banc de câblage</button>
+  <button type="button" data-rubrique="composants">6. Composants</button>
+</nav>
+
+<main class="tuto-contenu">
+
+  <!-- Accueil -->
+  <section class="rubrique" data-rubrique="accueil">
+    <p class="surtitre">Fiche · Tutoriel</p>
+    <h2 class="grand-titre">Arduino et câblage</h2>
+    <p class="chapo">Tout ce qu’il faut savoir pour comprendre ta carte Arduino, monter ton câblage en sécurité
+      et brancher tes composants (LED, boutons, servo-moteur…).</p>
+    <button type="button" class="btn-principal" data-aller="arduino">Commencer le tutoriel</button>
+    <div class="cartes-rubriques">
+      <button type="button" data-aller="arduino"><strong>1. L’Arduino</strong><span>La carte programmable</span></button>
+      <button type="button" data-aller="platine"><strong>2. Platine de test</strong><span>Brancher sans souder</span></button>
+      <button type="button" data-aller="protocoles"><strong>3. Protocoles</strong><span>Installer, envoyer le programme, démonter</span></button>
+      <button type="button" data-aller="cablage"><strong>4. Le câblage</strong><span>Les câbles et le câblage du distributeur</span></button>
+      <button type="button" data-aller="banc"><strong>5. Banc de câblage</strong><span>Tout réunir au même endroit</span></button>
+      <button type="button" data-aller="composants"><strong>6. Composants</strong><span>Comment brancher chaque composant</span></button>
+    </div>
+  </section>
+
+  <!-- 1. L'Arduino -->
+  <section class="rubrique" data-rubrique="arduino" hidden>
+    <p class="surtitre">1 · Découverte</p>
+    <h2 class="grand-titre">Un Arduino</h2>
+    <p class="chapo">Un Arduino, c’est un petit cerveau électronique. Il ne réfléchit pas comme un ordinateur :
+      il suit les instructions que tu lui donnes, écrites sous forme de programme.</p>
+    <div class="chaine-tuto" aria-label="Capteur, puis carte programmable, puis actionneur">
+      <span class="maillon capteur">Capteur</span><span class="fleche">l’information →</span>
+      <span class="maillon carte">Carte programmable</span><span class="fleche">les ordres →</span>
+      <span class="maillon actionneur">Actionneur</span>
+    </div>
+    <p>C’est le schéma d’un objet technique automatisé : l’Arduino joue le rôle de la <strong>carte programmable</strong>.</p>
+    <h3>A · À quoi ça sert ?</h3>
+    <ul class="usages">
+      <li>Allumer et éteindre des LED</li>
+      <li>Faire bouger des moteurs</li>
+      <li>Émettre des sons</li>
+      <li>Lire des boutons et des capteurs</li>
+      <li>Prendre des décisions simples</li>
+    </ul>
+    <h3>B · En détail</h3>
+    <figure class="photo"><img src="img/tuto/carte-arduino.webp" alt="Carte Arduino Uno avec ses parties légendées : bouton de réinitialisation, port USB, prise d’alimentation, GND, entrées et sorties numériques, témoin d’alimentation, microcontrôleur, entrées analogiques, alimentation 5 V."></figure>
+    <dl class="parties">
+      <dt>Bouton de réinitialisation (Reset)</dt><dd>Redémarre le programme de la carte, comme « redémarrer » sur un ordinateur.</dd>
+      <dt>Port USB</dt><dd>Relie l’Arduino à l’ordinateur : il alimente la carte et sert à envoyer le programme.</dd>
+      <dt>Prise d’alimentation</dt><dd>Pour brancher une batterie ou un adaptateur secteur, sans ordinateur.</dd>
+      <dt>GND / masse</dt><dd>Le « − » de l’électricité. Tous les composants doivent y être reliés.</dd>
+      <dt>Entrées / sorties numériques (D2 à D13)</dt><dd>Broches programmables pour envoyer un signal (LED, servo) ou en recevoir un (bouton).
+        <span class="attention">Les broches 0 et 1 ne sont pas à utiliser, sauf cas très précis.</span></dd>
+      <dt>Témoin d’alimentation (LED ON)</dt><dd>Petite lumière qui indique que l’Arduino est allumé.</dd>
+      <dt>Microcontrôleur</dt><dd>Le cerveau de la carte : il lit ton programme et pilote les autres parties.</dd>
+      <dt>Entrées analogiques (A0 à A5)</dt><dd>Lisent des capteurs précis : température, lumière, potentiomètre.</dd>
+      <dt>Alimentation 3,3 V / 5 V / GND</dt><dd>5 V pour la plupart des composants, 3,3 V pour les plus sensibles, GND toujours relié.</dd>
+    </dl>
+  </section>
+
+  <!-- 2. Platine de test -->
+  <section class="rubrique" data-rubrique="platine" hidden>
+    <p class="surtitre">2 · Matériel</p>
+    <h2 class="grand-titre">La platine de test</h2>
+    <p class="chapo">Une platine de test est un support en plastique plein de petits trous. Elle permet de brancher
+      des composants électroniques sans soudure : parfaite pour tester et monter un circuit temporaire.</p>
+    <figure class="photo"><img src="img/tuto/platine.webp" alt="Platine de test avec ses bandes d’alimentation sur les côtés et sa grille centrale."></figure>
+    <h3>Les bandes d’alimentation (sur les côtés)</h3>
+    <p>Marquées <strong>+</strong> (rouge) et <strong>−</strong> ou GND (bleu ou noir). Tous les trous d’une même ligne sont reliés
+      entre eux : elles amènent l’électricité (5 V ou 3,3 V d’un côté, GND de l’autre).</p>
+    <p class="attention">La bande du haut et celle du bas ne sont pas reliées entre elles : pense à le faire si tu utilises les deux.</p>
+    <p>Relie une ligne <strong>−</strong> au <strong>GND</strong> de la carte avec un câble Dupont mâle-mâle <strong>noir ou marron</strong>.
+      Pour la ligne <strong>+</strong>, relie-la au <strong>5 V</strong> (ou 3,3 V si besoin) avec un câble <strong>rouge ou blanc</strong>.</p>
+    <p class="info">Dans la plupart des projets de base, la ligne + n’a pas besoin d’être reliée à la carte : seuls certains
+      composants ont besoin d’une alimentation 5 V (le servo-moteur, par exemple).</p>
+    <h3>La zone centrale (grille principale)</h3>
+    <p>Les trous sont reliés en colonnes de 5 (A-B-C-D-E et F-G-H-I-J). Un canal central sépare les deux côtés :
+      idéal pour placer un composant à pattes (LED…) sans que ses deux pattes soient reliées.</p>
+  </section>
+
+  <!-- 3. Protocoles -->
+  <section class="rubrique" data-rubrique="protocoles" hidden>
+    <p class="surtitre">3 · Sécurité</p>
+    <h2 class="grand-titre">Les protocoles</h2>
+    <p class="chapo">Pour ta sécurité et celle du matériel, suis toujours ces étapes dans l’ordre.</p>
+    <div class="encadre">
+      <strong>Comment savoir comment brancher ?</strong>
+      Regarde l’onglet <strong>Câblage</strong> de ton carnet de projet (ou la consigne de l’exercice) : il indique la broche
+      de chaque composant (D3, D9…). Ensuite, la fiche du composant dans la rubrique
+      <button type="button" class="lien" data-aller="composants">6. Composants</button> te dit quel fil va où.
+    </div>
+    <h3>A · Protocole d’installation</h3>
+    <ol class="etapes">
+      <li>Récupère la platine de test et les composants nécessaires. Fais la liste avant, pour limiter les allers-retours.</li>
+      <li>Fais le câblage en respectant le branchement de chaque élément. Sois délicat(e) pour ne pas casser le matériel.</li>
+      <li>Vérifie chaque câble et chaque connexion, puis appelle le professeur pour validation.</li>
+      <li>Une fois validé (aucun risque pour le matériel), branche la carte à l’ordinateur avec le câble USB.</li>
+      <li>Envoie le programme du distributeur dans la carte depuis l’atelier (voir C), puis teste-le sur ta maquette.</li>
+    </ol>
+    <h3>B · Protocole de démontage</h3>
+    <ol class="etapes">
+      <li>Vide la carte : dans l’atelier, onglet <strong>Programmation</strong> du carnet, bouton <strong>« Vider la carte »</strong>.</li>
+      <li>Débranche le câble USB, puis déconnecte <strong>délicatement</strong> tous les câbles et les composants.</li>
+      <li>Range la platine de test et tous les composants.</li>
+    </ol>
+    <h3>C · Envoyer le programme dans la carte (atelier)</h3>
+    <ol class="etapes">
+      <li>Ouvre l’atelier avec <strong>Chrome</strong> ou <strong>Edge</strong> (l’envoi ne marche pas avec Firefox).</li>
+      <li>Réussis l’exercice <strong>13</strong> : c’est le programme du distributeur qui va dans la carte.</li>
+      <li>Branche la carte Arduino à l’ordinateur avec son <strong>câble USB</strong>.</li>
+      <li>Dans le carnet, onglet <strong>Programmation</strong>, clique sur <strong>« Envoyer le programme dans la carte Arduino »</strong>, puis sur <strong>« Envoyer »</strong>.</li>
+      <li>Dans la fenêtre du navigateur, choisis la carte (souvent <strong>« Arduino Uno »</strong> ou un nom avec <strong>« USB »</strong>), puis clique sur <strong>« Connexion »</strong> :
+        <div class="fausse-fenetre" aria-hidden="true">
+          <div class="ff-titre">… veut se connecter à un port série</div>
+          <div class="ff-ligne">Périphérique Bluetooth (COM10)</div>
+          <div class="ff-ligne choisie">Arduino Uno (COM3)</div>
+          <div class="ff-ligne">Port série (COM6)</div>
+          <div class="ff-boutons"><span class="ff-bouton plein">Connexion</span><span class="ff-bouton">Annuler</span></div>
+        </div>
+      </li>
+      <li>Attends la fin (une dizaine de secondes) <strong>sans débrancher</strong> le câble : le programme est dans la carte.</li>
+    </ol>
+    <p class="info">À chaque nouvel envoi, le programme qui était dans la carte est remplacé. La carte garde son programme
+      même débranchée : il redémarre dès qu’elle est alimentée.</p>
+  </section>
+
+  <!-- 4. Le câblage -->
+  <section class="rubrique" data-rubrique="cablage" hidden>
+    <p class="surtitre">4 · Matériel</p>
+    <h2 class="grand-titre">Le câblage</h2>
+    <p class="chapo">Le câblage fait la liaison entre les composants (capteurs et actionneurs) et la carte programmable,
+      pour transmettre les informations ou les ordres. On utilise des câbles à fiches mâles ou femelles, appelés câbles <strong>Dupont</strong>.</p>
+    <figure class="photo"><img src="img/tuto/cables.webp" alt="Câbles Dupont de plusieurs couleurs, mâle-mâle et mâle-femelle."></figure>
+    <h3>Le câblage du distributeur</h3>
+    <p class="attention"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>.</p>
+    <p>Ce sont les mêmes broches que dans les exercices de programmation (et dans l’onglet Câblage du carnet).</p>
+    <table class="table-cablage tableau-distributeur"><thead><tr><th>Composant</th><th>Rôle</th><th>Broche</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- 5. Banc de câblage -->
+  <section class="rubrique" data-rubrique="banc" hidden>
+    <p class="surtitre">5 · Matériel</p>
+    <h2 class="grand-titre">Banc de câblage</h2>
+    <p class="chapo">Pour faciliter le câblage, on peut utiliser un « banc de câblage » : il réunit la carte programmable,
+      la platine de test et des emplacements pour les composants, rangés de façon pratique.</p>
+    <figure class="photo"><img src="img/tuto/banc.webp" alt="Banc de câblage imprimé en 3D avec la carte Arduino, la platine de test et des emplacements pour les composants."></figure>
+  </section>
+
+  <!-- 6. Composants -->
+  <section class="rubrique" data-rubrique="composants" hidden>
+    <p class="surtitre">6 · Référence</p>
+    <h2 class="grand-titre">Les composants</h2>
+    <p class="chapo">Liste non exhaustive des composants et de leur branchement. Clique sur un composant pour voir le détail.</p>
+    <div class="filtres" role="group" aria-label="Filtrer les composants">
+      <button type="button" data-filtre="tous" aria-pressed="true">Tous</button>
+      <button type="button" data-filtre="Actionneur" aria-pressed="false">Actionneurs</button>
+      <button type="button" data-filtre="Capteur" aria-pressed="false">Capteurs</button>
+    </div>
+    <div class="liste-composants"></div>
+  </section>
+
+  <nav class="tuto-suivant" aria-label="Rubrique suivante"></nav>
+</main>
+
+<script src="js/moteur/programme.js"></script>
+<script src="js/moteur/catalogue.js"></script>
+<script src="exercices/parametres.js"></script>
+<script src="exercices/13A.js"></script>
+<script src="donnees/tuto-composants.js"></script>
+<script src="js/moteur/carnet.js"></script>
+<script src="js/tuto.js"></script>
+</body>
+</html>

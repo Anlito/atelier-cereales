@@ -2,9 +2,12 @@
 // Sert à compiler le programme du distributeur envoyé dans la carte à la fin du parcours
 // (tools/firmware.js), à partir de la solution de référence : même comportement que le simulateur.
 //
-// Choix électriques (modules de la classe) :
+// Choix électriques (matériel de la classe) :
 //   - LED : sortie numérique, HAUT = allumée ;
-//   - bouton : module bouton (avec sa résistance), entrée numérique, HAUT = appuyé ;
+//   - bouton : par défaut bouton poussoir à 2 fils (signal + GND) : résistance interne de la carte
+//     (INPUT_PULLUP), appuyé = broche reliée à la masse. Dans les blocs, « état du bouton = HAUT » veut
+//     toujours dire « appuyé » : la fonction bouton() fait la traduction. Option boutonsVersMasse = false :
+//     module bouton qui donne HAUT quand il est appuyé (INPUT) ;
 //   - servo-moteur : bibliothèque Servo, angle borné à 0–180.
 
 (function (global) {
@@ -47,7 +50,7 @@
         case 'variable':
           return 'CHOIX';
         case 'bouton_etat':
-          return `digitalRead(${numero(e.broche)})`;
+          return `bouton(${numero(e.broche)})`;
         case 'valeur_haut_bas':
           return e.valeur ? 'HIGH' : 'LOW';
         case 'comparaison':
@@ -89,16 +92,24 @@
 
     const trier = (e) => [...e].sort((a, b) => a - b);
     let c = `// ${o.titre || 'Programme'} — généré par l'atelier du distributeur de céréales.\n`;
-    c += '// LED : HAUT = allumée. Bouton (module) : HAUT = appuyé. Servo : 0° à 180°.\n';
+    const versMasse = o.boutonsVersMasse !== false;
+    c += versMasse
+      ? '// LED : HAUT = allumée. Bouton poussoir (signal + GND) : HAUT = appuyé. Servo : 0° à 180°.\n'
+      : '// LED : HAUT = allumée. Module bouton : HAUT = appuyé. Servo : 0° à 180°.\n';
     if (servos.size) c += '#include <Servo.h>\n';
     c += '\n';
     for (const n of trier(servos)) c += `Servo servo${n};\n`;
     if (variable) c += 'float CHOIX = 0;\n';
     c += '\n// « attendre » en secondes (les nombres à virgule sont acceptés).\n';
     c += 'void attendre(float secondes) {\n  if (secondes > 0) delay((unsigned long)(secondes * 1000.0));\n}\n\n';
+    if (boutons.size) {
+      c += versMasse
+        ? '// État du bouton : HAUT quand il est appuyé (il relie alors la broche à la masse).\nint bouton(int broche) {\n  return digitalRead(broche) == LOW ? HIGH : LOW;\n}\n\n'
+        : '// État du bouton : HAUT quand il est appuyé.\nint bouton(int broche) {\n  return digitalRead(broche);\n}\n\n';
+    }
     c += 'void setup() {\n';
     for (const n of trier(leds)) c += `  pinMode(${n}, OUTPUT);\n  digitalWrite(${n}, LOW);\n`;
-    for (const n of trier(boutons)) c += `  pinMode(${n}, INPUT);\n`;
+    for (const n of trier(boutons)) c += `  pinMode(${n}, ${versMasse ? 'INPUT_PULLUP' : 'INPUT'});\n`;
     // Angle de départ : le premier angle fixe donné dans « Au démarrage », réglé AVANT d'activer le servo
     // (sinon la trappe s'ouvrirait un instant à 0° à chaque démarrage) ; 0° sinon, comme le simulateur.
     for (const n of trier(servos)) {

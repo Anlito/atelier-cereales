@@ -219,3 +219,6 @@
 .carte-resultat.juste { background: #E8F5E9; border-left: 5px solid #2E7D32; color: #1B5E20; }
 .carte-resultat.erreur { background: var(--consigne-fond); border-left: 5px solid var(--orange); color: #5B3A00; }
 .carte-alerte { padding: 0.75rem 1rem; border-radius: 0.625rem; background: var(--consigne-fond); border-left: 5px solid var(--orange); }
+.demontage { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 0; }
+.demontage .btn-secondaire { height: 2.75rem; }
+.lien-tuto { color: var(--bleu-fonce); font-weight: 700; }

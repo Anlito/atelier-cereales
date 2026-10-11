@@ -408,6 +408,8 @@
             '<button type="button" class="btn-principal btn-envoi-carte">Envoyer le programme dans la carte Arduino</button>'
           : '<p>Quand l’exercice 13 sera réussi, tu pourras envoyer le programme du distributeur dans la carte Arduino de ta maquette.</p>' +
             '<button type="button" class="btn-principal btn-envoi-carte" disabled>Envoyer le programme dans la carte Arduino</button>') +
+        '<p class="demontage">Fin de séance (démontage) : <button type="button" class="btn-secondaire btn-vider-carte">Vider la carte</button> ' +
+        '<a class="lien-tuto" href="tuto.html" target="_blank" rel="noopener">Tutoriel de câblage</a></p>' +
         '</div>';
       return h + '</section>';
     }
@@ -416,12 +418,14 @@
 
     function cablage() {
       const lignes = A.lignesCablage(ex13.composants);
-      const couleurs = C.couleursCables || [];
+      // Couleurs en stock pour chaque type de composant (ou une seule liste pour tous).
+      const stock = C.couleursCables || [];
       let h = '<section class="carte-carnet"><h2>Câblage du distributeur</h2>' +
         '<p class="regle"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>. ' +
-        'Pour le câble de signal, choisis une couleur. Les broches sont les mêmes que dans les exercices de programmation.</p>' +
+        'Pour le câble de signal, choisis une couleur parmi celles en stock (si le câble de signal d’un bouton est noir, son GND est marron). Les broches sont les mêmes que dans les exercices de programmation.</p>' +
         '<table class="table-cablage"><thead><tr><th>Composant</th><th>Rôle</th><th>Couleur du câble de signal</th><th>Broche</th></tr></thead><tbody>';
       for (const l of lignes) {
+        const couleurs = (Array.isArray(stock) ? stock : stock[l.type]) || [];
         const choisie = l.couleurImposee ? C.couleurServo : couleurs.find((c) => c.nom === K.couleurs[l.broche]);
         const choix = l.couleurImposee
           ? `<span class="couleur-fixe"><span class="point" style="background:${C.couleurServo.code}"></span>${C.couleurServo.nom} (imposé)</span>`
@@ -431,7 +435,8 @@
         h += `<tr><td><strong>${echapper(l.nom)}</strong></td><td><span class="role role-${l.role}">${l.role === 'capteur' ? 'Capteur' : 'Actionneur'}</span></td>` +
           `<td>${choix}</td><td><span class="broche-cablage">${l.broche}</span></td></tr>`;
       }
-      return h + '</tbody></table></section>';
+      return h + '</tbody></table>' +
+        '<p class="demontage">Comment brancher chaque composant : <a class="lien-tuto" href="tuto.html#composants" target="_blank" rel="noopener">Tutoriel de câblage</a></p></section>';
     }
 
     // ---------- Clics et glisser-déposer ----------
@@ -442,6 +447,7 @@
       if (b.dataset.verifier) return verifier(b.dataset.verifier);
       if (b.dataset.exercice) return A.ouvrirExercice(b.dataset.exercice);
       if (b.classList.contains('btn-envoi-carte')) return A.envoiCarte.ouvrir(session);
+      if (b.classList.contains('btn-vider-carte')) return A.envoiCarte.ouvrir(session, { vierge: true });
       if (b.dataset.couleur) {
         K.couleurs[b.dataset.broche] = K.couleurs[b.dataset.broche] === b.dataset.couleur ? undefined : b.dataset.couleur;
         if (!K.couleurs[b.dataset.broche]) delete K.couleurs[b.dataset.broche];

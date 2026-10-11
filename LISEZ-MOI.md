@@ -41,9 +41,14 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
    (onglet Programmation du carnet, ou message de réussite de l'exercice 13) envoie le programme du distributeur
    dans la carte branchée en USB (Chrome ou Edge, aussi depuis le dossier réseau). C'est le programme de la
    solution de référence (13B si le défi est réussi) : celui de l'équipe a réussi les mêmes tests, il fait la même
-   chose. Boutons attendus : modules bouton (HAUT = appuyé). Chaque envoi est noté pour le professeur.
+   chose. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la résistance interne de la carte
+   (réglage "boutonsVersMasse" de exercices/parametres.js). Chaque envoi est noté pour le professeur.
+   Fin de séance : « Vider la carte » envoie un programme vierge (protocole de démontage).
    Si une broche ou une solution de l'exercice 13 change, recompiler avec « npm run firmware » (les fichiers
    site/firmware/distributeur_13A.ino et _13B.ino s'ouvrent aussi dans l'IDE Arduino).
+8. **Tutoriel de câblage** (`tuto.html`, lien dans le carnet) : la carte Arduino, la platine de test, les
+   protocoles d'installation / d'envoi du programme / de démontage, le câblage du distributeur (construit depuis
+   exercices/13A.js) et la fiche de branchement de chaque composant.
 
 ## 3. Outil professeur (`prof.html`)
 
@@ -105,6 +110,8 @@ Ils sont dans le dossier du site (`site/` dans le dépôt, `atelier-cereales/` d
 | la **liste des classes** et le **chemin** affiché | `donnees/classes.js` | `definirClasses`, `definirCheminSauvegarde` |
 | la **durée de la trappe** (CHOIX = 3 ou 7) | `exercices/parametres.js` | `"dureePetiteDose"`, `"dureeGrandeDose"` |
 | jusqu'à quel exercice le bloc LED affiche « allumée / éteinte » | `exercices/parametres.js` | `"aideLedJusquAExercice"` (0 = jamais) |
+| les **couleurs de câbles en stock** (choix du câblage) | `donnees/carnet.js` | `"couleursCables"` : une liste pour `"led"`, une pour `"bouton"` |
+| les **composants du tutoriel** (photo, branchement) | `donnees/tuto-composants.js` | `"branchement"`, `"note"` |
 | le **barème** de la note | `donnees/notation.js` | chaque réglage est expliqué dans le fichier |
 | le **carnet de projet** (problématique, éléments à classer et leur bonne colonne, étapes des algorigrammes, couleurs de câbles) | `donnees/carnet.js` | chaque partie est expliquée dans le fichier ; le tableau de câblage est construit depuis `exercices/13A.js` |
 

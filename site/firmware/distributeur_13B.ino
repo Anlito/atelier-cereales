@@ -1,5 +1,5 @@
 // Distributeur de céréales — exercice 13B (Le distributeur complet (défi)) — généré par l'atelier du distributeur de céréales.
-// LED : HAUT = allumée. Bouton (module) : HAUT = appuyé. Servo : 0° à 180°.
+// LED : HAUT = allumée. Bouton poussoir (signal + GND) : HAUT = appuyé. Servo : 0° à 180°.
 #include <Servo.h>
 
 Servo servo6;
@@ -10,6 +10,11 @@ void attendre(float secondes) {
   if (secondes > 0) delay((unsigned long)(secondes * 1000.0));
 }
 
+// État du bouton : HAUT quand il est appuyé (il relie alors la broche à la masse).
+int bouton(int broche) {
+  return digitalRead(broche) == LOW ? HIGH : LOW;
+}
+
 void setup() {
   pinMode(9, OUTPUT);
   digitalWrite(9, LOW);
@@ -17,9 +22,9 @@ void setup() {
   digitalWrite(10, LOW);
   pinMode(11, OUTPUT);
   digitalWrite(11, LOW);
-  pinMode(3, INPUT);
-  pinMode(4, INPUT);
-  pinMode(5, INPUT);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
   servo6.write(90);
   servo6.attach(6);
   CHOIX = 0;
@@ -27,17 +32,17 @@ void setup() {
 }
 
 void loop() {
-  if ((digitalRead(3) == HIGH)) {
+  if ((bouton(3) == HIGH)) {
     digitalWrite(9, HIGH);
     digitalWrite(10, LOW);
     CHOIX = 3;
   }
-  if ((digitalRead(4) == HIGH)) {
+  if ((bouton(4) == HIGH)) {
     digitalWrite(9, LOW);
     digitalWrite(10, HIGH);
     CHOIX = 7;
   }
-  if ((digitalRead(5) == HIGH)) {
+  if ((bouton(5) == HIGH)) {
     if ((CHOIX != 0)) {
       digitalWrite(9, LOW);
       digitalWrite(10, LOW);

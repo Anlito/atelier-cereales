@@ -32,8 +32,16 @@ const si = (condition, alors) => ({ bloc: 'si_alors', condition, alors });
 const siSinon = (condition, alors, sinon) => ({ bloc: 'si_sinon', condition, alors, sinon });
 const prog = (demarrage, boucle) => ({ demarrage: demarrage || [], boucle: boucle || [] });
 
+// Réglages de exercices/parametres.js.
+function chargerParametres() {
+  let p = {};
+  vm.runInNewContext(fs.readFileSync(path.join(DOSSIER, 'parametres.js'), 'utf8'), { definirParametres: (x) => (p = x) });
+  return JSON.parse(JSON.stringify(p));
+}
+
 module.exports = {
   chargerExercices,
+  chargerParametres,
   led,
   att,
   servo,

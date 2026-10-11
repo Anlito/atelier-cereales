@@ -49,7 +49,8 @@ for (const id of ['13A', '13B']) {
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'atelier-fw-'));
   const croquis = path.join(dossier, nom);
   fs.mkdirSync(croquis);
-  const code = versArduino(ex.solutionReference, { titre: `Distributeur de céréales — exercice ${id} (${ex.titre})` });
+  const { boutonsVersMasse } = require('../tests/outils.js').chargerParametres();
+  const code = versArduino(ex.solutionReference, { titre: `Distributeur de céréales — exercice ${id} (${ex.titre})`, boutonsVersMasse });
   fs.writeFileSync(path.join(croquis, nom + '.ino'), code);
   fs.writeFileSync(path.join(SORTIE, nom + '.ino'), code);
   const sortie = path.join(dossier, 'compile');
@@ -57,6 +58,18 @@ for (const id of ['13A', '13B']) {
   programmes[id] = fs.readFileSync(path.join(sortie, nom + '.ino.hex'), 'utf8');
   console.log(`OK : ${nom} compilé.`);
 }
+// Programme vierge (protocole de démontage du tutoriel de câblage) : la carte ne commande plus rien.
+{
+  const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'atelier-fw-'));
+  const croquis = path.join(dossier, 'vierge');
+  fs.mkdirSync(croquis);
+  fs.writeFileSync(path.join(croquis, 'vierge.ino'), '// Programme vierge : la carte ne commande plus rien (démontage).\nvoid setup() {}\n\nvoid loop() {}\n');
+  const sortie = path.join(dossier, 'compile');
+  lancer(['compile', '--fqbn', 'arduino:avr:uno', '--output-dir', sortie, croquis]);
+  programmes.vierge = fs.readFileSync(path.join(sortie, 'vierge.ino.hex'), 'utf8');
+  console.log('OK : programme vierge compilé.');
+}
+
 fs.writeFileSync(
   path.join(SORTIE, 'programmes.js'),
   '// Programmes du distributeur compilés pour Arduino Uno (format Intel HEX). Fichier généré par\n' +

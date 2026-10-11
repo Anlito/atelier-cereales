@@ -526,7 +526,7 @@
 
   // Programme du distributeur envoyé dans la vraie carte (maquette).
   function envoisHtml(d) {
-    const v = (d.envoisCarte || []).filter((x) => x.reussi);
+    const v = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
     if (!v.length) return '<p class="detail-resume">Programme envoyé dans la carte Arduino : pas encore.</p>';
     const der = v[v.length - 1];
     return `<p class="detail-resume">Programme envoyé dans la carte Arduino : <strong>${v.length} fois</strong>, ` +

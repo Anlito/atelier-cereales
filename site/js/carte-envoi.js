@@ -37,11 +37,14 @@
   }
 
   // session : la session de l'équipe (donnees, lecture, aEnregistrer).
-  function ouvrir(session) {
+  // options.vierge : envoyer le programme vierge (protocole de démontage du tutoriel de câblage).
+  function ouvrir(session, options) {
     const D = session.donnees;
     const d = creerDialogue();
     const corps = $('.carte-corps', d);
-    const version = versionPossible(D, session.lecture);
+    const vierge = !!(options && options.vierge);
+    $('#titre-carte', d).textContent = vierge ? 'Vider la carte Arduino' : 'Envoyer le programme dans la carte Arduino';
+    const version = vierge ? 'vierge' : versionPossible(D, session.lecture);
     const programmes = A.programmesCarte || {};
 
     if (!A.flasher || !A.flasher.disponible()) {
@@ -56,23 +59,26 @@
     }
 
     corps.innerHTML =
-      `<p>Ton programme du distributeur a réussi tous les tests${version === '13B' ? ', défi compris' : ''}. ` +
-      'Envoie-le dans la carte pour tester <strong>ta maquette</strong>.</p>' +
+      (vierge
+        ? '<p>Protocole de démontage : envoie un <strong>programme vierge</strong> dans la carte. Elle ne commandera plus rien, ' +
+          'tu pourras ensuite débrancher délicatement les câbles et les composants.</p>'
+        : `<p>Ton programme du distributeur a réussi tous les tests${version === '13B' ? ', défi compris' : ''}. ` +
+          'Envoie-le dans la carte pour tester <strong>ta maquette</strong>.</p>') +
       '<ol class="carte-etapes">' +
       '<li>Branche la carte Arduino à l’ordinateur avec le <strong>câble USB</strong>.</li>' +
       '<li>Clique sur <strong>« Envoyer »</strong>. Dans la fenêtre, choisis la carte (son nom contient souvent « USB » ou « Arduino »), puis clique sur <strong>« Connexion »</strong>.</li>' +
       '<li>Attends la fin (une dizaine de secondes) <strong>sans débrancher</strong> le câble.</li>' +
       '</ol>' +
-      (session.lecture
+      (session.lecture && !vierge
         ? '<label class="carte-version">Version : <select class="choix-version"><option value="13A">13A</option><option value="13B">13B (défi)</option></select></label>'
         : '') +
       '<div class="carte-progression" hidden><div class="barre"><span></span></div><p class="carte-phase" aria-live="polite"></p></div>' +
       '<p class="carte-resultat" role="status" hidden></p>' +
       '<div class="accueil-actions"><button type="button" class="btn-principal btn-envoyer-carte">Envoyer</button></div>';
-    if (session.lecture) $('.choix-version', corps).value = version;
+    if (session.lecture && !vierge) $('.choix-version', corps).value = version;
 
     $('.btn-envoyer-carte', corps).addEventListener('click', async () => {
-      const choix = session.lecture ? $('.choix-version', corps).value : version;
+      const choix = session.lecture && !vierge ? $('.choix-version', corps).value : version;
       let port;
       try {
         port = await navigator.serial.requestPort();
@@ -104,7 +110,10 @@
       bouton.disabled = false;
       resultat.hidden = false;
       resultat.className = 'carte-resultat ' + (r.ok ? 'juste' : 'erreur');
-      if (r.ok) {
+      if (r.ok && vierge) {
+        resultat.innerHTML = '<strong>C’est fait !</strong> La carte est vide. Tu peux débrancher le câble USB, puis démonter délicatement ta maquette.';
+        bouton.textContent = 'Envoyer à nouveau';
+      } else if (r.ok) {
         resultat.innerHTML =
           '<strong>C’est fait !</strong> Le programme du distributeur est dans la carte. Appuie sur les boutons de ta maquette pour la tester. ' +
           'Si quelque chose ne marche pas, vérifie le câblage (onglet <strong>Câblage</strong> du carnet).';
