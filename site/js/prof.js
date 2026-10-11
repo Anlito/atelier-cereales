@@ -489,7 +489,7 @@
   }
 
   function carnetHtml(d, note) {
-    const K = A.completerCarnet(d.carnet);
+    const K = A.harmoniserClassement(A.completerCarnet(d.carnet), (A.carnet || {}).classement);
     const C = A.carnet || {};
     const etats = A.etatsCarnet(K, C, ex13 ? ex13.composants : []);
     const mot = { fait: '✓ fait', en_cours: '● en cours', a_faire: '○ à faire' };

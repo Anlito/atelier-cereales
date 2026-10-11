@@ -28,6 +28,17 @@
     return r;
   }
 
+  // Un élément renommé dans donnees/carnet.js (« ancienNom ») : la réponse déjà placée suit le nouveau nom.
+  function harmoniserClassement(carnet, elements) {
+    for (const e of elements || []) {
+      if (e.ancienNom && carnet.classement[e.ancienNom] && !carnet.classement[e.nom]) {
+        carnet.classement[e.nom] = carnet.classement[e.ancienNom];
+        delete carnet.classement[e.ancienNom];
+      }
+    }
+    return carnet;
+  }
+
   // ---------- Corrections ----------
 
   // placements : { nomElement: 'capteur' | 'carte' | 'actionneur' }
@@ -142,6 +153,7 @@
     carnetVide: vide,
     completerCarnet: completer,
     corrigerClassement,
+    harmoniserClassement,
     corrigerAlgo,
     attenduLineaire,
     lignesCablage,

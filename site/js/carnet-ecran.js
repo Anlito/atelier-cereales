@@ -43,7 +43,7 @@
     const racine = $('.ecran-carnet');
     const ex13 = A.catalogue.exercices().find((e) => e.id === '13A');
     const exercices = A.catalogue.exercices();
-    D.carnet = A.completerCarnet(D.carnet);
+    D.carnet = A.harmoniserClassement(A.completerCarnet(D.carnet), C.classement);
     const K = D.carnet;
     const ui = { onglet: 'problematique', choisi: null, revoir: {}, retour: {} };
     const graine = A.nomEquipe(D.equipe.eleves);

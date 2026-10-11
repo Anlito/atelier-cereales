@@ -91,3 +91,12 @@ test('une ancienne sauvegarde (sans carnet) reçoit un carnet vide', () => {
   assert.equal(r.ok, true);
   assert.deepEqual(r.donnees.carnet.idees, []);
 });
+
+test('élément renommé : la réponse placée sous l’ancien nom est reprise', () => {
+  const K = C.carnetVide();
+  K.classement['Capteur de distance'] = 'capteur';
+  C.harmoniserClassement(K, contenu.classement);
+  assert.equal(K.classement['Mesure la distance'], 'capteur');
+  assert.equal(K.classement['Capteur de distance'], undefined);
+  assert.ok(!contenu.classement.some((e) => /^Capteur/.test(e.nom)), 'plus de « capteur » dans les noms');
+});

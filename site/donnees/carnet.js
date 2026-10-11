@@ -7,6 +7,7 @@ definirCarnet({
   "nombreIdees": 4,
   "questionObjet": "Un objet ou système technique, c'est quoi ? Écris la définition avec tes propres mots.",
 
+  // « ancienNom » : nom utilisé avant un renommage (les réponses déjà placées sous ce nom sont reprises).
   // Classement : les trois colonnes (avec l'explication du « ? ») et chaque élément, son image et sa bonne colonne.
   "colonnes": [
     { "cle": "capteur", "titre": "Capteurs", "aide": "Reçoivent une information",
@@ -17,7 +18,7 @@ definirCarnet({
       "explication": "Un actionneur agit sur le monde réel quand la carte le lui demande : il bouge, éclaire ou fait du bruit. Exemples : un moteur, une LED, une enceinte." }
   ],
   "classement": [
-    { "nom": "Capteur de distance", "image": "img/objets/distance.png", "place": "capteur" },
+    { "nom": "Mesure la distance", "ancienNom": "Capteur de distance", "image": "img/objets/distance.png", "place": "capteur" },
     { "nom": "Clavier", "image": "img/objets/clavier.png", "place": "capteur" },
     { "nom": "Bouton", "image": "img/objets/bouton.png", "place": "capteur" },
     { "nom": "Carte Arduino", "image": "img/objets/arduino.png", "place": "carte" },
@@ -29,7 +30,7 @@ definirCarnet({
     { "nom": "Pompe à eau", "image": "img/objets/pompe-a-eau.png", "place": "actionneur" },
     { "nom": "Écran", "image": "img/objets/ecran.png", "place": "actionneur" },
     { "nom": "Enceinte", "image": "img/objets/enceinte.png", "place": "actionneur" },
-    { "nom": "Capteur d'humidité", "image": "img/objets/humidite.png", "place": "capteur" },
+    { "nom": "Mesure l'humidité", "ancienNom": "Capteur d'humidité", "image": "img/objets/humidite.png", "place": "capteur" },
     { "nom": "Moteur", "image": "img/objets/moteur.png", "place": "actionneur" },
     { "nom": "Photorésistance", "image": "img/objets/photoresistance.png", "place": "capteur" }
   ],
