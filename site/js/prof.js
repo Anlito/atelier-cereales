@@ -444,8 +444,8 @@
     $('.titre-classe').textContent = $('.filtre-classe').value ? 'classe ' + $('.filtre-classe').value : 'toutes les classes';
     let h = '<thead><tr><th scope="col" class="col-equipe">Équipe</th>';
     for (const id of ORDRE) h += `<th scope="col" title="${echapper(titre(id))}">${id}</th>`;
-    h += `<th scope="col">Avancement</th><th scope="col" title="Parties du carnet de projet terminées">Carnet</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
-    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 7}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
+    h += `<th scope="col">Avancement</th><th scope="col" title="Parties du carnet de projet terminées">Carnet</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière<br>activité</th></tr></thead><tbody>`;
+    if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 6}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
     for (const x of liste) {
       const r = x.r;
       h +=
@@ -455,14 +455,14 @@
         `${misesAJour.has(x.eq.cle) ? ' · <span class="badge-maj">● vient d’avancer</span>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
         `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.carnet}/${r.carnetTotal}</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
-        `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
+        `<td title="${echapper(A.dateCourte(r.derniereActivite))}">${echapper(A.dateCourte(r.derniereActivite).replace(/\/\d{4}/, ''))}</td></tr>`;
     }
     const taux = A.tauxReussite(liste.map((x) => x.r));
     h += '</tbody><tfoot><tr><th scope="row" class="col-equipe">Taux de réussite</th>';
     for (const id of ORDRE) h += `<td class="nombre">${liste.length ? Math.round(taux[id] * 100) + ' %' : ''}</td>`;
     const notes = liste.map((x) => x.r.note.note);
     const moyenne = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : 0;
-    h += `<td></td><td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
+    h += `<td></td><td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td></td></tr></tfoot>`;
     $('.prof-tableau').innerHTML = h;
     $('.prof-legende').innerHTML =
       '<span><strong>✓</strong> réussi</span><span><strong>●</strong> en cours</span><span><strong>○</strong> non commencé</span>' +

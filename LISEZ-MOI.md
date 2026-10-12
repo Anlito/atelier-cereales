@@ -63,7 +63,7 @@ L'outil a trois écrans, comme ceux des autres projets (Théâtre d'ombre, Conce
   - les **alertes** : une équipe est **bloquée** quand elle a fait au moins 6 tentatives ou passé 10 minutes sur
     un exercice non réussi (seuils réglables). Une alerte fait un son, et une notification si elle est autorisée ;
   - le **tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, parties du
-    carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité, temps.
+    carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité.
     Les équipes qui viennent d'avancer sont signalées.
 - **Équipe** (clic sur une ligne ou sur une alerte), avec ‹ › pour passer à l'équipe voisine et Échap pour revenir :
   - **Bilan** : la note et ce qui la compose (programmation, carnet, bonus 13B), l'avancement, la maquette

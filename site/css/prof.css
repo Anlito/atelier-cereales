@@ -94,7 +94,7 @@ body.page-prof { overflow: auto; background: var(--fond); }
 .prof-tableau { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
 .prof-tableau th, .prof-tableau td { padding: 0.375rem 0.375rem; border-bottom: 1px solid var(--bord); text-align: center; white-space: nowrap; }
 .prof-tableau thead th { background: var(--fond); font-size: 0.875rem; position: sticky; top: 0; }
-.prof-tableau .col-equipe { text-align: left; min-width: 13rem; white-space: normal; }
+.prof-tableau .col-equipe { text-align: left; min-width: 10rem; white-space: normal; }
 .nom-equipe { display: block; font-weight: 700; }
 .classe-equipe { display: block; font-weight: 400; font-size: 0.8125rem; color: var(--texte-2); }
 .ligne-equipe { cursor: pointer; }
