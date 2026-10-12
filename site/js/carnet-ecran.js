@@ -421,9 +421,9 @@
       // Couleurs en stock pour chaque type de composant (ou une seule liste pour tous).
       const stock = C.couleursCables || [];
       let h = '<section class="carte-carnet"><h2>Câblage du distributeur</h2>' +
-        '<a class="encart-tuto" href="tuto.html#composants" target="_blank" rel="noopener">' +
+        '<a class="encart-tuto" href="tuto.html" target="_blank" rel="noopener">' +
         `<span class="encart-tuto-icone">${A.icone('livre', { epaisseur: 2.4 })}</span>` +
-        '<span class="encart-tuto-texte"><strong>Tutoriel de câblage</strong>Comment brancher la LED, le bouton poussoir et le servo-moteur, et les protocoles d’installation.</span>' +
+        '<span class="encart-tuto-texte"><strong>Tutoriel de câblage</strong>À lire avant de câbler : la carte Arduino, la platine de test, les protocoles, puis le branchement de la LED, du bouton poussoir et du servo-moteur.</span>' +
         '<span class="encart-tuto-ouvrir">Ouvrir le tutoriel →</span></a>' +
         '<p class="regle"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>. ' +
         'Pour le câble de signal, choisis une couleur parmi celles en stock. Les broches sont les mêmes que dans les exercices de programmation.</p>' +
