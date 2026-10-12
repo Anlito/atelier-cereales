@@ -30,6 +30,12 @@
     moteur: 'M4 12h16v8H4zM8 12V8M5 8h14',
     decisions: 'M12 3l9 9-9 9-9-9zM12 8v5M12 16v.5',
     variables: 'M5 8h14v12H5zM8 8V5h8v3M9 13h6',
+    dossier: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+    importer: 'M12 15V4M7 9l5-5 5 5M5 20h14',
+    telecharger: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+    imprimer: 'M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z',
+    reglages: 'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
+    alerte: 'M12 3l9.5 16.5h-19zM12 10v4M12 17.5v.01',
   };
 
   // <svg> prêt à insérer dans du HTML.

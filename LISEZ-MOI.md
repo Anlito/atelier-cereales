@@ -52,22 +52,35 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 
 ## 3. Outil professeur (`prof.html`)
 
-- **Importer** : glisser les fichiers `.json`, ou « Choisir le dossier de la classe »
-  (ex. `DISTRIBUTEUR DE CEREALES`) : tous les dossiers d'équipes sont lus d'un coup.
-- **Suivi en direct** (Chrome, Edge) : après le choix du dossier, il est relu toutes les 30 s.
-  Les équipes qui avancent sont signalées ; une **alerte** (son, et notification si autorisée) apparaît quand
-  une équipe est **bloquée** : au moins 6 tentatives ou 10 minutes sur un exercice non réussi (seuils réglables).
-- **Tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, parties du
-  carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité, temps.
-  Clic sur une équipe : son carnet (idées, définition, vérifications du classement et des algorigrammes,
-  couleurs de câblage) et tout son historique de programmation (chaque vérification et ses erreurs,
-  le programme de chaque tentative, chaque indice).
-  « Lancer ce programme » le rouvre dans l'atelier, en lecture.
-- **Exports** : CSV, Excel (feuilles « Classe » et « Détail par exercice »), impression A4 paysage.
+L'outil a trois écrans, comme ceux des autres projets (Théâtre d'ombre, Concept Store) :
+
+- **Accueil — Suivre une classe** : « Ouvrir le dossier de la classe » (ex. `DISTRIBUTEUR DE CEREALES`, tous les
+  dossiers d'équipes sont lus d'un coup), « Reprendre » le dernier dossier suivi en un clic, ou « Importer des
+  fichiers .json » (on peut aussi les glisser n'importe où dans la page).
+- **Classe** :
+  - en haut, les **chiffres clés** : nombre d'équipes, note moyenne, exercices réussis et parties du carnet
+    (moyennes), programmes du distributeur réussis, équipes bloquées ;
+  - les **alertes** : une équipe est **bloquée** quand elle a fait au moins 6 tentatives ou passé 10 minutes sur
+    un exercice non réussi (seuils réglables). Une alerte fait un son, et une notification si elle est autorisée ;
+  - le **tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, parties du
+    carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité, temps.
+    Les équipes qui viennent d'avancer sont signalées.
+- **Équipe** (clic sur une ligne ou sur une alerte), avec ‹ › pour passer à l'équipe voisine et Échap pour revenir :
+  - **Bilan** : la note et ce qui la compose (programmation, carnet, bonus 13B), l'avancement, la maquette
+    (programme envoyé dans la carte) ;
+  - **Programmation** : chaque exercice, ses tentatives, indices, temps et points ; « Lancer le programme » le
+    rouvre dans l'atelier, en lecture ;
+  - **Carnet de projet** : chaque partie, son état, le travail de l'équipe (« Voir leurs réponses » case par case,
+    avec ✓ / ✗) et ses points ;
+  - **Historique** : chaque vérification et ses erreurs, le programme de chaque tentative, chaque indice.
+- **Bandeau** : la classe suivie et l'état du suivi en direct (« En direct · lu à 10:42 ») ; le dossier est relu
+  toutes les 30 s (Chrome, Edge). « Barème » : la note, les seuils d'alerte, la fréquence du suivi.
+  « Excel » (feuilles « Classe » et « Détail par exercice »), « CSV », « Imprimer » (A4 paysage, l'écran affiché),
+  « Autre classe ».
 
 ### La note
 
-Panneau « Barème » de `prof.html` (réglages valables le temps de la page), ou fichier `donnees/notation.js`
+Bouton « Barème » de `prof.html` (réglages valables le temps de la page), ou fichier `donnees/notation.js`
 (réglages gardés). Par défaut, note sur 20 :
 
 - chaque exercice a un **coefficient** selon sa difficulté ;

@@ -1,23 +1,41 @@
-// Outil professeur : import des sauvegardes, tableau de la classe, détail d'une équipe, exports.
+// Outil professeur : accueil (choix de la classe), vue Classe (résumé, alertes, tableau), vue Équipe (onglets),
+// suivi en direct du dossier de la classe, barème réglable, exports.
 (function (global) {
   'use strict';
 
   const A = global.Atelier;
   const $ = (sel, racine) => (racine || document).querySelector(sel);
+  const $$ = (sel, racine) => [...(racine || document).querySelectorAll(sel)];
   const echapper = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const ORDRE = A.ORDRE_PARCOURS;
   const exercices = A.catalogue.exercices();
   const titre = (id) => (exercices.find((e) => e.id === id) || {}).titre || '';
+  const pluriel = (n, mot, motPluriel) => `${n} ${n > 1 ? motPluriel || mot + 's' : mot}`;
+
+  // Icônes des boutons (attribut data-ic).
+  for (const el of $$('[data-ic]')) el.insertAdjacentHTML('afterbegin', A.icone(el.dataset.ic, { epaisseur: 2.4 }));
 
   let manuels = []; // { nom, texte } : fichiers glissés ou choisis à la main
   let fichiersDossier = []; // fichiers lus dans le dossier de la classe (relus en direct)
   let fichiers = []; // les deux réunis
   let bareme = A.completerBareme(A.bareme);
   let fusion = { equipes: [], invalides: [] };
+  let misesAJour = new Set();
+
+  // Vue affichée : 'accueil' | 'classe' | 'equipe'
+  const vue = { nom: 'accueil', equipe: null, onglet: 'bilan' };
+
+  function montrerVue(nom) {
+    vue.nom = nom;
+    for (const s of $$('.vue')) s.hidden = !s.classList.contains('vue-' + nom);
+    $('.pb-actions').hidden = nom === 'accueil';
+    $('.pb-atelier').hidden = nom !== 'accueil'; // dans la classe, le lien est dans la barre des filtres
+    scrollTo(0, 0);
+  }
 
   // ---------- Import ----------
 
-  async function ajouter(nouveaux) {
+  function ajouter(nouveaux) {
     // Un même fichier importé deux fois n'est compté qu'une fois.
     const cle = (f) => f.nom + '|' + f.texte.length + '|' + f.texte.slice(-60);
     const vus = new Set(manuels.map(cle));
@@ -34,12 +52,19 @@
     fusion = A.fusionnerEquipes(fichiers);
     // Équipes qui ont avancé depuis la dernière lecture (signalées dans le tableau).
     misesAJour = new Set(fusion.equipes.filter((e) => avant.has(e.cle) && avant.get(e.cle) !== signature(e.donnees)).map((e) => e.cle));
+    if (!fusion.equipes.length && !fichiers.length) {
+      if (vue.nom !== 'accueil') montrerVue('accueil');
+    } else if (vue.nom === 'accueil') montrerVue('classe');
+    majBande();
     messages();
     dessiner();
     verifierAlertes();
-    rafraichirDetail();
+    if (vue.nom === 'equipe') {
+      const eq = fusion.equipes.find((x) => x.cle === vue.equipe);
+      if (eq) dessinerEquipe(true);
+      else montrerVue('classe');
+    }
   }
-  let misesAJour = new Set();
 
   async function lireFichiers(liste) {
     const sortie = [];
@@ -75,21 +100,25 @@
     return sortie;
   }
 
+  // Fichiers glissés n'importe où dans la page (la zone de l'accueil est surlignée).
   const zone = $('.zone-depot');
-  zone.addEventListener('dragover', (e) => {
+  document.addEventListener('dragover', (e) => {
     e.preventDefault();
     zone.classList.add('survol');
   });
-  zone.addEventListener('dragleave', () => zone.classList.remove('survol'));
-  zone.addEventListener('drop', async (e) => {
+  document.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget) zone.classList.remove('survol');
+  });
+  document.addEventListener('drop', async (e) => {
     e.preventDefault();
     zone.classList.remove('survol');
-    ajouter(await lireFichiers([...e.dataTransfer.files]));
+    if (e.dataTransfer && e.dataTransfer.files.length) ajouter(await lireFichiers([...e.dataTransfer.files]));
   });
   $('.entree-fichiers').addEventListener('change', async (e) => {
     ajouter(await lireFichiers([...e.target.files]));
     e.target.value = '';
   });
+
   // ---------- Suivi en direct du dossier de la classe (Chrome, Edge) ----------
 
   const suivi = { dossier: null, minuteur: null, periode: 30, enPause: false, derniere: null, erreur: '' };
@@ -104,13 +133,12 @@
       suivi.erreur = 'Le dossier n’a pas pu être relu (réseau ?). Nouvel essai au prochain passage.';
     }
     recalculer();
-    majSuivi();
   }
 
   function programmer() {
     clearInterval(suivi.minuteur);
     suivi.minuteur = suivi.dossier && !suivi.enPause ? setInterval(actualiser, suivi.periode * 1000) : null;
-    majSuivi();
+    majBande();
   }
 
   async function suivre(dossier) {
@@ -118,7 +146,6 @@
     suivi.enPause = false;
     cache.clear();
     memoriserDossier(dossier);
-    $('.prof-reprendre').hidden = true;
     await actualiser();
     programmer();
   }
@@ -128,19 +155,27 @@
     fichiersDossier = [];
     clearInterval(suivi.minuteur);
     memoriserDossier(null);
-    majSuivi();
+    recalculer();
   }
 
-  function majSuivi() {
-    const bandeau = $('.prof-suivi');
-    bandeau.hidden = !suivi.dossier;
-    if (!suivi.dossier) return;
-    const heure = suivi.derniere ? suivi.derniere.toLocaleTimeString('fr-FR') : '…';
-    $('.suivi-etat', bandeau).innerHTML = suivi.enPause
-      ? `<span class="suivi-point pause" aria-hidden="true"></span><strong>Suivi en pause</strong> · « ${echapper(suivi.dossier.name)} » · dernière lecture à ${heure}`
-      : `<span class="suivi-point" aria-hidden="true"></span><strong>En direct</strong> · « ${echapper(suivi.dossier.name)} » · mis à jour à ${heure}`;
-    $('.suivi-erreur', bandeau).textContent = suivi.erreur;
-    $('.btn-suivi-pause', bandeau).textContent = suivi.enPause ? 'Reprendre' : 'Mettre en pause';
+  // Bandeau : classe suivie et état du suivi en direct.
+  function majBande() {
+    const n = fusion.equipes.length;
+    const classe = $('.pb-classe');
+    classe.hidden = !n && !suivi.dossier;
+    classe.textContent = suivi.dossier ? `« ${suivi.dossier.name} » · ${pluriel(n, 'équipe')}` : pluriel(n, 'équipe') + ' (fichiers importés)';
+    const direct = $('.pb-direct');
+    direct.hidden = !suivi.dossier;
+    if (suivi.dossier) {
+      const heure = suivi.derniere ? suivi.derniere.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '…';
+      direct.className = 'pb-direct' + (suivi.enPause ? ' pause' : '') + (suivi.erreur ? ' erreur' : '');
+      direct.innerHTML = `<span class="suivi-point" aria-hidden="true"></span>${suivi.enPause ? 'En pause' : 'En direct'} · lu à ${heure}`;
+      direct.title = suivi.erreur || `Le dossier est relu toutes les ${suivi.periode} s (réglable dans « Barème »).`;
+    }
+    $('.btn-actualiser').hidden = !suivi.dossier;
+    $('.reglage-suivi').hidden = !suivi.dossier;
+    $('.suivi-erreur').textContent = suivi.erreur;
+    $('.btn-suivi-pause').textContent = suivi.enPause ? 'Reprendre le suivi' : 'Mettre en pause';
   }
 
   if (typeof global.showDirectoryPicker === 'function') {
@@ -155,13 +190,16 @@
       }
       suivre(dossier);
     });
-    $('.btn-suivi-maintenant').addEventListener('click', actualiser);
+    $('.btn-actualiser').addEventListener('click', actualiser);
     $('.btn-suivi-pause').addEventListener('click', () => {
       suivi.enPause = !suivi.enPause;
       if (!suivi.enPause) actualiser();
       programmer();
     });
-    $('.btn-suivi-arreter').addEventListener('click', arreterSuivi);
+    $('.btn-suivi-arreter').addEventListener('click', () => {
+      arreterSuivi();
+      $('.dialogue-reglages').close();
+    });
     $('.suivi-periode').addEventListener('change', (e) => {
       suivi.periode = Number(e.target.value) || 30;
       programmer();
@@ -169,10 +207,10 @@
     // Le dossier suivi est mémorisé : à la réouverture de la page, un clic suffit pour reprendre.
     dossierMemorise().then((d) => {
       if (!d) return;
-      const r = $('.prof-reprendre');
+      const r = $('.btn-reprendre-suivi');
       $('.reprendre-dossier', r).textContent = d.name;
       r.hidden = false;
-      $('.btn-reprendre-suivi', r).addEventListener('click', async () => {
+      r.addEventListener('click', async () => {
         try {
           if ((await d.queryPermission({ mode: 'read' })) !== 'granted' && (await d.requestPermission({ mode: 'read' })) !== 'granted') return;
         } catch {
@@ -181,7 +219,7 @@
         suivre(d);
       });
     });
-  } else $('.zone-depot-aide').textContent = 'Sur ce navigateur, sélectionne tous les fichiers .json d’un coup (Ctrl+A dans la fenêtre). Le suivi en direct demande Chrome ou Edge.';
+  } else $('.prof-alerte-navigateur').hidden = false;
 
   function base() {
     return new Promise((ok, ko) => {
@@ -214,6 +252,16 @@
     }
   }
 
+  // « Autre classe » : tout retirer et revenir à l'accueil.
+  function toutRetirer() {
+    manuels = [];
+    alertesConnues = null;
+    nouvelles.clear();
+    if (suivi.dossier) arreterSuivi();
+    else recalculer();
+  }
+  $('.btn-autre-classe').addEventListener('click', toutRetirer);
+
   // ---------- Alertes : une équipe devient « bloquée » ----------
 
   let alertesConnues = null; // clés déjà signalées (null : première lecture, rien n'est « nouveau »)
@@ -230,28 +278,27 @@
   }
 
   function dessinerAlertes(liste) {
-    const zone = $('.prof-alertes');
-    zone.hidden = !liste.length;
+    const zoneAlertes = $('.prof-alertes');
+    zoneAlertes.hidden = !liste.length;
     if (!liste.length) return;
     liste.sort((a, b) => (nouvelles.has(b.cle) ? 1 : 0) - (nouvelles.has(a.cle) ? 1 : 0));
-    $('.alertes-liste', zone).innerHTML = liste
+    $('.alertes-liste', zoneAlertes).innerHTML = liste
       .map((a) => {
         const n = nouvelles.get(a.cle);
         return (
-          `<li class="${n ? 'nouvelle' : ''}"><button type="button" class="btn-lien" data-alerte="${echapper(a.cle.split('|').slice(0, 2).join('|'))}">` +
-          `<strong>⚠ ${echapper(a.equipe)}</strong>${a.classe ? ' (' + echapper(a.classe) + ')' : ''}</button> : exercice ${a.id} · ${echapper(titre(a.id))} — ${echapper(a.raison)}` +
+          `<li class="${n ? 'nouvelle' : ''}"><button type="button" class="alerte-equipe" data-alerte="${echapper(a.cle.split('|').slice(0, 2).join('|'))}">` +
+          `<strong>${echapper(a.equipe)}</strong>${a.classe ? ' · ' + echapper(a.classe) : ''}</button>` +
+          `<span>exercice ${a.id} · ${echapper(titre(a.id))} — ${echapper(a.raison)}</span>` +
           (n ? ` <span class="badge-nouveau">nouveau · ${n.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>` : '') +
           '</li>'
         );
       })
       .join('');
-    $('.alertes-titre', zone).textContent = `${liste.length} alerte${liste.length > 1 ? 's' : ''} « bloqué »`;
+    $('.alertes-titre', zoneAlertes).innerHTML = A.icone('alerte', { epaisseur: 2.4 }) + `${pluriel(liste.length, 'équipe bloquée', 'équipes bloquées')}`;
   }
   $('.prof-alertes').addEventListener('click', (e) => {
     const b = e.target.closest('[data-alerte]');
-    if (!b) return;
-    const eq = fusion.equipes.find((x) => x.cle === b.dataset.alerte);
-    if (eq) ouvrirDetail(eq);
+    if (b) ouvrirEquipe(b.dataset.alerte);
   });
 
   // Son court (deux notes) et notification du système si elle a été autorisée.
@@ -278,7 +325,7 @@
       const a = apparues[0];
       const plus = apparues.length > 1 ? ` (+${apparues.length - 1} autre${apparues.length > 2 ? 's' : ''})` : '';
       try {
-        new Notification('Atelier : équipe bloquée', { body: `${a.equipe}, exercice ${a.id} : ${a.raison}${plus}`, tag: 'atelier-alerte' });
+        new Notification('Distributeur : équipe bloquée', { body: `${a.equipe}, exercice ${a.id} : ${a.raison}${plus}`, tag: 'atelier-alerte' });
       } catch {
         /* notifications indisponibles (ex. fichier ouvert hors serveur) */
       }
@@ -298,9 +345,10 @@
     });
   }
 
+  // Fichiers lus : doublons et fichiers ignorés (sous le tableau).
   function messages() {
     const m = [];
-    m.push(`<p><strong>${fusion.equipes.length} équipe${fusion.equipes.length > 1 ? 's' : ''}</strong> à partir de ${fichiers.length} fichier${fichiers.length > 1 ? 's' : ''}.</p>`);
+    m.push(`<p>${pluriel(fusion.equipes.length, 'équipe')} à partir de ${pluriel(fichiers.length, 'fichier')}.</p>`);
     const doublons = fusion.equipes.filter((e) => e.autres.length);
     if (doublons.length) {
       m.push(
@@ -316,35 +364,30 @@
           '</ul></details>',
       );
     }
-    if (fichiers.length) m.push('<button type="button" class="btn-lien btn-vider">Tout retirer</button>');
     $('.prof-messages').innerHTML = m.join('');
-    const v = $('.btn-vider');
-    if (v) v.addEventListener('click', () => {
-      manuels = [];
-      arreterSuivi();
-      alertesConnues = null;
-      recalculer();
-      $('.prof-messages').innerHTML = '';
-    });
   }
 
-  // ---------- Tableau ----------
+  // ---------- Vue Classe ----------
 
   const seuils = () => ({
     tentatives: Math.max(1, Number($('.seuil-tentatives').value) || A.SEUILS.tentatives),
     minutes: Math.max(1, Number($('.seuil-minutes').value) || A.SEUILS.minutes),
   });
 
+  const ex13 = exercices.find((e) => e.id === '13A');
+  const avancementCarnet = (d) => A.avancementCarnet(d.carnet, A.carnet, ex13 ? ex13.composants : []);
+
+  function resume(eq) {
+    const r = A.resumerEquipe(eq.donnees, seuils());
+    r.note = A.noterEquipe(eq.donnees, bareme);
+    r.carnet = avancementCarnet(eq.donnees);
+    r.carnetTotal = A.PARTIES_CARNET.length;
+    return r;
+  }
+
   function selection() {
-    const s = seuils();
     const classe = $('.filtre-classe').value;
-    let liste = fusion.equipes.map((eq) => {
-      const r = A.resumerEquipe(eq.donnees, s);
-      r.note = A.noterEquipe(eq.donnees, bareme);
-      r.carnet = avancementCarnet(eq.donnees);
-      r.carnetTotal = A.PARTIES_CARNET.length;
-      return { eq, r };
-    });
+    let liste = fusion.equipes.map((eq) => ({ eq, r: resume(eq) }));
     if (classe) liste = liste.filter((x) => x.r.classe === classe);
     if ($('.filtre-bloquees').checked) liste = liste.filter((x) => x.r.bloque);
     const tri = $('.tri').value;
@@ -367,7 +410,7 @@
 
   function cellule(c, id) {
     const statut = c.statut;
-    const infos = [A.MOTS_STATUT[statut], `${c.tentatives} tentative${c.tentatives > 1 ? 's' : ''}`, `${c.indices} indice${c.indices > 1 ? 's' : ''}`, A.dureeLisible(c.temps)];
+    const infos = [A.MOTS_STATUT[statut], pluriel(c.tentatives, 'tentative'), pluriel(c.indices, 'indice'), A.dureeLisible(c.temps)];
     if (c.bloque) infos.push('bloqué');
     const texte = statut === 'non_commence' && !c.tentatives ? A.SYMBOLES.non_commence : `${A.SYMBOLES[statut]} ${c.tentatives}`;
     return (
@@ -376,32 +419,44 @@
     );
   }
 
+  // Chiffres clés de la classe affichée.
+  function dessinerResume(liste) {
+    const n = liste.length;
+    const moyenne = (f) => (n ? liste.reduce((s, x) => s + f(x.r), 0) / n : 0);
+    const finies = liste.filter((x) => x.r.avancement >= 13).length;
+    const bloquees = liste.filter((x) => x.r.bloque).length;
+    const chiffre = (valeur, etiquette, classe) => `<div class="pc-chiffre${classe ? ' ' + classe : ''}"><b>${valeur}</b><span>${etiquette}</span></div>`;
+    $('.pc-resume').innerHTML =
+      chiffre(n, n > 1 ? 'équipes' : 'équipe') +
+      chiffre(`${A.nombreFr(moyenne((r) => r.note.note))}<small>/${bareme.sur}</small>`, 'note moyenne') +
+      chiffre(`${A.nombreFr(moyenne((r) => r.avancement))}<small>/13</small>`, 'exercices réussis (moyenne)') +
+      chiffre(`${A.nombreFr(moyenne((r) => r.carnet))}<small>/${A.PARTIES_CARNET.length}</small>`, 'parties du carnet (moyenne)') +
+      chiffre(finies, 'programme du distributeur réussi') +
+      chiffre(bloquees, bloquees > 1 ? 'équipes bloquées' : 'équipe bloquée', bloquees ? 'pc-alerte' : '');
+  }
+
   function dessiner() {
-    const avecDonnees = fusion.equipes.length > 0;
-    $('.prof-outils').hidden = !avecDonnees;
-    $('.prof-bareme').hidden = !avecDonnees;
-    $('.prof-resultats').hidden = !avecDonnees;
-    if (!avecDonnees) return;
+    if (!fusion.equipes.length) return;
     majClasses();
     const liste = selection();
     const s = seuils();
+    dessinerResume(liste);
     $('.titre-classe').textContent = $('.filtre-classe').value ? 'classe ' + $('.filtre-classe').value : 'toutes les classes';
     let h = '<thead><tr><th scope="col" class="col-equipe">Équipe</th>';
     for (const id of ORDRE) h += `<th scope="col" title="${echapper(titre(id))}">${id}</th>`;
     h += `<th scope="col">Avancement</th><th scope="col" title="Parties du carnet de projet terminées">Carnet</th><th scope="col" title="Exercices réussis du premier coup et sans indice">★ 1er coup</th><th scope="col">Note /${bareme.sur}</th><th scope="col">Dernière activité</th><th scope="col">Temps total</th></tr></thead><tbody>`;
     if (!liste.length) h += `<tr><td colspan="${ORDRE.length + 7}" class="prof-vide">Aucune équipe ne correspond aux filtres.</td></tr>`;
-    liste.forEach((x, i) => {
+    for (const x of liste) {
       const r = x.r;
       h +=
-        `<tr class="ligne-equipe${r.bloque ? ' equipe-bloquee' : ''}" data-i="${fusion.equipes.indexOf(x.eq)}" tabindex="0">` +
+        `<tr class="ligne-equipe${r.bloque ? ' equipe-bloquee' : ''}" data-cle="${echapper(x.eq.cle)}" tabindex="0">` +
         `<th scope="row" class="col-equipe"><span class="nom-equipe">${echapper(r.eleves.join(', '))}</span>` +
         `<span class="classe-equipe">${echapper(r.classe)}${r.bloque ? ' · <strong>⚠ bloquée</strong>' : ''}` +
         `${misesAJour.has(x.eq.cle) ? ' · <span class="badge-maj">● vient d’avancer</span>' : ''}</span></th>` +
         ORDRE.map((id) => cellule(r.cellules[id], id)).join('') +
         `<td class="nombre">${r.avancement}/13</td><td class="nombre">${r.carnet}/${r.carnetTotal}</td><td class="nombre">${r.premierCoup ? '★ ' + r.premierCoup : '0'}</td><td class="nombre note">${A.nombreFr(r.note.note, 2)}</td>` +
         `<td>${echapper(A.dateCourte(r.derniereActivite))}</td><td class="nombre">${A.dureeLisible(r.tempsTotal)}</td></tr>`;
-      void i;
-    });
+    }
     const taux = A.tauxReussite(liste.map((x) => x.r));
     h += '</tbody><tfoot><tr><th scope="row" class="col-equipe">Taux de réussite</th>';
     for (const id of ORDRE) h += `<td class="nombre">${liste.length ? Math.round(taux[id] * 100) + ' %' : ''}</td>`;
@@ -409,39 +464,37 @@
     const moyenne = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : 0;
     h += `<td></td><td></td><td></td><td class="nombre note" title="Moyenne des équipes affichées">moy. ${A.nombreFr(moyenne)}</td><td colspan="2"></td></tr></tfoot>`;
     $('.prof-tableau').innerHTML = h;
-    $('.prof-legende').textContent =
-      `✓ réussi · ● en cours · ○ non commencé. Le nombre est celui des tentatives (clics sur « Vérifier »). ` +
-      `★ 1er coup : exercices réussis du premier coup et sans indice. ` +
-      `⚠ bloqué : au moins ${s.tentatives} tentatives ou plus de ${s.minutes} min sur un exercice non réussi. Clique sur une équipe pour voir son détail.`;
+    $('.prof-legende').innerHTML =
+      '<span><strong>✓</strong> réussi</span><span><strong>●</strong> en cours</span><span><strong>○</strong> non commencé</span>' +
+      '<span>le nombre = tentatives (clics sur « Vérifier »)</span><span><strong>★</strong> réussi du premier coup sans indice</span>' +
+      `<span><strong>⚠</strong> bloqué : au moins ${s.tentatives} tentatives ou plus de ${s.minutes} min sur un exercice non réussi</span>`;
   }
 
-  for (const sel of ['.filtre-classe', '.tri', '.filtre-bloquees', '.seuil-tentatives', '.seuil-minutes']) {
-    $(sel).addEventListener(sel.startsWith('.seuil') ? 'input' : 'change', () => {
+  for (const sel of ['.filtre-classe', '.tri', '.filtre-bloquees']) $(sel).addEventListener('change', dessiner);
+  for (const sel of ['.seuil-tentatives', '.seuil-minutes']) {
+    $(sel).addEventListener('input', () => {
+      alertesConnues = null; // nouveaux seuils : on repart de l'état actuel, sans « nouvelles » alertes
+      nouvelles.clear();
       dessiner();
-      if (sel.startsWith('.seuil')) {
-        alertesConnues = null; // nouveaux seuils : on repart de l'état actuel, sans « nouvelles » alertes
-        nouvelles.clear();
-        verifierAlertes();
-      }
+      verifierAlertes();
+      if (vue.nom === 'equipe') dessinerEquipe(true);
     });
   }
   $('.prof-tableau').addEventListener('click', (e) => {
     const l = e.target.closest('.ligne-equipe');
-    if (l) ouvrirDetail(fusion.equipes[Number(l.dataset.i)]);
+    if (l) ouvrirEquipe(l.dataset.cle);
   });
   $('.prof-tableau').addEventListener('keydown', (e) => {
     const l = e.target.closest('.ligne-equipe');
     if (l && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      ouvrirDetail(fusion.equipes[Number(l.dataset.i)]);
+      ouvrirEquipe(l.dataset.cle);
     }
   });
 
-  // ---------- Détail d'une équipe ----------
+  // ---------- Vue Équipe ----------
 
-  function heure(iso) {
-    return iso ? A.dateCourte(iso) : '';
-  }
+  const heure = (iso) => (iso ? A.dateCourte(iso) : '');
 
   // Ouvre l'atelier en lecture avec ce programme (rien n'y est enregistré).
   function ouvrirDansAtelier(donnees, exercice, programme) {
@@ -454,11 +507,14 @@
     global.open('index.html?revue=1', '_blank', 'noopener');
   }
 
-  // ---------- Carnet de projet de l'équipe ----------
-
-  const ex13 = exercices.find((e) => e.id === '13A');
-  function avancementCarnet(d) {
-    return A.avancementCarnet(d.carnet, A.carnet, ex13 ? ex13.composants : []);
+  // « 1,2 / 1,6 » et la raison des retenues.
+  function pointsHtml(note, id) {
+    const x = note.detail.find((y) => y.id === id);
+    if (!x) return id === '13B' ? (note.bonus ? `<strong>bonus +${A.nombreFr(note.bonus)}</strong>` : '<span class="points-raison">bonus si réussi</span>') : '';
+    return (
+      `<strong class="nombre">${A.nombreFr(x.pointsNote, 2)} / ${A.nombreFr(x.pointsNoteMax, 2)}</strong>` +
+      `<span class="points-raison">${x.raisons.map(echapper).join(' · ')}</span>`
+    );
   }
 
   // Réponses de l'équipe, élément par élément ou case par case, avec ✓ / ✗.
@@ -488,6 +544,7 @@
     }).join('') + '</ul>';
   }
 
+  // Onglet « Carnet de projet » : chaque partie, son état, le travail de l'équipe et ses points.
   function carnetHtml(d, note) {
     const K = A.harmoniserClassement(A.completerCarnet(d.carnet), (A.carnet || {}).classement);
     const C = A.carnet || {};
@@ -498,76 +555,34 @@
       if (!v.length) return '';
       const reussie = v.findIndex((x) => x.reussi);
       const der = v[v.length - 1];
-      return `${v.length} vérification${v.length > 1 ? 's' : ''}` +
-        (reussie >= 0 ? ` · réussi à la ${reussie + 1}${reussie ? 'e' : 're'}` : ` · dernière : ${der.bien}/${der.total}`);
+      return `<p class="carnet-verifs">${pluriel(v.length, 'vérification')}` +
+        (reussie >= 0 ? ` · réussi à la ${reussie + 1}${reussie ? 'e' : 're'}` : ` · dernière : ${der.bien}/${der.total} juste${der.bien > 1 ? 's' : ''}`) + '</p>';
     };
-    // Points : les parties notées (barème), « non noté » pour les autres.
     const points = (p) => (note.detail.some((x) => x.id === 'carnet:' + p) ? pointsHtml(note, 'carnet:' + p) : '<span class="points-raison">non noté</span>');
-    const ligne = (p, contenu) =>
-      `<tr><th scope="row">${A.NOMS_PARTIES_CARNET[p]}</th><td class="statut-${etats[p] === 'fait' ? 'reussi' : etats[p] === 'en_cours' ? 'en_cours' : 'non_commence'}">${mot[etats[p]]}</td>` +
-      `<td>${contenu || ''}</td><td>${points(p)}</td></tr>`;
     const avecReponses = (p) => {
       const commence = p === 'classement' ? Object.keys(K.classement).length : Object.keys(K.algos[p] || {}).length;
-      return (verifs(p) || '') + (commence ? `<details class="voir-reponses"><summary>Voir leurs réponses</summary>${reponsesHtml(K, C, p)}</details>` : '');
+      return verifs(p) + (commence ? `<details class="voir-reponses"><summary>Voir leurs réponses</summary>${reponsesHtml(K, C, p)}</details>` : '');
     };
     const idees = K.idees.filter((x) => x && x.trim());
     const couleurs = A.lignesCablage(ex13 ? ex13.composants : [])
       .filter((l) => !l.couleurImposee)
-      .map((l) => `${l.broche} ${echapper(K.couleurs[l.broche] || '—')}`)
-      .join(' · ');
-    let h = `<h3>Carnet de projet · ${A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length}/${A.PARTIES_CARNET.length}</h3>`;
-    h += '<table class="detail-tableau carnet-detail"><thead><tr><th>Partie</th><th>État</th><th>Travail</th><th>Points</th></tr></thead><tbody>';
-    h += ligne('idees', idees.length ? '<ol>' + idees.map((i) => `<li>${echapper(i)}</li>`).join('') + '</ol>' : '');
-    h += ligne('definition', K.definition ? `« ${echapper(K.definition)} »` : '');
-    for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += ligne(p, avecReponses(p));
-    h += ligne('cablage', couleurs);
-    return h + '</tbody></table>';
+      .map((l) => `<span class="couleur-cable">${echapper(l.nom)} (${l.broche}) : <strong>${echapper(K.couleurs[l.broche] || '—')}</strong></span>`)
+      .join('');
+    const partie = (p, contenu) =>
+      `<article class="pe-partie etat-${etats[p]}"><header><h4>${A.NOMS_PARTIES_CARNET[p]}</h4>` +
+      `<span class="pe-etat">${mot[etats[p]]}</span><span class="pe-points">${points(p)}</span></header>` +
+      `<div class="pe-partie-corps">${contenu || '<p class="pe-vide">Pas encore de travail.</p>'}</div></article>`;
+    let h = `<section class="pe-carte"><h3>Carnet de projet · ${A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length}/${A.PARTIES_CARNET.length} parties faites</h3>`;
+    h += partie('idees', idees.length ? '<ol>' + idees.map((i) => `<li>${echapper(i)}</li>`).join('') + '</ol>' : '');
+    h += partie('definition', K.definition ? `<p>« ${echapper(K.definition)} »</p>` : '');
+    for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += partie(p, avecReponses(p));
+    h += partie('cablage', couleurs ? `<div class="couleurs-cables">${couleurs}</div>` : '');
+    return h + '</section>';
   }
 
-  // Programme du distributeur envoyé dans la vraie carte (maquette).
-  function envoisHtml(d) {
-    const v = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
-    if (!v.length) return '<p class="detail-resume">Programme envoyé dans la carte Arduino : pas encore.</p>';
-    const der = v[v.length - 1];
-    return `<p class="detail-resume">Programme envoyé dans la carte Arduino : <strong>${v.length} fois</strong>, ` +
-      `dernière fois le ${echapper(heure(der.date))} (version ${echapper(der.version)}).</p>`;
-  }
-
-  // « 1,2 / 1,6 » et la raison des retenues.
-  function pointsHtml(note, id) {
-    const x = note.detail.find((y) => y.id === id);
-    if (!x) return id === '13B' ? (note.bonus ? `<strong>bonus +${A.nombreFr(note.bonus)}</strong>` : '<span class="points-raison">bonus si réussi</span>') : '';
-    return (
-      `<strong class="nombre">${A.nombreFr(x.pointsNote, 2)} / ${A.nombreFr(x.pointsNoteMax, 2)}</strong>` +
-      `<span class="points-raison">${x.raisons.map(echapper).join(' · ')}</span>`
-    );
-  }
-
-  let detailOuvert = null; // clé de l'équipe affichée dans le détail
-  function rafraichirDetail() {
-    if (!detailOuvert || !$('.prof-detail').open) return;
-    const eq = fusion.equipes.find((x) => x.cle === detailOuvert);
-    if (eq) ouvrirDetail(eq, true);
-  }
-
-  function ouvrirDetail(eq, miseAJour) {
-    detailOuvert = eq.cle;
-    const d = eq.donnees;
-    // Garder les historiques ouverts et la position de lecture pendant une mise à jour en direct.
-    const ouverts = miseAJour ? new Set([...document.querySelectorAll('.historique[open] summary')].map((s) => s.textContent.split(' — ')[0])) : null;
-    const defilement = miseAJour ? $('.prof-detail').scrollTop : 0;
-    const r = A.resumerEquipe(d, seuils());
-    const note = A.noterEquipe(d, bareme);
-    const dialogue = $('.prof-detail');
-    $('#detail-titre').textContent = `${d.equipe.eleves.join(', ')}${d.equipe.classe ? ' · ' + d.equipe.classe : ''}`;
-    let h =
-      `<p class="detail-note">Note : <strong>${A.nombreFr(note.note, 2)}/${note.sur}</strong>` +
-      `${note.bonus ? ` (dont bonus 13B : +${A.nombreFr(note.bonus)})` : ''}</p>` +
-      `<p class="detail-resume"><strong>${r.avancement}/13</strong> exercices réussis, dont <strong>★ ${r.premierCoup}</strong> du premier coup sans indice · ${A.dureeLisible(r.tempsTotal)} de travail · ` +
-      `dernière activité ${echapper(heure(r.derniereActivite))} · fichier ${echapper(eq.fichier)}` +
-      `${d.exercice13 && d.exercice13.versionReussie ? ' · exercice 13 réussi en version ' + d.exercice13.versionReussie : ''}</p>` +
-      envoisHtml(d);
-    h +=
+  // Onglet « Programmation » : un exercice par ligne.
+  function programmationHtml(d, r, note) {
+    let h = '<section class="pe-carte"><h3>Exercices de programmation</h3>' +
       '<table class="detail-tableau"><thead><tr><th>Exercice</th><th>Statut</th><th>Tentatives</th><th>Échecs</th><th>Indices</th>' +
       '<th>Temps</th><th>Première réussite</th><th>Points</th><th></th></tr></thead><tbody>';
     for (const id of ORDRE) {
@@ -581,18 +596,18 @@
         `<td>${pointsHtml(note, id)}</td>` +
         `<td>${e && e.programme ? `<button type="button" class="btn-lien" data-ouvrir="${id}">Lancer le programme</button>` : ''}</td></tr>`;
     }
-    h += '</tbody></table>';
+    return h + '</tbody></table><p class="pe-aide">« Lancer le programme » ouvre l’atelier en lecture avec le dernier programme de l’équipe.</p></section>';
+  }
 
-    h += carnetHtml(d, note);
-
-    // Historique : chaque vérification (avec tous les écarts et le programme du moment) et chaque indice.
-    h += '<h3>Historique</h3>';
+  // Onglet « Historique » : chaque vérification (écarts, programme du moment) et chaque indice.
+  function historiqueHtml(d) {
+    let h = '<section class="pe-carte"><h3>Historique de programmation</h3>';
     let vide = true;
     for (const id of ORDRE) {
       const e = d.exercices[id];
       if (!e || !e.historique || !e.historique.length) continue;
       vide = false;
-      h += `<details class="historique"><summary>Exercice ${id} · ${echapper(titre(id))} — ${e.historique.length} événement${e.historique.length > 1 ? 's' : ''}</summary><ol>`;
+      h += `<details class="historique" data-ex="${id}"><summary>Exercice ${id} · ${echapper(titre(id))} — ${pluriel(e.historique.length, 'événement')}</summary><ol>`;
       e.historique.forEach((ev, k) => {
         if (ev.type === 'indice') {
           h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Indice ${ev.niveau} ouvert</li>`;
@@ -615,10 +630,93 @@
       });
       h += '</ol></details>';
     }
-    if (vide) h += '<p>Aucune vérification ni aucun indice pour l’instant.</p>';
-    $('.detail-corps').innerHTML = h;
+    if (vide) h += '<p class="pe-vide">Aucune vérification ni aucun indice pour l’instant.</p>';
+    return h + '</section>';
+  }
 
-    $('.detail-corps').onclick = (ev) => {
+  // Onglet « Bilan » : la note et ce qui la compose, l'avancement, la maquette.
+  function bilanHtml(eq, d, r, note) {
+    const parties = note.detail.filter((x) => !x.id.startsWith('carnet:'));
+    const carnet = note.detail.filter((x) => x.id.startsWith('carnet:'));
+    const somme = (l, cle) => l.reduce((s, x) => s + x[cle], 0);
+    const enCours = ORDRE.find((id) => r.cellules[id].statut === 'en_cours');
+    const bloques = ORDRE.filter((id) => r.cellules[id].bloque);
+    const envois = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
+    const dernierEnvoi = envois[envois.length - 1];
+    const ligne = (etiquette, valeur) => `<div class="pe-info"><span>${etiquette}</span><strong>${valeur}</strong></div>`;
+    return (
+      '<div class="pe-bilan">' +
+      '<section class="pe-carte pe-note-carte">' +
+      `<div class="pe-note-grande"><span>Note de l’équipe</span><b>${A.nombreFr(note.note, 2)}<small>/${note.sur}</small></b></div>` +
+      '<div class="pe-infos">' +
+      ligne('Programmation', `${A.nombreFr(somme(parties, 'pointsNote'), 2)} / ${A.nombreFr(somme(parties, 'pointsNoteMax'), 2)} pts`) +
+      ligne('Carnet de projet', `${A.nombreFr(somme(carnet, 'pointsNote'), 2)} / ${A.nombreFr(somme(carnet, 'pointsNoteMax'), 2)} pts`) +
+      ligne('Bonus défi 13B', note.bonus ? '+' + A.nombreFr(note.bonus) : '—') +
+      '</div>' +
+      `<p class="pe-aide">Calculée sur les ${bareme.objectif} premiers exercices attendus et les parties notées du carnet. ` +
+      'Le détail des points est dans les onglets « Programmation » et « Carnet de projet ».</p></section>' +
+      '<section class="pe-carte"><h3>Avancement</h3><div class="pe-infos">' +
+      ligne('Exercices réussis', `${r.avancement}/13`) +
+      ligne('Du premier coup sans indice', `★ ${r.premierCoup}`) +
+      ligne('Carnet de projet', `${avancementCarnet(d)}/${A.PARTIES_CARNET.length} parties`) +
+      ligne('En cours', enCours ? `exercice ${enCours} · ${echapper(titre(enCours))}` : '—') +
+      ligne('Temps de travail', A.dureeLisible(r.tempsTotal)) +
+      ligne('Dernière activité', echapper(heure(r.derniereActivite)) || '—') +
+      '</div>' +
+      (bloques.length ? `<p class="pe-bloque">${A.icone('alerte', { epaisseur: 2.4 })}Bloquée sur l’exercice ${bloques.map((id) => `${id} · ${echapper(titre(id))}`).join(', ')}</p>` : '') +
+      '</section>' +
+      '<section class="pe-carte"><h3>Maquette</h3><div class="pe-infos">' +
+      ligne('Exercice 13', d.exercice13 && d.exercice13.versionReussie ? `réussi (version ${echapper(d.exercice13.versionReussie)})` : 'pas encore réussi') +
+      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}` : 'pas encore') +
+      '</div></section>' +
+      `<p class="pe-fichier">Fichier : ${echapper(eq.fichier)}</p>` +
+      '</div>'
+    );
+  }
+
+  function listeAffichee() {
+    return selection().map((x) => x.eq.cle);
+  }
+
+  function ouvrirEquipe(cle) {
+    vue.equipe = cle;
+    if (vue.nom !== 'equipe') {
+      vue.onglet = 'bilan';
+      montrerVue('equipe');
+    }
+    dessinerEquipe(false);
+  }
+
+  function dessinerEquipe(miseAJour) {
+    const eq = fusion.equipes.find((x) => x.cle === vue.equipe);
+    if (!eq) return montrerVue('classe');
+    const d = eq.donnees;
+    const r = resume(eq);
+    const note = r.note;
+    // Pendant une mise à jour en direct : garder les historiques ouverts et la position de lecture.
+    const ouverts = miseAJour ? new Set($$('.historique[open]').map((x) => x.dataset.ex)) : null;
+    const reponses = miseAJour ? new Set($$('.voir-reponses[open]').map((x) => x.closest('.pe-partie').querySelector('h4').textContent)) : null;
+    const defilement = miseAJour ? global.scrollY : 0;
+
+    $('.pe-noms').textContent = d.equipe.eleves.join(', ');
+    $('.pe-sous-titre').innerHTML = [d.equipe.classe ? 'Classe ' + echapper(d.equipe.classe) : '', `${r.avancement}/13 exercices`,
+      r.bloque ? '<strong class="pe-sous-bloque">⚠ bloquée</strong>' : '', misesAJour.has(eq.cle) ? '<span class="badge-maj">● vient d’avancer</span>' : '']
+      .filter(Boolean).join(' · ');
+    $('.pe-note-badge').innerHTML = `<b>${A.nombreFr(note.note, 2)}</b><small>/${note.sur}</small>`;
+    const liste = listeAffichee();
+    const i = liste.indexOf(eq.cle);
+    $('.pe-pos').textContent = i >= 0 ? `${i + 1} / ${liste.length}` : '';
+    $('.btn-equipe-prec').disabled = i <= 0;
+    $('.btn-equipe-suiv').disabled = i < 0 || i >= liste.length - 1;
+    for (const b of $$('.pe-onglets [data-onglet]')) b.setAttribute('aria-selected', String(b.dataset.onglet === vue.onglet));
+
+    const box = $('.pe-contenu');
+    if (vue.onglet === 'programmation') box.innerHTML = programmationHtml(d, r, note);
+    else if (vue.onglet === 'carnet') box.innerHTML = carnetHtml(d, note);
+    else if (vue.onglet === 'historique') box.innerHTML = historiqueHtml(d);
+    else box.innerHTML = bilanHtml(eq, d, r, note);
+
+    box.onclick = (ev) => {
       const b = ev.target.closest('button');
       if (!b) return;
       if (b.dataset.ouvrir) return ouvrirDansAtelier(d, b.dataset.ouvrir, d.exercices[b.dataset.ouvrir].programme);
@@ -631,11 +729,36 @@
       zoneBlocs.hidden = !zoneBlocs.hidden;
       b.textContent = zoneBlocs.hidden ? 'Voir les blocs' : 'Masquer les blocs';
     };
-    if (ouverts) for (const det of document.querySelectorAll('.historique')) if (ouverts.has(det.querySelector('summary').textContent.split(' — ')[0])) det.open = true;
-    if (!dialogue.open) dialogue.showModal();
-    dialogue.scrollTop = defilement;
+    if (ouverts) for (const det of $$('.historique')) if (ouverts.has(det.dataset.ex)) det.open = true;
+    if (reponses) for (const det of $$('.voir-reponses')) if (reponses.has(det.closest('.pe-partie').querySelector('h4').textContent)) det.open = true;
+    if (miseAJour) scrollTo(0, defilement);
   }
-  $('.btn-fermer-detail').addEventListener('click', () => $('.prof-detail').close());
+
+  $('.pe-onglets').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-onglet]');
+    if (!b) return;
+    vue.onglet = b.dataset.onglet;
+    dessinerEquipe(false);
+  });
+  $('.btn-retour-classe').addEventListener('click', () => {
+    montrerVue('classe');
+    dessiner();
+  });
+  function equipeVoisine(pas) {
+    const liste = listeAffichee();
+    const i = liste.indexOf(vue.equipe);
+    if (i >= 0 && liste[i + pas]) {
+      vue.equipe = liste[i + pas];
+      dessinerEquipe(false);
+      scrollTo(0, 0);
+    }
+  }
+  $('.btn-equipe-prec').addEventListener('click', () => equipeVoisine(-1));
+  $('.btn-equipe-suiv').addEventListener('click', () => equipeVoisine(1));
+  document.addEventListener('keydown', (e) => {
+    if (vue.nom !== 'equipe' || $('.dialogue-reglages').open || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === 'Escape') $('.btn-retour-classe').click();
+  });
 
   // ---------- Exports ----------
 
@@ -672,7 +795,11 @@
   });
   $('.btn-imprimer').addEventListener('click', () => global.print());
 
-  // ---------- Barème réglable dans la page ----------
+  // ---------- Barème et réglages ----------
+
+  const dialogueReglages = $('.dialogue-reglages');
+  $('.btn-reglages').addEventListener('click', () => dialogueReglages.showModal());
+  $('.btn-fermer-reglages').addEventListener('click', () => dialogueReglages.close());
 
   const zoneBareme = $('.prof-bareme');
   const NOMS_CARNET_BAREME = { classement: 'Carnet · classement', mouvement: 'Carnet · algorigramme 1', trappe: 'Carnet · algorigramme 2' };
@@ -699,6 +826,11 @@
       `avance : ${Math.round(bareme.avance * 100)} %, ` +
       `commencé : ${Math.round(bareme.participation * 100)} %, bonus 13B : +${A.nombreFr(bareme.bonus13B)}`;
   }
+  function apresBareme() {
+    resumerBareme();
+    dessiner();
+    if (vue.nom === 'equipe') dessinerEquipe(true);
+  }
   zoneBareme.addEventListener('input', (e) => {
     const el = e.target;
     const v = Number(el.value);
@@ -706,13 +838,13 @@
     if (el.dataset.coef) bareme.coefficients[el.dataset.coef] = v;
     else if (el.dataset.coefCarnet) bareme.carnet[el.dataset.coefCarnet] = v;
     else if (el.dataset.b) bareme[el.dataset.b] = el.hasAttribute('data-pourcent') ? v / 100 : v;
-    resumerBareme();
-    dessiner();
+    apresBareme();
   });
   $('.btn-bareme-fichier').addEventListener('click', () => {
     bareme = A.completerBareme(A.bareme);
     remplirBareme();
-    dessiner();
+    apresBareme();
   });
   remplirBareme();
+  montrerVue('accueil');
 })(this);

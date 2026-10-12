@@ -9,89 +9,155 @@
 <link rel="stylesheet" href="css/prof.css">
 </head>
 <body class="page-prof">
-<header class="prof-entete">
-  <img src="img/favicon.svg" alt="" width="40" height="40">
-  <div>
-    <h1>Espace professeur</h1>
-    <p>Projet distributeur de céréales · les fichiers sont lus dans ce navigateur : rien n’est envoyé ni enregistré sur le site.</p>
+
+<!-- Bandeau : titre, classe suivie, actions -->
+<header class="pb-bande">
+  <img src="img/favicon.svg" alt="" width="36" height="36">
+  <h1 class="pb-titre">Distributeur de céréales <span>· Professeur</span></h1>
+  <span class="pb-classe" hidden></span>
+  <span class="pb-direct" hidden></span>
+  <span class="pb-espace"></span>
+  <div class="pb-actions" hidden>
+    <button type="button" class="pb-btn btn-actualiser" hidden data-ic="recommencer">Actualiser</button>
+    <button type="button" class="pb-btn btn-reglages" data-ic="reglages">Barème</button>
+    <button type="button" class="pb-btn btn-xlsx" data-ic="telecharger" title="Feuilles « Classe » et « Détail par exercice »">Excel</button>
+    <button type="button" class="pb-btn btn-csv" data-ic="telecharger">CSV</button>
+    <button type="button" class="pb-btn btn-imprimer" data-ic="imprimer">Imprimer</button>
+    <button type="button" class="pb-btn btn-autre-classe" data-ic="dossier">Autre classe</button>
   </div>
-  <a class="btn-secondaire prof-lien-atelier" href="index.html?enseignant=1" target="_blank" rel="noopener">Ouvrir l’atelier en mode enseignant</a>
+  <a class="pb-btn pb-atelier" href="index.html?enseignant=1" target="_blank" rel="noopener" data-ic="oeil" title="Atelier en mode enseignant : toutes les étapes ouvertes, rien n’est enregistré">Atelier enseignant</a>
 </header>
 
 <main class="prof-contenu">
-  <section class="prof-import" aria-label="Importer les sauvegardes">
-    <div class="zone-depot" tabindex="0">
-      <strong>Glisse ici les fichiers .json des équipes</strong>
-      <span>ou</span>
-      <div class="prof-boutons">
-        <label class="btn-principal btn-fichiers">Choisir des fichiers<input type="file" class="entree-fichiers" accept=".json,application/json" multiple hidden></label>
-        <button type="button" class="btn-principal btn-dossier-classe" hidden>Choisir le dossier de la classe</button>
-      </div>
-      <span class="zone-depot-aide">Le dossier de la classe (ex. DISTRIBUTEUR DE CEREALES) : tous les dossiers des équipes sont lus d’un coup.</span>
+
+  <!-- Accueil : choisir la classe -->
+  <section class="vue vue-accueil" aria-labelledby="titre-accueil">
+    <h2 id="titre-accueil">Suivre une classe</h2>
+    <p class="prof-intro">Ouvrez le dossier <strong>5X › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES</strong> d’une classe :
+      l’outil lit le fichier de chaque équipe (un dossier Prénom_Prénom par équipe) et le relit en direct pendant la séance.</p>
+    <p class="prof-alerte-navigateur" hidden>Ce navigateur ne peut pas ouvrir un dossier : utilisez <strong>Chrome</strong> ou <strong>Edge</strong>
+      pour le suivi en direct, ou importez les fichiers .json (tous sélectionnés d’un coup avec Ctrl+A).</p>
+    <div class="prof-cartes">
+      <button type="button" class="prof-carte btn-dossier-classe" hidden>
+        <span class="prof-carte-ic" data-ic="dossier"></span>
+        <strong>Ouvrir le dossier de la classe</strong>
+        <span>Suivi en direct : alertes quand une équipe est bloquée.</span>
+      </button>
+      <button type="button" class="prof-carte btn-reprendre-suivi" hidden>
+        <span class="prof-carte-ic" data-ic="recommencer"></span>
+        <strong>Reprendre : <span class="reprendre-dossier"></span></strong>
+        <span>Le dernier dossier suivi, en un clic.</span>
+      </button>
+      <label class="prof-carte">
+        <span class="prof-carte-ic" data-ic="importer"></span>
+        <strong>Importer des fichiers .json</strong>
+        <span>Une ou plusieurs sauvegardes d’équipes (sans suivi en direct).</span>
+        <input type="file" class="entree-fichiers" accept=".json,application/json" multiple hidden>
+      </label>
     </div>
+    <div class="zone-depot" tabindex="0">Ou glissez ici les fichiers .json des équipes (n’importe où dans la page).</div>
+    <ul class="prof-notes">
+      <li>Les fichiers sont lus dans ce navigateur : rien n’est envoyé ni enregistré sur le site.</li>
+      <li>La note est calculée à partir du travail enregistré (exercices, indices, vérifications ratées, carnet) : voir « Barème ».</li>
+      <li>« Atelier enseignant » ouvre l’atelier avec toutes les étapes, pour préparer ou montrer une correction : rien n’y est enregistré.</li>
+    </ul>
+  </section>
+
+  <!-- Classe : résumé, alertes, tableau -->
+  <section class="vue vue-classe" aria-label="Classe" hidden>
+    <h2 class="titre-impression">Projet distributeur de céréales — <span class="titre-classe"></span></h2>
+    <div class="pc-resume"></div>
+
+    <section class="prof-alertes" aria-label="Alertes" hidden>
+      <h3 class="alertes-titre"></h3>
+      <ul class="alertes-liste"></ul>
+    </section>
+
+    <div class="prof-outils" role="group" aria-label="Filtres">
+      <label>Classe <select class="filtre-classe"></select></label>
+      <label>Trier par
+        <select class="tri">
+          <option value="equipe">équipe</option>
+          <option value="avancement">avancement</option>
+          <option value="activite">dernière activité</option>
+          <option value="note">note</option>
+        </select>
+      </label>
+      <label class="case"><input type="checkbox" class="filtre-bloquees"> Équipes bloquées seulement</label>
+      <span class="prof-outils-aide">Cliquez sur une équipe pour voir son travail.</span>
+      <a class="btn-secondaire lien-atelier-enseignant" href="index.html?enseignant=1" target="_blank" rel="noopener" data-ic="oeil" title="Toutes les étapes ouvertes, rien n’est enregistré">Atelier enseignant</a>
+    </div>
+
+    <div class="prof-tableau-zone"><table class="prof-tableau"></table></div>
+    <p class="prof-legende"></p>
     <div class="prof-messages" aria-live="polite"></div>
-    <div class="prof-reprendre" hidden>
-      Dernier dossier suivi : <strong class="reprendre-dossier"></strong>
-      <button type="button" class="btn-principal btn-reprendre-suivi">Reprendre le suivi en direct</button>
+  </section>
+
+  <!-- Équipe : son travail, par onglets -->
+  <section class="vue vue-equipe" aria-label="Équipe" hidden>
+    <div class="pe-tete">
+      <button type="button" class="btn-secondaire btn-retour-classe" data-ic="retour">Classe</button>
+      <div class="pe-titre">
+        <h2 class="pe-noms"></h2>
+        <p class="pe-sous-titre"></p>
+      </div>
+      <span class="pe-note-badge"></span>
+      <span class="pb-espace"></span>
+      <button type="button" class="pe-nav btn-equipe-prec" aria-label="Équipe précédente" title="Équipe précédente" data-ic="retour"></button>
+      <span class="pe-pos"></span>
+      <button type="button" class="pe-nav btn-equipe-suiv" aria-label="Équipe suivante" title="Équipe suivante" data-ic="suivant"></button>
     </div>
+    <nav class="pe-onglets" role="tablist" aria-label="Travail de l’équipe">
+      <button type="button" role="tab" data-onglet="bilan" data-ic="coche">Bilan</button>
+      <button type="button" role="tab" data-onglet="programmation" data-ic="lumiere">Programmation</button>
+      <button type="button" role="tab" data-onglet="carnet" data-ic="crayon">Carnet de projet</button>
+      <button type="button" role="tab" data-onglet="historique" data-ic="horloge">Historique</button>
+    </nav>
+    <div class="pe-contenu"></div>
   </section>
+</main>
 
-  <section class="prof-suivi" aria-label="Suivi en direct" hidden>
-    <span class="suivi-etat" aria-live="polite"></span>
-    <label>toutes les
-      <select class="suivi-periode">
-        <option value="15">15 s</option>
-        <option value="30" selected>30 s</option>
-        <option value="60">1 min</option>
-        <option value="120">2 min</option>
-      </select>
-    </label>
-    <button type="button" class="btn-secondaire btn-suivi-maintenant">Actualiser maintenant</button>
-    <button type="button" class="btn-secondaire btn-suivi-pause">Mettre en pause</button>
-    <button type="button" class="btn-lien btn-suivi-arreter">Arrêter le suivi</button>
-    <span class="suivi-erreur" role="alert"></span>
-  </section>
-
-  <section class="prof-alertes" aria-label="Alertes" hidden>
-    <div class="alertes-entete">
-      <h2 class="alertes-titre"></h2>
-      <label class="case"><input type="checkbox" class="alerte-son" checked> Son à chaque nouvelle alerte</label>
-      <button type="button" class="btn-secondaire btn-notifications">Activer les notifications</button>
-    </div>
-    <ul class="alertes-liste"></ul>
-  </section>
-
-  <section class="prof-outils" aria-label="Filtres et exports" hidden>
-    <label>Classe <select class="filtre-classe"></select></label>
-    <label>Trier par
-      <select class="tri">
-        <option value="equipe">équipe</option>
-        <option value="avancement">avancement</option>
-        <option value="activite">dernière activité</option>
-        <option value="note">note</option>
-      </select>
-    </label>
-    <label class="case"><input type="checkbox" class="filtre-bloquees"> Équipes bloquées seulement</label>
-    <fieldset class="seuils">
-      <legend>Alerte « bloqué »</legend>
-      <label><input type="number" class="seuil-tentatives" min="1" max="99" value="6"> tentatives</label>
-      <span>ou</span>
-      <label><input type="number" class="seuil-minutes" min="1" max="240" value="10"> min</label>
-    </fieldset>
-    <div class="prof-exports">
-      <button type="button" class="btn-secondaire btn-csv">CSV</button>
-      <button type="button" class="btn-secondaire btn-xlsx">Excel</button>
-      <button type="button" class="btn-secondaire btn-imprimer">Imprimer</button>
-    </div>
-  </section>
-
-  <details class="prof-bareme" hidden>
-    <summary>Barème de la note <span class="bareme-resume"></span></summary>
-    <div class="bareme-corps">
+<!-- Barème et réglages -->
+<dialog class="dialogue-reglages" aria-labelledby="titre-reglages">
+  <div class="detail-entete">
+    <h2 id="titre-reglages">Barème et alertes</h2>
+    <button type="button" class="btn-fermer-reglages" aria-label="Fermer">×</button>
+  </div>
+  <div class="reglages-corps">
+    <section class="reglage-bloc reglage-suivi" hidden>
+      <h3>Suivi en direct</h3>
+      <div class="reglage-ligne">
+        <label>Relire le dossier toutes les
+          <select class="suivi-periode">
+            <option value="15">15 s</option>
+            <option value="30" selected>30 s</option>
+            <option value="60">1 min</option>
+            <option value="120">2 min</option>
+          </select>
+        </label>
+        <button type="button" class="btn-secondaire btn-suivi-pause">Mettre en pause</button>
+        <button type="button" class="btn-lien btn-suivi-arreter">Arrêter le suivi</button>
+      </div>
+      <p class="suivi-erreur" role="alert"></p>
+    </section>
+    <section class="reglage-bloc">
+      <h3>Alerte « bloqué »</h3>
+      <div class="reglage-ligne">
+        <label>Au moins <input type="number" class="seuil-tentatives" min="1" max="99" value="6"> tentatives</label>
+        <span>ou plus de</span>
+        <label><input type="number" class="seuil-minutes" min="1" max="240" value="10"> min sur un exercice non réussi</label>
+      </div>
+      <div class="reglage-ligne">
+        <label class="case"><input type="checkbox" class="alerte-son" checked> Son à chaque nouvelle alerte</label>
+        <button type="button" class="btn-secondaire btn-notifications">Activer les notifications</button>
+      </div>
+    </section>
+    <section class="reglage-bloc prof-bareme">
+      <h3>Barème de la note <span class="bareme-resume"></span></h3>
       <p class="bareme-explication">Pour chaque exercice : <strong>réussi</strong> = tous ses points, moins des retenues d’autonomie
         (indices ouverts et essais ratés <em>avant</em> la réussite) ; <strong>commencé sans réussir</strong> = une part des points ;
         <strong>non commencé</strong> = 0. Le défi 13B donne un bonus. Ces réglages ne durent que le temps de la page :
-        pour les garder, modifie <code>donnees/notation.js</code>.</p>
+        pour les garder, modifiez <code>donnees/notation.js</code>.</p>
       <div class="bareme-reglages">
         <label>Note sur <input type="number" data-b="sur" min="1" max="100" step="1"></label>
         <label>Exercices attendus (les N premiers) <input type="number" data-b="objectif" min="1" max="13" step="1"></label>
@@ -107,27 +173,13 @@
           <select data-b="arrondi"><option value="0.5">au demi-point</option><option value="0.25">au quart de point</option><option value="1">au point</option><option value="0">au centième</option></select>
         </label>
       </div>
-      <p class="bareme-titre-coefs">Coefficients (0 = l’exercice ne compte pas). Le carnet : le classement et les deux algorigrammes
+      <p class="bareme-titre-coefs">Coefficients (0 = ne compte pas). Le carnet : le classement et les deux algorigrammes
         d’entraînement sont notés comme la programmation (−5 % par vérification ratée avant la réussite) ; la problématique et
-        l’algorigramme du distributeur ne sont pas notés, mais leur travail est visible dans le détail de chaque équipe.</p>
+        l’algorigramme du distributeur ne sont pas notés, mais leur travail est visible dans l’onglet « Carnet de projet » de chaque équipe.</p>
       <div class="bareme-coefs"></div>
       <button type="button" class="btn-secondaire btn-bareme-fichier">Revenir au barème du fichier</button>
-    </div>
-  </details>
-
-  <section class="prof-resultats" hidden>
-    <h2 class="titre-impression">Projet distributeur de céréales — <span class="titre-classe"></span></h2>
-    <div class="prof-tableau-zone"><table class="prof-tableau"></table></div>
-    <p class="prof-legende"></p>
-  </section>
-</main>
-
-<dialog class="prof-detail" aria-labelledby="detail-titre">
-  <div class="detail-entete">
-    <h2 id="detail-titre"></h2>
-    <button type="button" class="btn-fermer-detail" aria-label="Fermer">×</button>
+    </section>
   </div>
-  <div class="detail-corps"></div>
 </dialog>
 
 <script src="js/moteur/programme.js"></script>
