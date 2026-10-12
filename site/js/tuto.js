@@ -36,11 +36,10 @@
       `<td><span class="broche-cablage">${l.broche}</span></td></tr>`)
     .join('');
 
-  // Composants : filtre et fiches dépliables.
-  let filtre = 'tous';
-  const ouverts = new Set(['led']);
+  // Composants : fiches dépliables (toutes ouvertes au départ).
+  const ouverts = new Set((A.composantsTuto || []).map((c) => c.id));
   function composants() {
-    const liste = (A.composantsTuto || []).filter((c) => filtre === 'tous' || c.type === filtre);
+    const liste = (A.composantsTuto || []);
     $('.liste-composants').innerHTML = liste.map((c) => {
       const ouvert = ouverts.has(c.id);
       return (
@@ -62,13 +61,6 @@
     if (!b) return;
     if (ouverts.has(b.dataset.composant)) ouverts.delete(b.dataset.composant);
     else ouverts.add(b.dataset.composant);
-    composants();
-  });
-  $('.filtres').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-filtre]');
-    if (!b) return;
-    filtre = b.dataset.filtre;
-    for (const x of $$('.filtres button')) x.setAttribute('aria-pressed', String(x === b));
     composants();
   });
 

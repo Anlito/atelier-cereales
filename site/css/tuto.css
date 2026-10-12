@@ -56,9 +56,6 @@ body.page-tuto { overflow: auto; background: var(--fond); }
 .ff-bouton { padding: 0.25rem 0.875rem; border-radius: 999px; border: 1px solid #C8CDD2; }
 .ff-bouton.plein { background: var(--bleu); border-color: var(--bleu); color: #FFFFFF; }
 .tableau-distributeur { margin-top: 0.5rem; }
-.filtres { display: flex; gap: 0.5rem; margin-bottom: 0.875rem; }
-.filtres button { min-height: 2.75rem; padding: 0 1rem; border: 2px solid var(--bord); border-radius: 999px; background: #FFFFFF; font-weight: 700; cursor: pointer; }
-.filtres button[aria-pressed="true"] { background: var(--bleu-fonce); border-color: var(--bleu-fonce); color: #FFFFFF; }
 .liste-composants { display: grid; gap: 0.5rem; }
 .fiche-composant { border: 2px solid var(--bord); border-radius: 0.75rem; background: #FFFFFF; overflow: hidden; }
 .fiche-composant.ouverte { border-color: var(--bleu); }

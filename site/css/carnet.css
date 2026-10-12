@@ -222,3 +222,16 @@
 .demontage { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 0; }
 .demontage .btn-secondaire { height: 2.75rem; }
 .lien-tuto { color: var(--bleu-fonce); font-weight: 700; }
+
+/* Onglet Câblage : lien bien visible vers le tutoriel */
+.encart-tuto {
+  display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem; padding: 0.875rem 1.125rem; border: 3px solid var(--orange);
+  border-radius: 0.875rem; background: var(--consigne-fond); color: var(--encre); text-decoration: none;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+}
+.encart-tuto:hover, .encart-tuto:focus-visible { background: #FFE7B3; }
+.encart-tuto-icone { display: flex; align-items: center; justify-content: center; flex: none; width: 3rem; height: 3rem; border-radius: 0.75rem; background: var(--orange); }
+.encart-tuto-icone svg { width: 1.75rem; height: 1.75rem; }
+.encart-tuto-texte { flex: 1; line-height: 1.4; }
+.encart-tuto-texte strong { display: block; font-size: 1.125rem; }
+.encart-tuto-ouvrir { flex: none; padding: 0.625rem 1rem; border-radius: 0.625rem; background: var(--bleu); color: #FFFFFF; font-weight: 800; }

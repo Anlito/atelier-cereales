@@ -421,6 +421,10 @@
       // Couleurs en stock pour chaque type de composant (ou une seule liste pour tous).
       const stock = C.couleursCables || [];
       let h = '<section class="carte-carnet"><h2>Câblage du distributeur</h2>' +
+        '<a class="encart-tuto" href="tuto.html#composants" target="_blank" rel="noopener">' +
+        `<span class="encart-tuto-icone">${A.icone('livre', { epaisseur: 2.4 })}</span>` +
+        '<span class="encart-tuto-texte"><strong>Tutoriel de câblage</strong>Comment brancher la LED, le bouton poussoir et le servo-moteur, et les protocoles d’installation.</span>' +
+        '<span class="encart-tuto-ouvrir">Ouvrir le tutoriel →</span></a>' +
         '<p class="regle"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>. ' +
         'Pour le câble de signal, choisis une couleur parmi celles en stock. Les broches sont les mêmes que dans les exercices de programmation.</p>' +
         '<table class="table-cablage"><thead><tr><th>Composant</th><th>Rôle</th><th>Couleur du câble de signal</th><th>Broche</th></tr></thead><tbody>';
@@ -435,8 +439,7 @@
         h += `<tr><td><strong>${echapper(l.nom)}</strong></td><td><span class="role role-${l.role}">${l.role === 'capteur' ? 'Capteur' : 'Actionneur'}</span></td>` +
           `<td>${choix}</td><td><span class="broche-cablage">${l.broche}</span></td></tr>`;
       }
-      return h + '</tbody></table>' +
-        '<p class="demontage">Comment brancher chaque composant : <a class="lien-tuto" href="tuto.html#composants" target="_blank" rel="noopener">Tutoriel de câblage</a></p></section>';
+      return h + '</tbody></table></section>';
     }
 
     // ---------- Clics et glisser-déposer ----------
