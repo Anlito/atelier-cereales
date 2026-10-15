@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { creerSimulation, chronologie, positionServo } = require('../site/js/moteur/simulation.js');
-const { valider } = require('../site/js/moteur/validation.js');
-const { depuisBlockly, versBlockly } = require('../site/js/moteur/programme.js');
+// Le moteur est celui de Labo Blocs (module copié dans site/vendor/labo-blocs) : ces tests vérifient qu'il fait
+// tourner les exercices du distributeur comme l'ancien moteur de l'atelier. Le bloc en cours et le pas à pas sont
+// testés dans le dépôt labo-blocs (tests/simulation.test.js).
+const { creerSimulation, chronologie, positionServo, valider, depuisBlockly, versBlockly } = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
 const { chargerExercices, led, att, servo, appuye, si, prog } = require('./outils.js');
 const faux = require('./programmes-faux.js');
 
@@ -103,34 +104,6 @@ test('un bouton est lu à chaque tour de boucle', () => {
   sim.changerEntree('D8', 1);
   sim.avancerJusqua(102);
   assert.equal(sim.sorties.D3, 1);
-});
-
-test('bloc en cours : « si » au repos, la LED quand le bouton est appuyé', () => {
-  const p = depuisBlockly(versBlockly(prog([], [si(appuye('D8'), [led('D3', 1)])]))).programme;
-  const sim = creerSimulation(p, { composants: [{ type: 'bouton', broche: 'D8' }] });
-  sim.avancerJusqua(50);
-  assert.equal(sim.blocEnCours, p.boucle[0].id);
-  sim.changerEntree('D8', 1);
-  sim.avancerJusqua(60);
-  assert.equal(sim.blocEnCours, p.boucle[0].alors[0].id);
-});
-
-test('pas à pas : un bloc par clic, les attentes sont sautées', () => {
-  const p = depuisBlockly(versBlockly(prog([led('D4', 1)], [led('D3', 1), att(2), led('D3', 0)]))).programme;
-  const sim = creerSimulation(p);
-  const ids = [];
-  for (let i = 0; i < 6; i++) {
-    sim.pas();
-    ids.push(sim.blocEnCours);
-  }
-  const [d4] = p.demarrage;
-  const [allumer, attendre, eteindre] = p.boucle;
-  assert.deepEqual(ids, [d4.id, allumer.id, attendre.id, eteindre.id, allumer.id, attendre.id]);
-  assert.equal(sim.sorties.D3, 1);
-  assert.equal(sim.t, 2000);
-  // Le pas à pas et la marche normale se combinent.
-  sim.avancerJusqua(5000);
-  assert.equal(sim.t, 5000);
 });
 
 test('chronologie : un état de moins de 5 ms est invisible', () => {

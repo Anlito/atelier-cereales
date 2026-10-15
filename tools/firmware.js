@@ -2,7 +2,8 @@
 // et le range dans le site, prêt à être envoyé dans la carte depuis le navigateur :  npm run firmware
 //   → site/firmware/distributeur_13A.ino et _13B.ino (lisibles dans l'IDE Arduino)
 //   → site/firmware/programmes.js (les .hex, dans un script pour que le site marche aussi en file://)
-// À relancer si une broche ou une solution de l'exercice 13 change (exercices/13A.js, 13B.js, parametres.js).
+// À relancer si une broche ou une solution de l'exercice 13 change (mise à jour du parcours site/parcours/distributeur.js) :
+// l'atelier refuse d'envoyer un programme qui ne correspond plus à l'exercice (empreintes ci-dessous).
 //
 // arduino-cli : variable ARDUINO_CLI, sinon celui du PATH, sinon celui du théâtre d'ombre.
 // La bibliothèque Servo est installée dans tools/arduino-libs (propre au projet, ignoré par git).
@@ -11,7 +12,8 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { versArduino } = require('../site/js/moteur/arduino.js');
+const { versArduino } = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
+const { empreinteCarte } = require('../site/js/moteur/catalogue.js');
 const { chargerExercices } = require('../tests/outils.js');
 
 const RACINE = path.join(__dirname, '..');
@@ -42,6 +44,7 @@ lancer(['lib', 'install', 'Servo']);
 
 const exercices = chargerExercices();
 const programmes = {};
+const empreintes = {};
 fs.mkdirSync(SORTIE, { recursive: true });
 for (const id of ['13A', '13B']) {
   const ex = exercices.find((e) => e.id === id);
@@ -50,7 +53,8 @@ for (const id of ['13A', '13B']) {
   const croquis = path.join(dossier, nom);
   fs.mkdirSync(croquis);
   const { boutonsVersMasse } = require('../tests/outils.js').chargerParametres();
-  const code = versArduino(ex.solutionReference, { titre: `Distributeur de céréales — exercice ${id} (${ex.titre})`, boutonsVersMasse });
+  const { code } = versArduino(ex.solutionReference, { titre: `Distributeur de céréales — exercice ${id} (${ex.titre})`, boutonsVersMasse });
+  empreintes[id] = empreinteCarte(ex);
   fs.writeFileSync(path.join(croquis, nom + '.ino'), code);
   fs.writeFileSync(path.join(SORTIE, nom + '.ino'), code);
   const sortie = path.join(dossier, 'compile');
@@ -74,6 +78,6 @@ fs.writeFileSync(
   path.join(SORTIE, 'programmes.js'),
   '// Programmes du distributeur compilés pour Arduino Uno (format Intel HEX). Fichier généré par\n' +
     '// « npm run firmware » à partir des solutions de référence 13A et 13B : ne pas modifier à la main.\n' +
-    `definirProgrammesCarte(${JSON.stringify(programmes, null, 1)});\n`,
+    `definirProgrammesCarte(${JSON.stringify(programmes, null, 1)}, ${JSON.stringify({ empreintes })});\n`,
 );
 console.log('OK : site/firmware/programmes.js mis à jour.');

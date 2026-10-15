@@ -4,7 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { versArduino } = require('../site/js/moteur/arduino.js');
+// Générateur C++ de Labo Blocs (le même que le panneau « Code » du niveau 3).
+const LB = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
+const { empreinteCarte } = require('../site/js/moteur/catalogue.js');
+const versArduino = (programme, options) => LB.versArduino(programme, options).code;
 const { chargerExercices } = require('./outils.js');
 
 const exercices = chargerExercices();
@@ -51,4 +54,6 @@ test('programmes compilés présents et lisibles par le module d’envoi (Intel 
     const { boutonsVersMasse } = require('./outils.js').chargerParametres();
     assert.equal(ino, versArduino(ex.solutionReference, { titre: `Distributeur de céréales — exercice ${v} (${ex.titre})`, boutonsVersMasse }), `${v} à recompiler`);
   }
+  // Les empreintes rangées avec les .hex correspondent à l'exercice actuel (sinon l'envoi est refusé en classe).
+  for (const v of ['13A', '13B']) assert.equal(contexte.Atelier.empreintesCarte[v], empreinteCarte(exercices.find((e) => e.id === v)), `${v} : empreinte`);
 });

@@ -1,4 +1,4 @@
-// Distributeur de céréales — exercice 13B (Le distributeur complet (défi)) — généré par l'atelier du distributeur de céréales.
+// Distributeur de céréales — exercice 13B (Le distributeur complet (défi)) — écrit par Labo Blocs à partir des blocs.
 // LED : HAUT = allumée. Bouton poussoir (signal + GND) : HAUT = appuyé. Servo : 0° à 180°.
 #include <Servo.h>
 

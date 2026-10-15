@@ -613,6 +613,16 @@
           h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Indice ${ev.niveau} ouvert</li>`;
           return;
         }
+        // Événements de Labo Blocs : reprise d'une sauvegarde de l'ancien atelier, exercice modifié par le professeur.
+        if (ev.type === 'migration') {
+          h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Travail repris de l’ancienne version de l’atelier</li>`;
+          return;
+        }
+        if (ev.type === 'modifie') {
+          h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Exercice modifié par la mise à jour ${echapper(ev.versionParcours || '')} : à revérifier</li>`;
+          return;
+        }
+        if (ev.type !== 'verification') return;
         h +=
           `<li class="${ev.reussi ? 'ev-reussi' : 'ev-ecart'}"><span class="ev-heure">${echapper(heure(ev.date))}</span> ` +
           (ev.reussi ? '<strong>✓ Vérification réussie</strong>' : '<strong>Vérification : écart</strong>');
@@ -725,7 +735,7 @@
       const programme = d.exercices[id].historique[Number(k)].programme;
       if (b.dataset.lancer) return ouvrirDansAtelier(d, id, programme);
       const zoneBlocs = b.closest('li').querySelector('.ev-blocs');
-      if (zoneBlocs.hidden) zoneBlocs.innerHTML = A.blocsHtml(programme, { avecVides: true });
+      if (zoneBlocs.hidden) zoneBlocs.innerHTML = `<div class="labo-blocs">${global.LaboBlocs.blocsHtml(programme, { avecVides: true })}</div>`;
       zoneBlocs.hidden = !zoneBlocs.hidden;
       b.textContent = zoneBlocs.hidden ? 'Voir les blocs' : 'Masquer les blocs';
     };

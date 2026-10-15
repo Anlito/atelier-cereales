@@ -1,40 +1,72 @@
-// Catalogue des exercices. Les fichiers site/exercices/*.js appellent definirParametres(...) et
-// definirExercice(...) : ce sont des données (même contenu qu'un fichier JSON), placées dans un
-// script pour que le site fonctionne aussi en ouvrant index.html depuis un dossier (file://).
+// Catalogue des exercices. Les exercices viennent de Labo Blocs : le parcours « distributeur » (fichier
+// site/parcours/distributeur.js, definirParcours({...})) est la seule source. Il se met à jour depuis l'outil du
+// professeur (« Mettre à jour les exercices »). Les autres données du projet (lexique, fiches, carnet, classes,
+// barème…) sont des scripts definirXxx({...}) de site/donnees/, lisibles en ouvrant index.html depuis un dossier.
+//
+// Pour le carnet, l'outil du professeur et le tutoriel, un exercice garde son numéro comme identifiant (« 1 » …
+// « 13B ») ; idParcours est l'identifiant stable du parcours (« dist-01 » …), celui des sauvegardes.
 
 (function (global) {
   'use strict';
 
-  const P = typeof module === 'object' && module.exports ? require('./programme.js') : global.Atelier;
-
-  const ORDRE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A', '13B'];
+  const enNode = typeof module === 'object' && module.exports;
+  const LB = enNode ? require('../../vendor/labo-blocs/labo-blocs-noyau.js') : global.LaboBlocs;
 
   function creerCatalogue() {
-    const parametres = {};
-    const brutes = [];
+    let paquet = null;
+    const ordre = []; // numéros dans l'ordre du parcours (« 1 » … « 13B »), tenu à jour sur place
     return {
-      definirParametres: (p) => Object.assign(parametres, p),
-      definirExercice: (e) => brutes.push(e),
-      parametres,
-      // Exercices dans l'ordre du parcours, avec les paramètres « $nom » remplacés.
+      // Parcours brut (definirParcours) : préparé (paramètres remplacés, empreintes).
+      definirParcours(brut) {
+        paquet = LB.preparer(brut);
+        paquet.brut = brut;
+        ordre.splice(0, ordre.length, ...paquet.exercices.map((e) => String(e.numero)));
+      },
+      ordre,
+      paquet: () => paquet,
+      parametres: () => (paquet ? paquet.parametres : {}),
+      // Exercices dans l'ordre du parcours, au format de l'atelier (id = numéro).
       exercices() {
-        const rang = (e) => (ORDRE.includes(String(e.id)) ? ORDRE.indexOf(String(e.id)) : ORDRE.length);
-        return brutes
-          .slice()
-          .sort((a, b) => rang(a) - rang(b))
-          .map((e) => P.appliquerParametres(e, parametres));
+        if (!paquet) return [];
+        return paquet.exercices.map((e) => Object.assign({}, e, { id: String(e.numero), idParcours: e.id }));
       },
     };
   }
 
-  const api = { creerCatalogue, ORDRE };
-  if (typeof module === 'object' && module.exports) module.exports = api;
-  else {
+  // Sous Node (tests, outils) : lit le parcours du site sans navigateur.
+  function chargerParcours(chemin) {
+    const fs = require('node:fs');
+    const vm = require('node:vm');
+    const path = require('node:path');
+    const c = creerCatalogue();
+    // Copie JSON : des objets de ce contexte (et non de celui du script).
+    vm.runInNewContext(fs.readFileSync(chemin || path.join(__dirname, '..', '..', 'parcours', 'distributeur.js'), 'utf8'), {
+      definirParcours: (p) => c.definirParcours(JSON.parse(JSON.stringify(p))),
+    });
+    return c;
+  }
+
+  // Ce qui décide du programme envoyé dans la vraie carte (exercices 13A et 13B) : la solution et les broches.
+  // Si une mise à jour du parcours la change, le programme compilé (site/firmware/programmes.js) n'est plus à jour.
+  const empreinteCarte = (ex) => LB.empreinte({ solutionReference: ex.solutionReference, composants: ex.composants });
+
+  const api = { creerCatalogue, empreinteCarte };
+  if (enNode) {
+    api.chargerParcours = chargerParcours;
+    let defaut = null;
+    // Catalogue du site, chargé à la première demande.
+    Object.defineProperty(api, 'catalogue', { get: () => (defaut = defaut || chargerParcours()) });
+    module.exports = api;
+  } else {
     const Atelier = (global.Atelier = global.Atelier || {});
     Object.assign(Atelier, api);
     Atelier.catalogue = creerCatalogue();
-    global.definirParametres = Atelier.catalogue.definirParametres;
-    global.definirExercice = Atelier.catalogue.definirExercice;
+    // Le parcours de Labo Blocs appelle definirParcours (le premier défini est celui du projet).
+    const definirLabo = global.definirParcours;
+    global.definirParcours = (p) => {
+      if (!Atelier.catalogue.paquet()) Atelier.catalogue.definirParcours(p);
+      if (definirLabo) definirLabo(p);
+    };
     global.definirLexique = (liste) => (Atelier.lexique = liste);
     global.definirClasses = (liste) => (Atelier.classes = liste);
     global.definirFiches = (fiches) => (Atelier.fiches = fiches);

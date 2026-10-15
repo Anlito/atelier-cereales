@@ -6,7 +6,8 @@ const { createServer } = require('node:http');
 const { readFile, stat } = require('node:fs/promises');
 const { join, extname, normalize } = require('node:path');
 
-const RACINE = join(__dirname, '..', 'site');
+// SITE : autre dossier à servir (recette : copie du site où l'on installe une mise à jour des exercices).
+const RACINE = process.env.SITE || join(__dirname, '..', 'site');
 const PORT = Number(process.env.PORT) || 8080;
 const TYPES = {
   '.html': 'text/html; charset=utf-8',

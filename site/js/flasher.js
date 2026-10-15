@@ -241,8 +241,12 @@ async function flashFirmware(port, image, { onProgress = () => {}, bauds = BOOTL
   }
 }
 
-// Programmes compilés (site/firmware/programmes.js) : definirProgrammesCarte({ '13A': '…', '13B': '…' }).
-global.definirProgrammesCarte = (p) => (global.Atelier.programmesCarte = p);
+// Programmes compilés (site/firmware/programmes.js) : definirProgrammesCarte({ '13A': '…', '13B': '…' }, { empreintes }).
+// empreintes : solution et broches de 13A / 13B au moment de la compilation (voir A.empreinteCarte).
+global.definirProgrammesCarte = (p, infos) => {
+  global.Atelier.programmesCarte = p;
+  global.Atelier.empreintesCarte = (infos && infos.empreintes) || null;
+};
 global.Atelier = global.Atelier || {};
 global.Atelier.flasher = { parseHex, flashFirmware, FLASH_MSG, disponible: () => !!(global.navigator && global.navigator.serial) };
 })(this);

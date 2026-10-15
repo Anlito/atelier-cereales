@@ -247,3 +247,30 @@ body.page-prof { overflow: auto; background: var(--fond); }
 }
 .pb-btn[hidden] { display: none; }
 .lien-atelier-enseignant { height: 2.5rem; text-decoration: none; color: var(--encre); font-size: 0.9375rem; white-space: nowrap; }
+
+/* ---------- Mettre à jour les exercices ---------- */
+.vue-exercices { max-width: 62rem; margin: 0 auto; width: 100%; }
+.prof-exercices { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; color: var(--texte-2); }
+.mj-contenu { display: grid; gap: 1rem; }
+.mj-contenu h3 { margin: 0; font-size: 1.125rem; }
+.mj-contenu h4 { margin: 0.25rem 0 0; font-size: 1rem; }
+.mj-contenu p { margin: 0; }
+.mj-aide { color: var(--texte-2); font-size: 0.9375rem; }
+.mj-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.mj-fichier { cursor: pointer; }
+.mj-origine { font-weight: 400; color: var(--texte-2); font-size: 0.9375rem; }
+.mj-groupe { display: grid; gap: 0.375rem; }
+.mj-apercu { border: 1px solid var(--bord); border-radius: 0.625rem; padding: 0.5rem 0.75rem; background: var(--fond); }
+.mj-apercu summary { cursor: pointer; }
+.mj-apercu[open] { display: grid; gap: 0.375rem; }
+.mj-parties { color: var(--texte-2); }
+.mj-avant, .mj-apres, .mj-composants { font-size: 0.9375rem; line-height: 1.45; white-space: pre-line; }
+.mj-avant span, .mj-apres span { display: inline-block; min-width: 5rem; margin-right: 0.5rem; font-weight: 700; }
+.mj-avant { color: var(--texte-2); text-decoration: line-through; text-decoration-color: var(--gris-bord); }
+.mj-avant span { text-decoration: none; }
+.mj-effet { padding: 0.625rem 0.875rem; border-radius: 0.625rem; background: var(--bleu-pale); }
+/* Messages : jamais la couleur seule (un mot en gras ou une phrase), ambre pour ce qui bloque, jamais rouge. */
+.mj-message { padding: 0.625rem 0.875rem; border-radius: 0.625rem; border-left: 5px solid var(--bleu); background: var(--bleu-pale); }
+.mj-message.attention, .mj-bloque { border-left: 5px solid var(--orange); background: var(--consigne-fond); color: var(--consigne-texte); padding: 0.625rem 0.875rem; border-radius: 0.625rem; }
+.mj-message.reussi { border-left-color: #2E7D32; background: #E3F2E5; color: #1B4D1F; }
+.mj-bloque ul { margin: 0.375rem 0 0; padding-left: 1.25rem; }

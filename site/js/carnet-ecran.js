@@ -392,9 +392,10 @@
       for (const ex of exercices) {
         const p = D.exercices[ex.id];
         const ouvert = A.estDebloque(D, ex.id);
-        const statut = !ouvert ? 'verrouille' : p ? p.statut : 'non_commence';
-        const symbole = { verrouille: '🔒', reussi: '✓', en_cours: '●', non_commence: '○' }[statut];
-        const mot = { verrouille: 'verrouillé', reussi: 'réussi', en_cours: 'en cours', non_commence: 'à faire' }[statut];
+        // « à revérifier » : réussi, mais le professeur a modifié l'exercice depuis (mise à jour des exercices).
+        const statut = !ouvert ? 'verrouille' : p ? (p.statut === 'reussi' && p.aReverifier ? 'a_reverifier' : p.statut) : 'non_commence';
+        const symbole = { verrouille: '🔒', reussi: '✓', a_reverifier: '↻', en_cours: '●', non_commence: '○' }[statut];
+        const mot = { verrouille: 'verrouillé', reussi: 'réussi', a_reverifier: 'modifié, à revérifier', en_cours: 'en cours', non_commence: 'à faire' }[statut];
         h += `<button type="button" class="ligne-exercice statut-${statut}" data-exercice="${ex.id}"${ouvert ? '' : ' disabled'}>` +
           `<span class="liste-numero">${ex.id}</span><span class="liste-titre">${echapper(ex.titre)}</span>` +
           `<span class="liste-statut"><span aria-hidden="true">${symbole}</span> ${mot}${p && p.tentatives ? ` · ${p.tentatives} vérification${p.tentatives > 1 ? 's' : ''}` : ''}</span></button>`;
@@ -521,23 +522,24 @@
   let carnet = null;
   function demarrerProjet(s) {
     session = s;
+    A.sessionCourante = s;
     carnet = creerCarnet(s);
     montrerCarnet('problematique');
   }
   function montrerCarnet(onglet) {
-    if (A.ecran && A.ecran.arreter) A.ecran.arreter();
-    $('.ecran-exercice').hidden = true;
+    if (A.programmation) A.programmation.quitter();
+    $('.ecran-programmation').hidden = true;
     $('.ecran-carnet').hidden = false;
     document.title = 'Carnet de projet — Distributeur de céréales';
     carnet.montrer(onglet);
   }
-  function ouvrirExercice(id) {
-    const ex = A.catalogue.exercices().find((e) => e.id === id);
-    if (!ex || !A.estDebloque(session.donnees, id)) return;
+  // Exercices : écran de Labo Blocs, posé à la première ouverture ; « Carnet » ramène à l'onglet Programmation.
+  function ouvrirExercice(numero) {
+    if (!A.idExercice(numero) || !A.estDebloque(session.donnees, numero)) return;
     $('.ecran-carnet').hidden = true;
-    $('.ecran-exercice').hidden = false;
-    if (!A.ecran) A.demarrerEcranExercice(session, { exercice: id });
-    else A.ecran.ouvrir(ex);
+    $('.ecran-programmation').hidden = false;
+    if (!A.programmation) A.programmation = A.monterProgrammation(session, { retour: { texte: 'Carnet', action: () => montrerCarnet('programmation') } });
+    A.programmation.ouvrir(A.idExercice(numero));
   }
 
   Object.assign(A, { demarrerProjet, montrerCarnet, ouvrirExercice });

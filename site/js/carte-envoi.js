@@ -16,6 +16,13 @@
     return lecture ? '13A' : null; // mode enseignant : toujours possible
   }
 
+  // Le programme compilé correspond-il encore à l'exercice (solution et broches) ? Sans empreinte : on ne sait pas, on envoie.
+  function aJour(version) {
+    const ex = A.catalogue.exercices().find((e) => e.id === version);
+    const attendu = A.empreintesCarte && A.empreintesCarte[version];
+    return !ex || !attendu || A.empreinteCarte(ex) === attendu;
+  }
+
   let dialogue = null;
   function creerDialogue() {
     if (dialogue) return dialogue;
@@ -55,6 +62,12 @@
     }
     if (!version || !programmes[version]) {
       corps.innerHTML = '<p class="carte-alerte">Réussis d’abord l’exercice 13 : le programme du distributeur pourra ensuite aller dans la carte.</p>';
+      return d.showModal();
+    }
+    if (!vierge && !aJour(version)) {
+      corps.innerHTML =
+        '<p class="carte-alerte">L’exercice 13 a été modifié par ton professeur : le programme prêt pour la carte correspond à l’ancienne version. ' +
+        'Demande à ton professeur de mettre à jour le programme de la carte.</p>';
       return d.showModal();
     }
 
@@ -130,5 +143,5 @@
     d.showModal();
   }
 
-  A.envoiCarte = { ouvrir, versionPossible };
+  A.envoiCarte = { ouvrir, versionPossible, aJour };
 })(this);

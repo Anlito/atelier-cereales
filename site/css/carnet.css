@@ -150,6 +150,8 @@
 .ligne-exercice.statut-reussi { border-color: #2E7D32; }
 .ligne-exercice.statut-reussi .liste-statut { color: #1B5E20; }
 .ligne-exercice.statut-en_cours .liste-statut { color: var(--bleu-fonce); }
+.ligne-exercice.statut-a_reverifier { border-color: var(--orange); background: var(--consigne-fond); }
+.ligne-exercice.statut-a_reverifier .liste-statut { color: var(--consigne-texte); }
 .ligne-exercice:disabled { background: var(--gris-fond); border-style: dashed; color: var(--gris); cursor: not-allowed; }
 .ligne-exercice:disabled .liste-numero { background: var(--gris); }
 

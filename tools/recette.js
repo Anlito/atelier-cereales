@@ -7,7 +7,9 @@
 //   - une boucle sans « attendre » ne fige pas l'onglet ;
 //   - aucune requête réseau hors du site, aucune erreur dans la console ;
 //   - enregistrer, fermer, rouvrir et reprendre (serveur seulement : dossier simulé) ;
-//   - le fichier d'équipe s'ouvre dans l'outil professeur.
+//   - le fichier d'équipe s'ouvre dans l'outil professeur ;
+//   - jalon 1 bis de Labo Blocs : un exercice modifié, installé par « Mettre à jour les exercices », arrive chez une
+//     équipe test sans perdre son travail (copie du site servie à part, le dépôt n'est pas modifié).
 // Le résultat est écrit dans RECETTE-AUTO.md.
 
 const { spawn } = require('node:child_process');
@@ -23,6 +25,12 @@ const NAVIGATEURS = [
   { nom: 'Chrome', chemin: 'C:/Program Files/Google/Chrome/Application/chrome.exe' },
   { nom: 'Edge', chemin: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' },
 ].filter((n) => fs.existsSync(n.chemin));
+// Sans Chrome ni Edge (poste Linux, intégration continue) : Chromium, ou le navigateur indiqué dans CHROME.
+if (!NAVIGATEURS.length) {
+  const autre = [process.env.CHROME, '/usr/bin/google-chrome', '/usr/bin/chromium', '/opt/pw-browsers/chromium'].filter(Boolean).find((c) => fs.existsSync(c));
+  if (autre) NAVIGATEURS.push({ nom: 'Chromium', chemin: autre });
+}
+const ARGS = ['--lang=fr-FR', '--allow-file-access-from-files', ...(process.getuid && process.getuid() === 0 ? ['--no-sandbox'] : [])];
 const TAILLES = [
   [1366, 768],
   [1920, 1080],
@@ -50,14 +58,14 @@ function surveiller(page, origine) {
 
 async function ouvrirExercice(page, base, id) {
   await page.goto(`${base}index.html?enseignant=1&exercice=${id}`, { waitUntil: 'load' });
-  await page.waitForFunction(() => window.Atelier && Atelier.ecran && Atelier.ecran.etat.exercice, { timeout: 10000 });
+  await page.waitForFunction(() => window.Atelier && Atelier.programmation && Atelier.programmation.ecran.etat.exercice, { timeout: 10000 });
 }
 
 async function recetteNavigateur(nav, mode, base, origine) {
   const contexte = `${nav.nom}, ${mode}`;
   let navigateur;
   try {
-    navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ['--lang=fr-FR', '--allow-file-access-from-files'] });
+    navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
   } catch (e) {
     noter('Le navigateur démarre en mode automatique', contexte, false, String(e.message || e).split('\n')[0]);
     return;
@@ -80,14 +88,14 @@ async function recetteNavigateur(nav, mode, base, origine) {
       for (const id of IDS) {
         await ouvrirExercice(page, base, id);
         const r = await page.evaluate(async () => {
-          const E = Atelier.ecran;
+          const E = Atelier.programmation.ecran;
           const ex = E.etat.exercice;
-          E.editeur.charger(ex, Atelier.versBlockly(ex.solutionReference));
+          E.editeur.charger(ex, LaboBlocs.versBlockly(ex.solutionReference));
           await new Promise((x) => setTimeout(x, 150));
           document.querySelector('.btn-lancer').click();
           await new Promise((x) => setTimeout(x, 300));
           document.querySelector('.btn-verifier').click();
-          const panneau = document.querySelector('.panneau-verification');
+          const panneau = document.querySelector('.resultat');
           const sim = document.querySelector('.simulateur');
           const cmd = document.querySelector('.simu-commandes');
           const de = document.documentElement;
@@ -109,8 +117,8 @@ async function recetteNavigateur(nav, mode, base, origine) {
     await page.setViewport({ width: 1366, height: 768 });
     await ouvrirExercice(page, base, '2');
     const boucle = await page.evaluate(async () => {
-      const E = Atelier.ecran;
-      E.editeur.charger(E.etat.exercice, Atelier.versBlockly({ demarrage: [], boucle: [
+      const E = Atelier.programmation.ecran;
+      E.editeur.charger(E.etat.exercice, LaboBlocs.versBlockly({ demarrage: [], boucle: [
         { bloc: 'led_etat', broche: 'D3', etat: 1 }, { bloc: 'led_etat', broche: 'D3', etat: 0 } ] }));
       await new Promise((x) => setTimeout(x, 150));
       document.querySelector('.btn-lancer').click();
@@ -195,8 +203,8 @@ async function cycleSauvegarde(navigateur, base) {
     idee.dispatchEvent(new Event('input', { bubbles: true }));
     Atelier.ouvrirExercice('1');
     await new Promise((x) => setTimeout(x, 500));
-    const E = Atelier.ecran;
-    E.editeur.charger(E.etat.exercice, Atelier.versBlockly(E.etat.exercice.solutionReference));
+    const E = Atelier.programmation.ecran;
+    E.editeur.charger(E.etat.exercice, LaboBlocs.versBlockly(E.etat.exercice.solutionReference));
     await new Promise((x) => setTimeout(x, 200));
     document.querySelector('.btn-verifier').click();
     await new Promise((x) => setTimeout(x, 800));
@@ -215,18 +223,135 @@ async function cycleSauvegarde(navigateur, base) {
     document.querySelector('[data-onglet="programmation"]').click();
     document.querySelector('.btn-continuer').click();
     await new Promise((x) => setTimeout(x, 800));
-    const E = Atelier.ecran;
-    return { carte, carnet, idee, exercice: E && E.etat.exercice.id, fichier: !!(E && E.session.handle), equipe: document.querySelector('.equipe-noms').innerText };
+    const E = Atelier.programmation && Atelier.programmation.ecran;
+    return { carte, carnet, idee, exercice: E && E.etat.exercice.numero, fichier: !!(Atelier.sessionCourante && Atelier.sessionCourante.handle), equipe: document.querySelector('.labo-blocs .equipe-texte').innerText };
   });
   await page.close();
   const d = JSON.parse(texte);
-  const ok = d.exercices['1'].statut === 'reussi' && d.carnet.idees[0] && reprise.carte && reprise.carnet && reprise.idee && reprise.exercice === '2' && reprise.fichier;
+  const ok = d.programmation.exercices['dist-01'].statut === 'reussi' && d.carnet.idees[0] && reprise.carte && reprise.carnet && reprise.idee && reprise.exercice === '2' && reprise.fichier;
   return {
     ok,
     texte,
-    detail: `fichier écrit (ex. 1 ${d.exercices['1'].statut}, idée du carnet ${d.carnet.idees[0] ? 'gardée' : 'perdue'}), reprise : carnet ${reprise.carnet ? 'ouvert' : 'absent'}, ` +
+    detail: `fichier écrit (ex. 1 ${d.programmation.exercices['dist-01'].statut}, idée du carnet ${d.carnet.idees[0] ? 'gardée' : 'perdue'}), reprise : carnet ${reprise.carnet ? 'ouvert' : 'absent'}, ` +
       `« Continuer » ouvre l’exercice ${reprise.exercice}, équipe ${reprise.equipe}, fichier ${reprise.fichier ? 'retrouvé' : 'perdu'}`,
   };
+}
+
+// Jalon 1 bis de Labo Blocs : une équipe réussit l'exercice 1 ; le professeur installe une version où l'exercice 1
+// a changé (« Mettre à jour les exercices », dossier du site simulé) ; l'équipe rouvre son travail.
+// Attendu : exercice 1 « à revérifier », réussite et blocs gardés, nouvelle consigne affichée, rien d'autre perdu.
+async function miseAJourExercices(nav) {
+  const os = require('node:os');
+  const vm = require('node:vm');
+  const copie = fs.mkdtempSync(path.join(os.tmpdir(), 'atelier-recette-'));
+  fs.cpSync(SITE, copie, { recursive: true });
+  const port = PORT + 1;
+  const base = `http://localhost:${port}/`;
+  const serveur = spawn(process.execPath, [path.join(__dirname, 'serve.js')], { env: { ...process.env, PORT: String(port), SITE: copie }, stdio: 'ignore' });
+  await attendre(800);
+  const navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+  try {
+    const page = await navigateur.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    page.on('dialog', (d) => d.accept());
+    // 1. L'équipe réussit l'exercice 1 avec ses blocs (dossier de l'équipe simulé).
+    await page.goto(base + 'index.html', { waitUntil: 'load' });
+    await page.evaluate(async () => {
+      localStorage.clear();
+      const racine = await navigator.storage.getDirectory();
+      for await (const [n] of racine.entries()) await racine.removeEntry(n, { recursive: true });
+      const parent = await racine.getDirectoryHandle('DISTRIBUTEUR DE CEREALES', { create: true });
+      window.showDirectoryPicker = async () => parent;
+      document.querySelector('.btn-nouvelle').click();
+      const c = document.querySelectorAll('.champ-prenom');
+      c[0].value = 'equipe';
+      c[1].value = 'test';
+      document.querySelector('.champ-classe').value = '5A';
+      document.querySelector('.formulaire-equipe button[type=submit]').click();
+      document.querySelector('.btn-choisir-dossier').click();
+      await new Promise((x) => setTimeout(x, 500));
+      document.querySelector('.btn-commencer').click();
+      await new Promise((x) => setTimeout(x, 500));
+      Atelier.ouvrirExercice('1');
+      await new Promise((x) => setTimeout(x, 500));
+      const E = Atelier.programmation.ecran;
+      E.editeur.charger(E.etat.exercice, LaboBlocs.versBlockly(E.etat.exercice.solutionReference));
+      await new Promise((x) => setTimeout(x, 200));
+      document.querySelector('.btn-verifier').click();
+      await new Promise((x) => setTimeout(x, 800));
+    });
+    // 2. Nouvelle version du parcours : la consigne de l'exercice 1 change.
+    let brut;
+    vm.runInNewContext(fs.readFileSync(path.join(copie, 'parcours', 'distributeur.js'), 'utf8'), { definirParcours: (x) => (brut = JSON.parse(JSON.stringify(x))) });
+    const NOUVELLE = 'Allumer la LED de la broche D9 dès le démarrage, et la laisser allumée.';
+    brut.versionParcours = brut.versionParcours.replace(/\d+$/, (n) => String(Number(n) + 1));
+    brut.exercices[0].consigne = NOUVELLE;
+    const fichierParcours = path.join(copie, 'nouvelle.labo-parcours.json');
+    fs.writeFileSync(fichierParcours, JSON.stringify(brut));
+    const prof = await navigateur.newPage();
+    await prof.goto(base + 'prof.html', { waitUntil: 'load' });
+    await prof.evaluate(async (texte) => {
+      const racine = await navigator.storage.getDirectory();
+      const site = await racine.getDirectoryHandle('site', { create: true });
+      const parcours = await site.getDirectoryHandle('parcours', { create: true });
+      const w = await (await parcours.getFileHandle('distributeur.js', { create: true })).createWritable();
+      await w.write(texte);
+      await w.close();
+      window.showDirectoryPicker = async () => site;
+      document.querySelector('.pb-exercices').click();
+    }, fs.readFileSync(path.join(copie, 'parcours', 'distributeur.js'), 'utf8'));
+    await attendre(300);
+    await (await prof.$('.entree-parcours')).uploadFile(fichierParcours);
+    await attendre(400);
+    const differences = await prof.evaluate(() => document.querySelector('.mj-candidat').innerText);
+    await prof.evaluate(() => document.querySelector('.btn-valider').click());
+    await attendre(600);
+    const installe = await prof.evaluate(async () => {
+      const racine = await navigator.storage.getDirectory();
+      const parcours = await (await racine.getDirectoryHandle('site')).getDirectoryHandle('parcours');
+      const lire = async (n) => (await (await parcours.getFileHandle(n)).getFile()).text();
+      return { message: (document.querySelector('.mj-message') || {}).innerText || '', nouveau: await lire('distributeur.js'), precedent: await lire('distributeur-precedent.js').catch(() => '') };
+    });
+    await prof.close();
+    if (!installe.nouveau.includes(NOUVELLE)) return noter('Mise à jour d’un exercice : le travail d’une équipe test est gardé', nav.nom, false, 'fichier non écrit : ' + installe.message.slice(0, 120));
+    fs.writeFileSync(path.join(copie, 'parcours', 'distributeur.js'), installe.nouveau);
+    // 3. L'équipe rouvre son travail (Reprendre), puis l'exercice 1.
+    await page.goto('about:blank');
+    await page.goto(base + 'index.html', { waitUntil: 'load' });
+    const apres = await page.evaluate(async () => {
+      document.querySelector('.btn-reprendre').click();
+      await new Promise((x) => setTimeout(x, 800));
+      const message = document.querySelector('.message-bref').innerText;
+      const d = Atelier.sessionCourante.donnees;
+      const e1 = d.exercices['1'];
+      Atelier.ouvrirExercice('1');
+      await new Promise((x) => setTimeout(x, 600));
+      return {
+        message,
+        statut: e1.statut,
+        aReverifier: !!e1.aReverifier,
+        ouvert2: Atelier.estDebloque(d, '2'),
+        consigne: document.querySelector('.consigne-texte').innerText,
+        blocs: Blockly.getMainWorkspace().getAllBlocks(false).length,
+        revoir: document.querySelector('.resultat').innerText,
+      };
+    });
+    const ok =
+      apres.statut === 'reussi' && apres.aReverifier && apres.ouvert2 && apres.blocs >= 3 && apres.consigne.includes('dès le démarrage') && /modifié/.test(apres.message) && /modifié/.test(apres.revoir) && installe.precedent.length > 1000;
+    noter(
+      'Mise à jour d’un exercice : le travail d’une équipe test est gardé',
+      `${nav.nom}, serveur`,
+      ok,
+      `différences vues : ${/Exercices modifiés \(1\)/.test(differences) ? 'exercice 1 modifié' : '?'} ; ${installe.message.slice(0, 60)} ; élève : « ${apres.message.slice(0, 50)}… », ` +
+        `exercice 1 ${apres.statut}${apres.aReverifier ? ' à revérifier' : ''}, ${apres.blocs} blocs gardés, exercice 2 ${apres.ouvert2 ? 'ouvert' : 'fermé'}, nouvelle consigne ${apres.consigne.includes('dès le démarrage') ? 'affichée' : 'absente'}`,
+    );
+  } catch (e) {
+    noter('Mise à jour d’un exercice : le travail d’une équipe test est gardé', nav.nom, false, String(e.message || e));
+  } finally {
+    await navigateur.close();
+    serveur.kill();
+    fs.rmSync(copie, { recursive: true, force: true });
+  }
 }
 
 (async () => {
@@ -240,6 +365,7 @@ async function cycleSauvegarde(navigateur, base) {
     for (const nav of NAVIGATEURS) {
       await recetteNavigateur(nav, 'fichier', pathToFileURL(SITE).href + '/', 'file://');
       await recetteNavigateur(nav, 'serveur', `http://localhost:${PORT}/`, `http://localhost:${PORT}/`);
+      await miseAJourExercices(nav);
     }
   } finally {
     serveur.kill();
