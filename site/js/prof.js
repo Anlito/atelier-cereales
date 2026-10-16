@@ -644,6 +644,16 @@
     return h + '</section>';
   }
 
+  // Programmes envoyés dans la carte de la maquette : mode « Dans la carte » (historique de chaque exercice), et
+  // anciennes sauvegardes (programme 13A / 13B précompilé, « envoisCarte »). Triés par date.
+  function envoisReussis(d) {
+    const anciens = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
+    const nouveaux = [];
+    const ex = (d.programmation && d.programmation.exercices) || {};
+    for (const [id, e] of Object.entries(ex)) for (const h of e.historique || []) if (h.type === 'envoi' && h.reussi) nouveaux.push({ date: h.date, exercice: A.numeroExercice ? A.numeroExercice(id) : id });
+    return anciens.concat(nouveaux).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }
+
   // Onglet « Bilan » : la note et ce qui la compose, l'avancement, la maquette.
   function bilanHtml(eq, d, r, note) {
     const parties = note.detail.filter((x) => !x.id.startsWith('carnet:'));
@@ -651,7 +661,7 @@
     const somme = (l, cle) => l.reduce((s, x) => s + x[cle], 0);
     const enCours = ORDRE.find((id) => r.cellules[id].statut === 'en_cours');
     const bloques = ORDRE.filter((id) => r.cellules[id].bloque);
-    const envois = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
+    const envois = envoisReussis(d);
     const dernierEnvoi = envois[envois.length - 1];
     const ligne = (etiquette, valeur) => `<div class="pe-info"><span>${etiquette}</span><strong>${valeur}</strong></div>`;
     return (
@@ -677,7 +687,7 @@
       '</section>' +
       '<section class="pe-carte"><h3>Maquette</h3><div class="pe-infos">' +
       ligne('Exercice 13', d.exercice13 && d.exercice13.versionReussie ? `réussi (version ${echapper(d.exercice13.versionReussie)})` : 'pas encore réussi') +
-      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}` : 'pas encore') +
+      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}${dernierEnvoi.exercice || dernierEnvoi.version ? ` (exercice ${echapper(dernierEnvoi.exercice || dernierEnvoi.version)})` : ''}` : 'pas encore') +
       '</div></section>' +
       `<p class="pe-fichier">Fichier : ${echapper(eq.fichier)}</p>` +
       '</div>'

@@ -9,7 +9,6 @@
     "exemples": "node tools/exemples-equipes.js",
     "recette": "node tools/recette.js",
     "archive": "node tools/archive.js",
-    "firmware": "node tools/firmware.js",
     "labo-blocs": "node ../labo-blocs/tools/vers-projet.js ."
   },
   "devDependencies": {

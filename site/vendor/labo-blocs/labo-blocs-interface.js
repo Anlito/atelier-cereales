@@ -123,6 +123,7 @@
           <button type="button" class="btn-mode" data-mode="carte" aria-pressed="false" hidden>Dans la carte</button>
         </div>
       </div>
+      <div class="panneau-carte" aria-live="polite" hidden></div>
       <div class="simu-carte"></div>
       <div class="simu-milieu">
         <div class="simu-composants"></div>
@@ -270,6 +271,7 @@
     valeur: '#BCDAEB',
     servo: '#E78AB3',
     variable: '#EC8780',
+    extension: '#C3B1E1', // blocs d'une carte ou d'une extension (mBot, micro:bit…) : lilas, pictogramme puzzle
   };
 
   // Broches proposées dans les menus.
@@ -280,6 +282,13 @@
   const BROCHES_BOUTON = BROCHES_NUMERIQUES;
   const BROCHES_SERVO = ['D5', 'D6'];
   const menu = (liste) => liste.map((b) => [b, b]);
+  // Broches de la carte de l'exercice (A.carteCourante, réglée à l'ouverture de l'exercice) : D2…D13 pour l'Uno,
+  // P0…P2 pour la micro:bit. Sans carte connue : celles de l'Uno.
+  function brochesCarte(type) {
+    const p = A.profil ? A.profil(A.carteCourante) : null;
+    const liste = p && p.broches[type] && p.broches[type].length ? p.broches[type] : { led: BROCHES_LED, bouton: BROCHES_BOUTON, servo: BROCHES_SERVO, buzzer: BROCHES_NUMERIQUES }[type];
+    return menu(liste);
+  }
   // Pour une LED, on dit aussi ce que fait l'état : HAUT = allumée, BAS = éteinte.
   const HAUT_BAS_LED = [
     ['HAUT (1) : allumée', '1'],
@@ -550,6 +559,24 @@
     },
   ];
 
+  // Blocs des cartes (mBot, micro:bit), décrits dans noyau/cartes.js.
+  for (const [type, d] of Object.entries(A.BLOCS_CARTES || {})) {
+    const args = [image('puzzle', 'Bloc de la carte')];
+    let n = 1;
+    const message = d.texte.replace(/%([A-Z]+)/g, (m, nom) => {
+      n++;
+      if (d.champs && nom in d.champs) {
+        const c = d.champs[nom];
+        args.push(Array.isArray(c) ? { type: 'field_dropdown', name: nom, options: c } : { type: 'field_input', name: nom, text: (d.defauts || {})[nom] || '' });
+      } else args.push({ type: 'input_value', name: nom, check: 'Number' });
+      return '%' + n;
+    });
+    const def = { type, message0: '%1 ' + message, args0: args, inputsInline: true, style: 'extension', tooltip: d.texte.replace(/%[A-Z]+/g, '…') };
+    if (d.sorte === 'instruction') Object.assign(def, { previousStatement: null, nextStatement: null });
+    else def.output = d.sorte === 'condition' ? 'Boolean' : 'Number';
+    DEFINITIONS.push(def);
+  }
+
   // Catégories de la palette, dans l'ordre. Chaque bloc a sa forme de départ dans la palette.
   const CATEGORIES = [
     { nom: 'Événements', cle: 'evenements', couleur: COULEURS.debut, blocs: ['quand_bouton'] },
@@ -562,6 +589,8 @@
     { nom: 'Boucles', cle: 'boucles', couleur: COULEURS.decision, blocs: ['repeter_n', 'tant_que', 'repeter_jusqua'] },
     { nom: 'Calculs', cle: 'calculs', couleur: COULEURS.bleu, blocs: ['operation', 'hasard'] },
     { nom: 'Variables', cle: 'variables', couleur: COULEURS.variable, blocs: ['affecter', 'ajouter_a', 'variable', 'nombre'] },
+    // Une carte à la fois : la palette d'un exercice ne montre que les blocs autorisés.
+    ...(A.CATEGORIES_CARTES || []).map((c) => ({ nom: c.nom, cle: c.cle, couleur: COULEURS.extension, icone: 'puzzle', carte: c.carte, blocs: c.blocs })),
   ];
 
   const FORMES_PALETTE = {
@@ -576,6 +605,13 @@
     operation: { inputs: { A: { shadow: { type: 'nombre', fields: { NUM: 1 } } }, B: { shadow: { type: 'nombre', fields: { NUM: 1 } } } } },
     hasard: { inputs: { MIN: { shadow: { type: 'nombre', fields: { NUM: 1 } } }, MAX: { shadow: { type: 'nombre', fields: { NUM: 6 } } } } },
   };
+  for (const [type, d] of Object.entries(A.BLOCS_CARTES || {})) {
+    if (!d.entrees) continue;
+    FORMES_PALETTE[type] = { inputs: {} };
+    for (const [nom, v] of Object.entries(d.entrees)) FORMES_PALETTE[type].inputs[nom] = { shadow: { type: 'nombre', fields: { NUM: v } } };
+  }
+
+  const SORTE_BROCHE = { led_etat: 'led', quand_bouton: 'bouton', bouton_etat: 'bouton', son: 'buzzer', servo_angle: 'servo' };
 
   // Palette d'un exercice : seulement ses blocs autorisés ; une catégorie vide n'apparaît pas.
   function palette(blocsAutorises, composants) {
@@ -599,6 +635,12 @@
         },
         contents: blocs.map((type) => {
           const forme = JSON.parse(JSON.stringify(FORMES_PALETTE[type] || {}));
+          // Broche de départ : la première de la carte (D2 sur l'Uno, P0 sur la micro:bit), jamais celle de l'exercice.
+          const sorte = SORTE_BROCHE[type];
+          if (sorte && forme.fields && forme.fields.BROCHE) {
+            const liste = brochesDe(A.carteCourante, sorte);
+            if (!liste.includes(forme.fields.BROCHE)) forme.fields.BROCHE = liste[0];
+          }
           return Object.assign({ kind: 'block', type }, forme);
         }),
       });
@@ -621,6 +663,19 @@
       entree.removeField('ETAT');
       entree.insertFieldAt(rang, new Blockly.FieldDropdown(() => (A.aideLed ? HAUT_BAS_LED : HAUT_BAS)), 'ETAT');
     };
+    // Menus de broches selon la carte de l'exercice.
+    for (const [type, sorte] of [['led_etat', 'led'], ['bouton_etat', 'bouton'], ['quand_bouton', 'bouton'], ['servo_angle', 'servo'], ['son', 'buzzer']]) {
+      const init = Blockly.Blocks[type].init;
+      Blockly.Blocks[type].init = function () {
+        init.call(this);
+        const champ = this.getField('BROCHE');
+        if (!champ) return;
+        const entree = champ.getParentInput();
+        const rang = entree.fieldRow.indexOf(champ);
+        entree.removeField('BROCHE');
+        entree.insertFieldAt(rang, new Blockly.FieldDropdown(() => brochesCarte(sorte)), 'BROCHE');
+      };
+    }
     // Pastille « ? » sur « Au démarrage » et « Répéter indéfiniment » : un clic ouvre l'explication
     // des deux blocs (A.surAideChapeau est branché par l'écran d'exercice).
     const ICONE_AIDE =
@@ -673,7 +728,7 @@
   }
 
   // Noms des blocs pour l'éditeur du professeur (cases « blocs proposés aux élèves »), dans les mots de la palette.
-  const NOMS_BLOCS = {
+  const NOMS_BLOCS_BASE = {
     quand_bouton: 'quand le bouton est appuyé',
     led_etat: 'contrôler la LED',
     son: 'jouer une note',
@@ -696,10 +751,17 @@
     variable: 'valeur d’une variable',
     nombre: 'nombre',
   };
-  // Broches que proposent les menus des blocs, par sorte de composant (l'éditeur du professeur propose les mêmes).
+  const NOMS_BLOCS = Object.assign({}, NOMS_BLOCS_BASE);
+  for (const [type, d] of Object.entries(A.BLOCS_CARTES || {})) NOMS_BLOCS[type] = d.texte.replace(/%[A-Z]+/g, '…').replace(/\s+/g, ' ');
+  // Broches que proposent les menus des blocs, par sorte de composant et par carte (l'éditeur du professeur
+  // propose les mêmes).
+  const brochesDe = (carte, type) => {
+    const p = A.profil ? A.profil(carte) : null;
+    return p && p.broches[type] && p.broches[type].length ? p.broches[type] : { led: BROCHES_LED, bouton: BROCHES_BOUTON, servo: BROCHES_SERVO, buzzer: BROCHES_NUMERIQUES }[type];
+  };
   const BROCHES_COMPOSANTS = { led: BROCHES_LED, bouton: BROCHES_BOUTON, servo: BROCHES_SERVO, buzzer: BROCHES_NUMERIQUES };
 
-  Object.assign(A, { definirBlocs, palette, CATEGORIES, COULEURS_BLOCS: COULEURS, NOMS_BLOCS, BROCHES_COMPOSANTS });
+  Object.assign(A, { definirBlocs, palette, CATEGORIES, COULEURS_BLOCS: COULEURS, NOMS_BLOCS, BROCHES_COMPOSANTS, brochesDe });
 })(this);
 
 // ===== interface/editeur.js =====
@@ -720,7 +782,7 @@
       const style = document.createElement('style');
       style.id = 'style-categories';
       style.textContent = A.CATEGORIES.map(
-        (c) => `.cat-${c.cle}{background-color:${c.couleur};background-image:url("${A.imageIcone(c.cle, '#1F2A30', 2.4)}")}`,
+        (c) => `.cat-${c.cle}{background-color:${c.couleur};background-image:url("${A.imageIcone(c.icone || c.cle, '#1F2A30', 2.4)}")}`,
       ).join('\n');
       document.head.appendChild(style);
     }
@@ -746,6 +808,8 @@
 
     function charger(exercice, sauvegarde) {
       enChargement = true;
+      // Carte de l'exercice : les menus de broches des blocs la suivent (Uno : D2…D13, micro:bit : P0…P2).
+      A.carteCourante = exercice.carte || 'uno';
       // Les événements de Blockly partent un instant plus tard : on les coupe pendant le chargement,
       // sinon ils passeraient pour une modification de l'élève (et arrêteraient la simulation).
       Blockly.Events.disable();
@@ -1113,6 +1177,178 @@
     );
   }
 
+
+  // ---------- micro:bit et mBot (jalon 3) ----------
+
+  // Réglage d'un capteur : curseur + valeur écrite (jamais la couleur seule).
+  function curseur(nom, libelle, min, max, pas, valeur, unite) {
+    return (
+      `<label class="capteur"><span class="capteur-nom">${libelle}</span>` +
+      `<input type="range" data-capteur="${nom}" min="${min}" max="${max}" step="${pas}" value="${valeur}">` +
+      `<output class="capteur-valeur" data-valeur="${nom}">${valeur}${unite ? ' ' + unite : ''}</output></label>`
+    );
+  }
+  function choix(nom, libelle, options, valeur) {
+    return (
+      `<label class="capteur"><span class="capteur-nom">${libelle}</span>` +
+      `<select data-capteur="${nom}">${options.map(([t, v]) => `<option value="${v}"${String(v) === String(valeur) ? ' selected' : ''}>${echapper(t)}</option>`).join('')}</select></label>`
+    );
+  }
+
+  function htmlMicrobit() {
+    let points = '';
+    for (let i = 0; i < 25; i++) points += '<span class="mb-point"></span>';
+    const bouton = (n) => `<button type="button" class="mb-bouton poussoir-carte" data-entree="${n}" aria-pressed="false" aria-label="Bouton ${n} de la micro:bit : maintenir pour appuyer">${n}</button>`;
+    return (
+      '<div class="mb-carte" role="group" aria-label="Carte micro:bit">' +
+      bouton('A') +
+      '<div class="mb-centre">' +
+      '<button type="button" class="mb-logo poussoir-carte" data-entree="logo" aria-pressed="false" aria-label="Logo tactile de la micro:bit : maintenir pour le toucher">' +
+      '<svg viewBox="0 0 40 20" aria-hidden="true"><rect x="2" y="2" width="36" height="16" rx="8" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="12" cy="10" r="3" fill="currentColor"/><circle cx="28" cy="10" r="3" fill="currentColor"/></svg>' +
+      '<span>logo</span></button>' +
+      `<div class="mb-ecran" role="img" aria-label="Écran de la micro:bit : éteint">${points}</div>` +
+      '<div class="mb-son" aria-live="polite"></div>' +
+      '</div>' +
+      bouton('B') +
+      '</div>'
+    );
+  }
+
+  function htmlMbot() {
+    const roue = (x, cote) =>
+      `<g class="mbot-roue" data-roue="${cote}"><rect x="${x}" y="30" width="22" height="60" rx="6" fill="#2B3338"/>` +
+      `<text x="${x + 11}" y="66" text-anchor="middle" class="mbot-fleche"></text></g>`;
+    const led = (x, cote) => `<circle class="mbot-led" data-led="${cote}" cx="${x}" cy="44" r="7" fill="#EEF3F6" stroke="#7C8B94" stroke-width="2"/>`;
+    return (
+      '<div class="mbot" role="group" aria-label="Robot mBot">' +
+      '<svg class="mbot-dessin" viewBox="0 0 160 112" aria-hidden="true">' +
+      // capteur à ultrasons (avant), châssis, roues, LED de la carte, suiveur de ligne
+      '<rect x="56" y="2" width="48" height="16" rx="4" fill="#1A6E8E"/><circle cx="70" cy="10" r="6" fill="#DCE6EA"/><circle cx="90" cy="10" r="6" fill="#DCE6EA"/>' +
+      '<rect x="30" y="20" width="100" height="84" rx="12" fill="#2F80ED" stroke="#1B4F9B" stroke-width="2"/>' +
+      '<rect x="46" y="34" width="68" height="48" rx="4" fill="#1C7286"/>' +
+      roue(6, 'gauche') +
+      roue(132, 'droite') +
+      led(62, 'gauche') +
+      led(98, 'droite') +
+      '<text x="80" y="66" text-anchor="middle" class="mbot-texte">mCore</text>' +
+      '<rect x="66" y="92" width="28" height="8" rx="2" fill="#1F2A30"/>' +
+      '</svg>' +
+      '<ul class="mbot-etats">' +
+      '<li>Moteur gauche : <strong data-etat="moteur gauche">arrêté</strong></li>' +
+      '<li>Moteur droit : <strong data-etat="moteur droit">arrêté</strong></li>' +
+      '<li>LED gauche : <strong data-etat="LED gauche">éteinte</strong></li>' +
+      '<li>LED droite : <strong data-etat="LED droite">éteinte</strong></li>' +
+      '<li class="mbot-son" aria-live="polite"></li>' +
+      '</ul>' +
+      '<button type="button" class="mbot-bouton poussoir-carte" data-entree="bouton" aria-pressed="false" aria-label="Bouton de la carte mCore : maintenir pour appuyer">Bouton de la carte</button>' +
+      '</div>'
+    );
+  }
+
+  function htmlCapteurs(carte, c) {
+    if (carte === 'microbit') {
+      return (
+        curseur('temperature', 'Température', -10, 50, 1, c.temperature, '°C') +
+        curseur('lumiere', 'Lumière', 0, 255, 1, c.lumiere, '') +
+        curseur('x', 'Accélération x', -1024, 1024, 16, c.x, 'mg') +
+        curseur('y', 'Accélération y', -1024, 1024, 16, c.y, 'mg') +
+        curseur('z', 'Accélération z', -1024, 1024, 16, c.z, 'mg') +
+        choix('geste', 'Geste', [['aucun', 0]].concat(A.GESTES || []), c.geste)
+      );
+    }
+    return (
+      curseur('distance', 'Distance (ultrasons)', 2, 400, 1, c.distance, 'cm') +
+      choix(
+        'ligne',
+        'Suiveur de ligne',
+        [
+          ['noir sous les deux capteurs (0)', 0],
+          ['noir à gauche seulement (1)', 1],
+          ['noir à droite seulement (2)', 2],
+          ['blanc sous les deux capteurs (3)', 3],
+        ],
+        c.ligne,
+      ) +
+      curseur('lumiere', 'Lumière', 0, 1023, 1, c.lumiere, '')
+    );
+  }
+
+  const sensMoteur = (v) => (!v ? 'arrêté' : `${Math.abs(v)} % ${v > 0 ? 'en avant' : 'en arrière'}`);
+
+  // Partie « carte » de la vue : micro:bit (écran, boutons, logo) ou mBot (moteurs, LED, bouton), et ses capteurs.
+  function vueCarte(racine, carte, rappels) {
+    const zone = racine.querySelector('.simu-carte');
+    zone.innerHTML = `<div class="simu-carte-dessin simu-${carte}">${carte === 'microbit' ? htmlMicrobit() : htmlMbot()}</div>`;
+    for (const vieux of racine.querySelectorAll('.simu-capteurs')) vieux.remove();
+    const capteurs = A.capteursDepart ? A.capteursDepart(carte) : {};
+    const panneau = document.createElement('details');
+    panneau.className = 'simu-capteurs';
+    panneau.open = true;
+    panneau.innerHTML = `<summary>Capteurs de la carte <span class="capteurs-aide">à régler à la main pendant la simulation</span></summary><div class="capteurs-liste">${htmlCapteurs(carte, capteurs)}</div>`;
+    zone.insertAdjacentElement('afterend', panneau);
+    panneau.addEventListener('input', (e) => {
+      const nom = e.target.dataset.capteur;
+      if (!nom) return;
+      capteurs[nom] = Number(e.target.value);
+      const sortie = panneau.querySelector(`[data-valeur="${nom}"]`);
+      if (sortie) sortie.textContent = sortie.textContent.replace(/^-?[\d.]+/, e.target.value);
+    });
+    const appuyes = {};
+    for (const b of zone.querySelectorAll('.poussoir-carte')) {
+      poussoir(b, (valeur) => {
+        appuyes[b.dataset.entree] = valeur;
+        b.setAttribute('aria-pressed', valeur ? 'true' : 'false');
+        rappels.appuyerBouton(b.dataset.entree, valeur);
+      });
+    }
+
+    const points = [...zone.querySelectorAll('.mb-point')];
+    let ecranAvant = '';
+    function son(sim, nom) {
+      const note = sim && sim.journal.filter((e) => e.type === 'son' && e.broche === nom).pop();
+      return note && note.valeur && sim.t < note.t + note.duree ? `♪ ${Math.round(note.valeur)} Hz` : '';
+    }
+    function afficher(sim) {
+      if (carte === 'microbit') {
+        const ecran = sim && sim.carte ? A.ecranA(sim.carte, sim.t) : new Array(25).fill(0);
+        const cle = ecran.join('');
+        if (cle !== ecranAvant) {
+          ecranAvant = cle;
+          ecran.forEach((v, i) => points[i].style.setProperty('--allume', String(v / 9)));
+          const n = ecran.filter(Boolean).length;
+          zone.querySelector('.mb-ecran').setAttribute('aria-label', n ? `Écran de la micro:bit : ${n} point${n > 1 ? 's' : ''} allumé${n > 1 ? 's' : ''}` : 'Écran de la micro:bit : éteint');
+        }
+        zone.querySelector('.mb-son').textContent = son(sim, 'haut-parleur');
+      } else {
+        const sorties = (sim && sim.sorties) || {};
+        for (const cote of ['gauche', 'droite']) {
+          const moteur = cote === 'gauche' ? 'moteur gauche' : 'moteur droit';
+          const v = sorties[moteur] || 0;
+          zone.querySelector(`[data-etat="${moteur}"]`).textContent = sensMoteur(v);
+          zone.querySelector(`[data-roue="${cote}"] .mbot-fleche`).textContent = v > 0 ? '▲' : v < 0 ? '▼' : '';
+          const rgb = sorties['LED ' + cote] || 0;
+          zone.querySelector(`[data-etat="LED ${cote}"]`).textContent = A.nomCouleur ? A.nomCouleur(rgb) : String(rgb);
+          zone.querySelector(`[data-led="${cote}"]`).setAttribute('fill', rgb ? '#' + rgb.toString(16).padStart(6, '0') : '#EEF3F6');
+        }
+        zone.querySelector('.mbot-son').textContent = son(sim, 'D8');
+      }
+      // Curseurs des capteurs : suivent les valeurs changées par un test rejoué.
+      for (const champ of panneau.querySelectorAll('[data-capteur]')) {
+        const v = capteurs[champ.dataset.capteur];
+        if (document.activeElement === champ || String(v) === champ.value) continue;
+        champ.value = v;
+        const sortie = panneau.querySelector(`[data-valeur="${champ.dataset.capteur}"]`);
+        if (sortie) sortie.textContent = sortie.textContent.replace(/^-?[\d.]+/, String(v));
+      }
+      // Boutons de la carte : appuyés tant qu'on les tient (ou dans un test rejoué).
+      for (const b of zone.querySelectorAll('.poussoir-carte')) {
+        const v = sim ? sim.entrees[b.dataset.entree] : appuyes[b.dataset.entree];
+        b.setAttribute('aria-pressed', v ? 'true' : 'false');
+      }
+    }
+    return { afficher, capteurs };
+  }
+
   // ---------- Vue complète ----------
 
   // Bouton poussoir : appuyé tant qu'on garde le clic (ou la touche Espace / Entrée), relâché dès qu'on lâche.
@@ -1152,7 +1388,11 @@
     const composants = exercice.composants || [];
     const compact = composants.length > 4;
     const recadrer = composants.length > 4;
-    racine.querySelector('.simu-carte').innerHTML = `<div class="simu-carte-dessin">${dessinCarte(composants, recadrer)}</div>`;
+    const carte = exercice.carte === 'microbit' || exercice.carte === 'mbot' ? exercice.carte : 'uno';
+    racine.classList.toggle('avec-carte', carte !== 'uno');
+    for (const vieux of racine.querySelectorAll('.simu-capteurs')) vieux.remove();
+    const vueDeCarte = carte === 'uno' ? null : vueCarte(racine, carte, rappels);
+    if (!vueDeCarte) racine.querySelector('.simu-carte').innerHTML = `<div class="simu-carte-dessin">${dessinCarte(composants, recadrer)}</div>`;
     // Illustration du projet (distributeur : exercices 8 et 13) : à droite des cartes des composants.
     const distributeur = exercice.illustration === 'distributeur';
     racine.querySelector('.simu-distributeur').innerHTML = distributeur ? dessinDistributeur() : '';
@@ -1227,12 +1467,15 @@
     }
 
     // etats : { broche: valeur } (LED 0/1, servo en degrés, boutons 0/1)
-    function afficher(etats, enMarche) {
+    // sim : le simulateur en cours (écran de la micro:bit, moteurs du mBot…), ou rien s'il est arrêté.
+    function afficher(etats, enMarche, sim) {
       for (const c of composants) maj(c.broche, etats[c.broche] || 0);
       majDistributeur(etats, enMarche);
+      if (vueDeCarte) vueDeCarte.afficher(sim || null);
     }
 
-    return { afficher };
+    // capteurs : valeurs réglées à la main, à passer au simulateur (creerSimulation({ capteurs })).
+    return { afficher, carte, capteurs: vueDeCarte ? vueDeCarte.capteurs : null };
   }
 
   Object.assign(A, { creerVueSimulateur: creerVue, couleurFil });
@@ -1260,6 +1503,25 @@
     const hautBas = (v) => (v ? 'HAUT (1)' : 'BAS (0)');
     const hautBasLed = (v) => (A.aideLed ? (v ? 'HAUT (1) : allumée' : 'BAS (0) : éteinte') : hautBas(v));
 
+    // Bloc d'une carte (mBot, micro:bit) : dessiné d'après sa description (noyau/cartes.js), en lilas avec le puzzle.
+    function blocCarte(b) {
+      const d = A.BLOCS_CARTES && A.BLOCS_CARTES[b.bloc];
+      if (!d) return null;
+      const texte = echapper(d.texte).replace(/%([A-Z]+)/g, (_, nom) => {
+        const cle = nom.toLowerCase();
+        const champ = (d.champs || {})[nom];
+        if (champ === 'texte') return pastille(b[cle] !== undefined ? b[cle] : (d.defauts || {})[nom] || '');
+        if (champ) {
+          const option = champ.find((o) => String(o[1]) === String(b[cle])) || champ[0];
+          return pastille(option[0]);
+        }
+        return expression(b[cle] !== undefined ? b[cle] : (d.entrees || {})[nom]);
+      });
+      const fond = `background:${C().extension}`;
+      if (d.sorte === 'instruction') return `<div class="pb-bloc" style="${fond}">${image('puzzle')} ${texte}</div>`;
+      return `<span class="${d.sorte === 'condition' ? 'pb-hexa' : 'pb-rond'} pb-grand" style="${fond}">${texte}</span>`;
+    }
+
     function expression(e) {
       if (e === null || e === undefined) return '<span class="pb-vide" aria-label="case vide"></span>';
       if (typeof e === 'number') return pastille(String(e));
@@ -1283,7 +1545,7 @@
         case 'comparaison':
           return `<span class="pb-hexa pb-grand" style="background:${C().bleu}">${expression(e.a)} ${trous ? trou : e.op} ${expression(e.b)}</span>`;
         default:
-          return '';
+          return blocCarte(e) || '';
       }
     }
 
@@ -1317,7 +1579,7 @@
           return h + '<div class="pb-pied"></div></div>';
         }
         default:
-          return '';
+          return blocCarte(i) || '';
       }
     }
 
@@ -1671,6 +1933,830 @@
   }
 
   Object.assign(A, { blocsHtml, schemaHtml, creerAides, creerLexique, contientMot });
+})(this);
+
+// ===== interface/televersement.js =====
+// Installation du programme de la carte (cartes/firmwares.js) dans une Arduino Uno ou un mBot (carte mCore),
+// depuis le navigateur (Chrome, Edge : Web Serial). Repris de l'atelier du distributeur (flasher.js) et de la page
+// d'essai du jalon 0. On parle au « bootloader » de la carte (le petit programme qui écoute pendant une seconde après
+// chaque redémarrage) avec le protocole STK500, comme l'IDE Arduino :
+//   - Uno et mCore (optiboot) : 115200 bauds ; anciens bootloaders (clones) : 57600 bauds.
+(function (global) {
+  'use strict';
+
+  const A = (global.LaboBlocs = global.LaboBlocs || {});
+
+  const VITESSES_BOOTLOADER = [115200, 57600];
+  const TAILLE_PAGE = 128; // octets par page de mémoire flash (ATmega328P)
+  const TAILLE_MAX = 32256; // place pour le programme (32 Ko moins le bootloader)
+
+  // Codes du protocole STK500.
+  const STK = {
+    OK: 0x10,
+    INSYNC: 0x14,
+    EOP: 0x20,
+    GET_SYNC: 0x30,
+    ENTER_PROGMODE: 0x50,
+    LEAVE_PROGMODE: 0x51,
+    LOAD_ADDRESS: 0x55,
+    PROG_PAGE: 0x64,
+    READ_PAGE: 0x74,
+    READ_SIGN: 0x75,
+  };
+
+  // Messages en français, avec la prochaine action.
+  const MESSAGES = {
+    pasDeBootloader: 'La carte ne se laisse pas programmer. Débranche et rebranche le câble USB, puis réessaie. Si ça recommence, demande au professeur.',
+    mauvaisePuce: 'Cette carte n’est ni une Arduino Uno ni un mBot : impossible d’y installer le programme. Demande au professeur.',
+    verificationRatee: 'L’installation n’a pas été vérifiée correctement. Réessaie, sans débrancher le câble.',
+    portOccupe: 'La carte est déjà utilisée par un autre programme (IDE Arduino, mBlock, autre onglet…). Ferme-le, puis réessaie.',
+    fichierAbime: 'Le programme de la carte est introuvable ou abîmé. Recharge la page, puis réessaie.',
+  };
+
+  class ErreurTeleversement extends Error {}
+
+  // ---------- Fichier .hex (Intel HEX) → image de la mémoire flash ----------
+  function lireHex(texte) {
+    const octets = new Uint8Array(TAILLE_MAX).fill(0xff);
+    let taille = 0;
+    let base = 0;
+    for (const brut of String(texte).split(/\r?\n/)) {
+      const ligne = brut.trim();
+      if (!ligne) continue;
+      if (ligne[0] !== ':' || ligne.length < 11) throw new ErreurTeleversement(MESSAGES.fichierAbime);
+      const enr = [];
+      for (let i = 1; i < ligne.length; i += 2) enr.push(parseInt(ligne.slice(i, i + 2), 16));
+      if (enr.some(Number.isNaN) || enr.reduce((a, b) => a + b, 0) % 256 !== 0) throw new ErreurTeleversement(MESSAGES.fichierAbime);
+      const [longueur, haut, bas, type] = enr;
+      const donnees = enr.slice(4, 4 + longueur);
+      if (type === 0x00) {
+        const adresse = base + (haut << 8) + bas;
+        if (adresse + longueur > TAILLE_MAX) throw new ErreurTeleversement(MESSAGES.fichierAbime);
+        octets.set(donnees, adresse);
+        taille = Math.max(taille, adresse + longueur);
+      } else if (type === 0x01) break;
+      else if (type === 0x02) base = ((donnees[0] << 8) + donnees[1]) * 16;
+      else if (type === 0x04) base = ((donnees[0] << 8) + donnees[1]) * 65536;
+    }
+    if (taille === 0) throw new ErreurTeleversement(MESSAGES.fichierAbime);
+    return octets.slice(0, taille);
+  }
+
+  // ---------- Lecture des octets reçus, avec délai maximal ----------
+  class Lecteur {
+    constructor(flux) {
+      this.tampon = [];
+      this.reveil = null;
+      this.lecteur = flux.getReader();
+      this.fini = this.boucle();
+    }
+    async boucle() {
+      try {
+        for (;;) {
+          const { value, done } = await this.lecteur.read();
+          if (done) break;
+          for (const o of value) this.tampon.push(o);
+          if (this.reveil) this.reveil();
+        }
+      } catch {
+        // port fermé ou câble arraché
+      } finally {
+        this.lecteur.releaseLock();
+        if (this.reveil) this.reveil();
+      }
+    }
+    // n octets, ou null si rien n'arrive à temps.
+    async lire(n, ms) {
+      const fin = Date.now() + ms;
+      while (this.tampon.length < n) {
+        const reste = fin - Date.now();
+        if (reste <= 0) return null;
+        await new Promise((r) => {
+          const t = setTimeout(r, reste);
+          this.reveil = () => {
+            clearTimeout(t);
+            r();
+          };
+        });
+        this.reveil = null;
+      }
+      return this.tampon.splice(0, n);
+    }
+    vider() {
+      this.tampon.length = 0;
+    }
+    async arreter() {
+      await this.lecteur.cancel().catch(() => {});
+      await this.fini;
+    }
+  }
+
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ---------- Une séance avec le bootloader, à une vitesse donnée ----------
+  class Seance {
+    constructor(port) {
+      this.port = port;
+    }
+    async ouvrir(bauds) {
+      try {
+        await this.port.open({ baudRate: bauds });
+      } catch (e) {
+        throw new ErreurTeleversement(e && e.name === 'InvalidStateError' ? MESSAGES.portOccupe : MESSAGES.pasDeBootloader);
+      }
+      this.entree = new Lecteur(this.port.readable);
+      this.sortie = this.port.writable.getWriter();
+    }
+    async fermer() {
+      if (this.entree) await this.entree.arreter();
+      try {
+        if (this.sortie) this.sortie.releaseLock();
+      } catch {
+        // déjà libéré
+      }
+      await this.port.close().catch(() => {});
+      this.entree = this.sortie = null;
+    }
+    // Redémarre la carte (comme l'IDE Arduino) : le bootloader écoute pendant environ une seconde.
+    async redemarrer() {
+      await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
+      await pause(250);
+      await this.port.setSignals({ dataTerminalReady: true, requestToSend: true });
+      await pause(50);
+      this.entree.vider();
+    }
+    async envoyer(octets) {
+      await this.sortie.write(Uint8Array.from(octets));
+    }
+    // Envoie une commande, attend INSYNC, « extra » octets de données, puis OK.
+    async commande(octets, extra, ms) {
+      await this.envoyer([...octets, STK.EOP]);
+      const r = await this.entree.lire((extra || 0) + 2, ms || 500);
+      if (!r || r[0] !== STK.INSYNC || r[r.length - 1] !== STK.OK) return null;
+      return r.slice(1, -1);
+    }
+    // Juste après le redémarrage, le bootloader fait clignoter la LED L sans lire : une demande à la fois.
+    async synchroniser() {
+      for (let i = 0; i < 5; i++) {
+        if (await this.commande([STK.GET_SYNC], 0, i === 0 ? 800 : 300)) {
+          await pause(50);
+          this.entree.vider();
+          if (await this.commande([STK.GET_SYNC], 0, 300)) return true;
+        }
+      }
+      return false;
+    }
+    adresse(octet) {
+      const mot = octet >> 1; // le bootloader compte en mots de 2 octets
+      return this.commande([STK.LOAD_ADDRESS, mot & 0xff, mot >> 8]);
+    }
+  }
+
+  // ---------- Installation complète ----------
+  // port : SerialPort fermé ; image : octets (lireHex) ; progression({ phase, fraction }) avec phase
+  // 'connexion' | 'ecriture' | 'verification' | 'fin'. Renvoie { ok: true, bauds } ou { ok: false, message }.
+  async function installerProgrammeCarte(port, image, options) {
+    const o = options || {};
+    const progression = o.progression || (() => {});
+    const s = new Seance(port);
+    try {
+      progression({ phase: 'connexion', fraction: 0 });
+      let bauds = null;
+      for (const b of o.vitesses || VITESSES_BOOTLOADER) {
+        await s.ouvrir(b);
+        await s.redemarrer();
+        if (await s.synchroniser()) {
+          bauds = b;
+          break;
+        }
+        await s.fermer();
+        await pause(200);
+      }
+      if (!bauds) throw new ErreurTeleversement(MESSAGES.pasDeBootloader);
+
+      // Signature du microcontrôleur : 1E 95 xx = ATmega328 / 328P (Uno, mCore).
+      const signature = await s.commande([STK.READ_SIGN], 3);
+      if (!signature || signature[0] !== 0x1e || signature[1] !== 0x95) throw new ErreurTeleversement(MESSAGES.mauvaisePuce);
+      if (!(await s.commande([STK.ENTER_PROGMODE]))) throw new ErreurTeleversement(MESSAGES.pasDeBootloader);
+
+      const pages = Math.ceil(image.length / TAILLE_PAGE);
+      const page = (i) => {
+        const p = new Uint8Array(TAILLE_PAGE).fill(0xff);
+        p.set(image.subarray(i * TAILLE_PAGE, (i + 1) * TAILLE_PAGE));
+        return p;
+      };
+      for (let i = 0; i < pages; i++) {
+        const ok = (await s.adresse(i * TAILLE_PAGE)) && (await s.commande([STK.PROG_PAGE, 0, TAILLE_PAGE, 0x46, ...page(i)], 0, 1000));
+        if (!ok) throw new ErreurTeleversement(MESSAGES.pasDeBootloader);
+        progression({ phase: 'ecriture', fraction: (i + 1) / pages });
+      }
+      for (let i = 0; i < pages; i++) {
+        const lu = (await s.adresse(i * TAILLE_PAGE)) && (await s.commande([STK.READ_PAGE, 0, TAILLE_PAGE, 0x46], TAILLE_PAGE, 1000));
+        if (!lu) throw new ErreurTeleversement(MESSAGES.pasDeBootloader);
+        const attendu = page(i);
+        if (lu.some((b, k) => b !== attendu[k])) throw new ErreurTeleversement(MESSAGES.verificationRatee);
+        progression({ phase: 'verification', fraction: (i + 1) / pages });
+      }
+      await s.commande([STK.LEAVE_PROGMODE]); // la carte démarre son nouveau programme
+      progression({ phase: 'fin', fraction: 1 });
+      return { ok: true, bauds };
+    } catch (e) {
+      return { ok: false, message: e instanceof ErreurTeleversement ? e.message : MESSAGES.pasDeBootloader };
+    } finally {
+      await s.fermer();
+    }
+  }
+
+  A.televersement = { lireHex, installerProgrammeCarte, MESSAGES, STK };
+})(this);
+
+// ===== interface/carte.js =====
+// Envoi du programme de l'élève dans la carte (mode « Dans la carte », écran A6 de la maquette).
+// Arduino Uno, mBot (carte mCore) et micro:bit V2 : la carte a un programme de base (cartes/, « programme de la
+// carte », installé une fois) qui reçoit le code octet de l'élève par le câble USB (Web Serial, Chrome et Edge) et
+// le garde : il redémarre seul, même câble débranché. « Vider la carte » l'efface (fin de séance).
+//
+// Protocole v2 (une ligne par commande, une ligne de réponse) :
+//   PING → PONG v2 <version> <carte> <octets gardés> <place>
+//   PROG <n> → OK · H <hexadécimal> → OK (64 caractères au plus) · FIN → OK <n> · EFFACE → OK
+//   erreurs : ERR CMD, ERR PIN, ERR TAILLE, ERR CRC, ERR FORMAT
+(function (global) {
+  'use strict';
+
+  const A = (global.LaboBlocs = global.LaboBlocs || {});
+  const echapper = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Fichier des programmes de carte (cartes/firmwares.js), chargé seulement quand il faut installer.
+  const CHEMIN_FIRMWARES = 'cartes/firmwares.js';
+  const ICI = global.document && global.document.currentScript ? global.document.currentScript.src : '';
+
+  const DEMARRAGE_CARTE = 1800; // ms : la Uno et le mCore redémarrent quand on ouvre le port
+  const TAILLE_LIGNE_HEX = 64;
+
+  // ---------- Liaison série : une commande, une réponse ----------
+  function creerLiaison(port) {
+    const encodeur = new TextEncoder();
+    let lecteur = null;
+    let tampon = '';
+    let attentes = [];
+    let fermee = false;
+    const l = {
+      async ouvrir() {
+        await port.open({ baudRate: 115200 });
+        (async () => {
+          const decodeur = new TextDecoder();
+          lecteur = port.readable.getReader();
+          try {
+            for (;;) {
+              const { value, done } = await lecteur.read();
+              if (done) break;
+              tampon += decodeur.decode(value, { stream: true });
+              let i;
+              while ((i = tampon.indexOf('\n')) >= 0) {
+                // Sans les caractères invisibles : au redémarrage, la carte envoie quelques octets parasites.
+                const ligne = tampon.slice(0, i).replace(/[^\x20-\x7e]/g, '').trim();
+                tampon = tampon.slice(i + 1);
+                if (!ligne || /^E /.test(ligne)) continue; // événements du mode direct : pas ici
+                if (attentes.length) attentes.shift()(ligne);
+              }
+            }
+          } catch {
+            // port fermé ou câble débranché
+          } finally {
+            lecteur.releaseLock();
+            fermee = true;
+            for (const a of attentes) a(null);
+            attentes = [];
+          }
+        })();
+      },
+      // Envoie une ligne et attend la réponse, ou null après « delai » ms.
+      commande(texte, delai) {
+        if (fermee) return Promise.resolve(null);
+        return new Promise((resoudre) => {
+          let fini = false;
+          const minuteur = setTimeout(() => {
+            fini = true;
+            attentes = attentes.filter((a) => a !== recevoir);
+            resoudre(null);
+          }, delai || 1000);
+          function recevoir(ligne) {
+            if (fini) return;
+            clearTimeout(minuteur);
+            resoudre(ligne);
+          }
+          attentes.push(recevoir);
+          const w = port.writable.getWriter();
+          w.write(encodeur.encode(texte + '\n'))
+            .catch(() => {})
+            .finally(() => w.releaseLock());
+        });
+      },
+      vider() {
+        tampon = '';
+      },
+      async fermer() {
+        try {
+          if (lecteur) await lecteur.cancel();
+        } catch {
+          // déjà fermé
+        }
+        await pause(50);
+        await port.close().catch(() => {});
+      },
+    };
+    return l;
+  }
+
+  // « PONG v2 0.2 uno 120 1012 » → { version, nom, octets, place }
+  function lirePong(ligne) {
+    const m = /PONG v2 (\S+) (\S+) (\d+) (\d+)/.exec(ligne || '');
+    return m ? { version: m[1], nom: m[2], octets: Number(m[3]), place: Number(m[4]) } : null;
+  }
+
+  // Nom de la carte qui a répondu (« PONG … mcore … »), pour les messages.
+  const NOMS_REPONSE = { uno: 'Arduino Uno', mcore: 'mBot (carte mCore)', 'microbit-v2': 'micro:bit V2', 'microbit-v1': 'micro:bit V1' };
+
+  // ---------- Connexion à la carte (une seule pour toute la page) ----------
+  //   etat.cle : 'sans-usb' | 'aucune' | 'choisir' | 'connexion' | 'a-installer' | 'installation' | 'connectee' |
+  //              'envoi' | 'envoye' | 'vide' | 'occupee' | 'pas-a-jour' | 'mauvaise-carte' | 'erreur' | 'programme'
+  function creerConnexion() {
+    const serie = global.navigator && global.navigator.serial;
+    const ecouteurs = new Set();
+    let port = null;
+    let liaison = null;
+    let occupe = false;
+    const c = {
+      etat: { cle: serie ? 'aucune' : 'sans-usb' },
+      profil: A.profil ? A.profil('uno') : { id: 'uno', nom: 'Arduino Uno', reponse: 'uno', installation: 'serie', firmware: 'uno' },
+      carte: null, // réponse au dernier PING
+      ecouter(f) {
+        ecouteurs.add(f);
+        f(c.etat);
+        return () => ecouteurs.delete(f);
+      },
+      // Carte de l'exercice ouvert : la connexion vérifiera que c'est bien elle.
+      choisirProfil(profil) {
+        const change = c.profil.id !== profil.id;
+        c.profil = profil;
+        if (change && ['connectee', 'envoye', 'vide', 'mauvaise-carte', 'pas-a-jour', 'a-installer'].includes(c.etat.cle)) verifier();
+        else if (change) changer(c.etat.cle === 'sans-usb' ? c.etat : { cle: port ? c.etat.cle : 'aucune' });
+      },
+      // (installer, envoyer… sont définis plus bas)
+      connecter: (...a) => connecter(...a),
+      installer: (...a) => installer(...a),
+      envoyer: (...a) => envoyer(...a),
+      vider: (...a) => vider(...a),
+      deconnecter: (...a) => deconnecter(...a),
+      reprendre: () => changer({ cle: c.carte ? 'connectee' : 'aucune', carte: c.carte }),
+      signaler: (etat) => changer(etat),
+    };
+
+    function changer(etat) {
+      c.etat = etat;
+      for (const f of ecouteurs) f(etat);
+    }
+
+    if (serie) {
+      serie.addEventListener('disconnect', (e) => {
+        if (port && e.target === port) {
+          liaison = null;
+          port = null;
+          c.carte = null;
+          if (!occupe) changer({ cle: 'aucune', debranchee: true });
+        }
+      });
+    }
+
+    async function fermerLiaison() {
+      if (liaison) await liaison.fermer();
+      liaison = null;
+    }
+
+    // Une action à la fois (un clic de plus pendant un envoi ne fait rien).
+    function action(f) {
+      return async (...args) => {
+        if (occupe) return null;
+        occupe = true;
+        try {
+          return await f(...args);
+        } catch (e) {
+          changer({ cle: 'erreur', message: 'Erreur inattendue : ' + (e && e.message ? e.message : e) + '. Débranche et rebranche le câble USB, puis réessaie.' });
+          return null;
+        } finally {
+          occupe = false;
+        }
+      };
+    }
+
+    // Choisir la carte : une carte déjà autorisée sur ce poste est reprise sans fenêtre.
+    async function choisirPort(nouvelle) {
+      if (port && !nouvelle) return true;
+      if (!nouvelle) {
+        const connus = await serie.getPorts().catch(() => []);
+        if (connus.length === 1) {
+          port = connus[0];
+          return true;
+        }
+      }
+      changer({ cle: 'choisir' });
+      try {
+        port = await serie.requestPort();
+        return true;
+      } catch {
+        changer({ cle: 'aucune' }); // fenêtre fermée sans choisir
+        return false;
+      }
+    }
+
+    // Ouvre le port si besoin et demande à la carte qui elle est.
+    async function ouvrirEtDemander() {
+      if (!liaison) {
+        liaison = creerLiaison(port);
+        try {
+          await liaison.ouvrir();
+        } catch {
+          liaison = null;
+          changer({ cle: 'occupee' });
+          return null;
+        }
+        if (c.profil.installation === 'serie') await pause(DEMARRAGE_CARTE);
+      }
+      // Jusqu'à 3 essais : juste après l'ouverture, la réponse peut être brouillée.
+      for (let essai = 0; essai < 3; essai++) {
+        const r = await liaison.commande('PING', 1200);
+        const pong = lirePong(r);
+        if (pong) return pong;
+        await pause(250);
+        liaison.vider();
+      }
+      return false;
+    }
+
+    // Décide de l'état d'après la réponse au PING.
+    function constater(pong) {
+      if (pong === null) return false; // déjà dit (carte occupée)
+      c.carte = null;
+      if (pong === false) {
+        changer({ cle: 'a-installer' });
+        return false;
+      }
+      const attendue = c.profil.reponse;
+      const microbitAttendue = /^microbit/.test(attendue);
+      const microbitBranchee = /^microbit/.test(pong.nom);
+      if (pong.nom !== attendue && microbitAttendue !== microbitBranchee) {
+        changer({ cle: 'mauvaise-carte', branchee: NOMS_REPONSE[pong.nom] || pong.nom });
+        return false;
+      }
+      if (pong.nom !== attendue || pong.version !== (A.VERSION_FIRMWARE || pong.version)) {
+        changer({ cle: 'pas-a-jour', branchee: NOMS_REPONSE[pong.nom] || pong.nom, version: pong.version });
+        return false;
+      }
+      c.carte = pong;
+      return true;
+    }
+
+    async function verifierCarte() {
+      changer({ cle: 'connexion' });
+      const ok = constater(await ouvrirEtDemander());
+      if (ok) changer({ cle: 'connectee', carte: c.carte });
+      return ok;
+    }
+    const verifier = action(verifierCarte);
+
+    async function connecter(nouvelle) {
+      if (!serie) return changer({ cle: 'sans-usb' });
+      if (occupe) return null;
+      if (nouvelle) await fermerLiaison();
+      if (!(await choisirPort(nouvelle))) return null;
+      return verifier();
+    }
+
+    // Programme de la carte (cartes/firmwares.js), chargé à la demande.
+    function chargerFirmwares() {
+      if (A.firmwares) return Promise.resolve(A.firmwares);
+      return new Promise((resoudre) => {
+        global.definirFirmwares = (f) => (A.firmwares = f);
+        const s = global.document.createElement('script');
+        s.src = ICI ? new URL(CHEMIN_FIRMWARES, ICI).href : CHEMIN_FIRMWARES;
+        s.onload = () => resoudre(A.firmwares || null);
+        s.onerror = () => resoudre(null);
+        global.document.head.appendChild(s);
+      });
+    }
+
+    const installer = action(async () => {
+      const f = await chargerFirmwares();
+      const hex = f && f[c.profil.firmware];
+      if (!hex) return changer({ cle: 'erreur', message: A.televersement.MESSAGES.fichierAbime });
+      if (c.profil.installation === 'fichier') {
+        // micro:bit : le fichier se copie sur le lecteur MICROBIT (le navigateur ne peut pas l'y écrire lui-même).
+        const lien = global.document.createElement('a');
+        lien.href = URL.createObjectURL(new Blob([hex], { type: 'application/octet-stream' }));
+        lien.download = `labo-blocs-${c.profil.id}-${f.version}.hex`;
+        global.document.body.appendChild(lien);
+        lien.click();
+        lien.remove();
+        await fermerLiaison(); // la micro:bit redémarre après la copie : il faudra rouvrir le port
+        return changer({ cle: 'a-installer', fichier: lien.download });
+      }
+      if (!port && !(await choisirPort(false))) return null;
+      await fermerLiaison();
+      changer({ cle: 'installation', fraction: 0 });
+      const r = await A.televersement.installerProgrammeCarte(port, A.televersement.lireHex(hex), {
+        progression({ phase, fraction }) {
+          const f2 = phase === 'connexion' ? 0 : phase === 'ecriture' ? fraction * 0.7 : phase === 'verification' ? 0.7 + fraction * 0.3 : 1;
+          changer({ cle: 'installation', fraction: f2 });
+        },
+      });
+      if (!r.ok) return changer({ cle: /déjà utilisée/.test(r.message) ? 'occupee' : 'erreur', message: r.message });
+      return verifierCarte();
+    });
+
+    const MESSAGES_ENVOI = {
+      'ERR TAILLE': 'Le programme n’est pas arrivé en entier. Réessaie, sans débrancher le câble.',
+      'ERR CRC': 'Le programme est arrivé abîmé. Réessaie, sans débrancher le câble.',
+      'ERR FORMAT': 'La carte ne comprend pas ce programme : son programme de base n’est pas à jour. Installe-le à nouveau.',
+    };
+
+    // octets : code octet du programme de l'élève (compilé par le noyau).
+    const envoyer = action(async (octets) => {
+      if (!(await verifierCarte())) return { ok: false };
+      if (octets.length > c.carte.place) {
+        changer({ cle: 'programme', message: `Ton programme est trop grand pour cette carte (${octets.length} octets pour ${c.carte.place} de place). Essaie de le raccourcir.` });
+        return { ok: false };
+      }
+      changer({ cle: 'envoi', fraction: 0 });
+      const hex = Array.from(octets, (o) => o.toString(16).padStart(2, '0')).join('').toUpperCase();
+      let r = await liaison.commande('PROG ' + octets.length, 1500);
+      const morceaux = Math.ceil(hex.length / TAILLE_LIGNE_HEX);
+      for (let i = 0; r === 'OK' && i < morceaux; i++) {
+        r = await liaison.commande('H ' + hex.slice(i * TAILLE_LIGNE_HEX, (i + 1) * TAILLE_LIGNE_HEX), 1500);
+        changer({ cle: 'envoi', fraction: (i + 1) / (morceaux + 1) });
+      }
+      if (r === 'OK') r = await liaison.commande('FIN', 3000);
+      if (!r || !/^OK/.test(r)) {
+        const message = MESSAGES_ENVOI[r] || 'La carte ne répond plus. Débranche et rebranche le câble USB, puis réessaie.';
+        changer({ cle: r === 'ERR FORMAT' ? 'pas-a-jour' : 'erreur', message });
+        return { ok: false, message };
+      }
+      c.carte = Object.assign({}, c.carte, { octets: octets.length });
+      changer({ cle: 'envoye', octets: octets.length });
+      return { ok: true };
+    });
+
+    const vider = action(async () => {
+      if (!(await verifierCarte())) return { ok: false };
+      let r = await liaison.commande('EFFACE', 2000);
+      if (r !== 'OK') r = await liaison.commande('EFFACE', 2000); // la 1re réponse peut être brouillée
+      if (r !== 'OK') {
+        changer({ cle: 'erreur', message: 'La carte n’a pas été vidée : elle ne répond plus. Débranche et rebranche le câble USB, puis réessaie.' });
+        return { ok: false };
+      }
+      c.carte = Object.assign({}, c.carte, { octets: 0 });
+      changer({ cle: 'vide' });
+      return { ok: true };
+    });
+
+    const deconnecter = action(async () => {
+      await fermerLiaison();
+      c.carte = null;
+      changer({ cle: 'aucune', deconnectee: true });
+    });
+
+    return c;
+  }
+
+  let connexion = null;
+  A.connexionCarte = () => connexion || (connexion = creerConnexion());
+
+  // ---------- Panneau « Dans la carte » (A6) ----------
+
+  // Textes des états : titre, statut (avec pictogramme : jamais la couleur seule), message, ton.
+  // seulementVider : fenêtre « Vider la carte » (fin de séance), sans programme à envoyer.
+  function decrire(e, profil, seulementVider) {
+    const nom = profil.nom;
+    const microbit = profil.installation === 'fichier';
+    switch (e.cle) {
+      case 'sans-usb':
+        return { ton: 'blocage', titre: 'Accès USB impossible', statut: 'Navigateur sans accès USB', message: 'Ce navigateur ne peut pas envoyer de programme dans la carte. Ouvre Labo Blocs dans Chrome ou Edge.' };
+      case 'aucune':
+        return {
+          ton: 'neutre',
+          titre: e.debranchee ? 'Carte débranchée' : 'Aucune carte connectée',
+          statut: 'En attente de la carte',
+          message: `${e.debranchee ? 'Le câble a été débranché. ' : ''}Branche la carte (${nom}) avec le câble USB, puis clique sur « Connecter la carte ».`,
+          boutons: [{ cle: 'connecter', texte: 'Connecter la carte', principal: true }],
+        };
+      case 'choisir':
+        return { ton: 'neutre', titre: 'Choisir la carte', statut: 'Une fenêtre est ouverte', message: 'Choisis la ligne qui parle de ta carte, puis clique sur « Connexion ». Si tu ne vois rien, demande au professeur.' };
+      case 'connexion':
+        return { ton: 'neutre', titre: 'Connexion…', statut: 'La carte démarre', message: 'Ne débranche pas le câble.' };
+      case 'a-installer':
+        if (microbit) {
+          return {
+            ton: 'neutre',
+            titre: 'Installer le programme de la carte',
+            statut: 'Étape faite une seule fois',
+            message: e.fichier
+              ? `Le fichier « ${e.fichier} » est dans tes téléchargements. Glisse-le sur le lecteur MICROBIT : la lumière de la carte clignote pendant la copie. Quand elle s’arrête, clique sur « Connecter la carte ».`
+              : 'La micro:bit n’a pas encore le programme de base de Labo Blocs. Clique sur « Enregistrer le fichier », puis glisse-le sur le lecteur MICROBIT (une seule fois).',
+            boutons: [
+              { cle: 'installer', texte: 'Enregistrer le fichier', principal: !e.fichier },
+              { cle: 'reconnecter', texte: 'Connecter la carte', principal: !!e.fichier },
+            ],
+          };
+        }
+        return {
+          ton: 'neutre',
+          titre: 'Installer le programme de la carte',
+          statut: 'Étape faite une seule fois',
+          message: 'La carte n’a pas encore le programme de base de Labo Blocs (ou elle a servi avec mBlock ou l’IDE Arduino). Installe-le : c’est fait une fois pour toutes.',
+          boutons: [{ cle: 'installer', texte: 'Installer le programme de la carte', principal: true }],
+        };
+      case 'installation':
+        return { ton: 'neutre', titre: 'Installer le programme de la carte', statut: 'Étape faite une seule fois', message: 'La carte reçoit son programme de base. Ne débranche pas le câble.', progression: e.fraction, libelle: 'Installation' };
+      case 'connectee':
+        if (seulementVider) {
+          return {
+            ton: 'reussi',
+            titre: 'Carte connectée',
+            statut: `${nom} · prête`,
+            message: 'Clique sur « Vider la carte » : son programme sera effacé et elle ne commandera plus rien.',
+            boutons: [
+              { cle: 'vider', texte: 'Vider la carte', principal: true },
+              { cle: 'deconnecter', texte: 'Déconnecter' },
+            ],
+          };
+        }
+        return {
+          ton: 'reussi',
+          titre: 'Carte connectée',
+          statut: `${nom} · prête`,
+          message: `La carte répond. Tu peux lui envoyer ton programme.${e.carte && e.carte.octets ? ' Elle garde déjà un programme : il sera remplacé.' : ''}`,
+          boutons: [
+            { cle: 'envoyer', texte: 'Envoyer mon programme', principal: true },
+            { cle: 'vider', texte: 'Vider la carte' },
+            { cle: 'deconnecter', texte: 'Déconnecter' },
+          ],
+        };
+      case 'envoi':
+        return { ton: 'neutre', titre: 'Envoi en cours', statut: 'Programme en route', message: 'Ne débranche pas le câble avant la fin.', progression: e.fraction, libelle: 'Envoi' };
+      case 'envoye':
+        return {
+          ton: 'reussi',
+          titre: 'Programme envoyé',
+          statut: 'Dans la carte',
+          message: 'Le programme est dans la carte. Tu peux débrancher le câble : la carte le garde et redémarre avec lui.',
+          boutons: [
+            { cle: 'terminer', texte: 'Terminé', principal: true },
+            { cle: 'vider', texte: 'Vider la carte' },
+          ],
+        };
+      case 'vide':
+        return {
+          ton: 'reussi',
+          titre: 'Carte vidée',
+          statut: 'Plus aucun programme',
+          message: 'Le programme est effacé : la carte ne commande plus rien. Vérifie que le robot (ou la maquette) est bien arrêté avant de ranger.',
+          boutons: [{ cle: 'terminer', texte: 'Terminé', principal: true }],
+        };
+      case 'occupee':
+        return {
+          ton: 'blocage',
+          titre: 'Carte déjà utilisée',
+          statut: 'Connexion impossible',
+          message: 'La carte est déjà utilisée par un autre programme (IDE Arduino, mBlock, autre onglet…). Ferme-le, puis réessaie.',
+          boutons: [{ cle: 'reconnecter', texte: 'Réessayer', principal: true }],
+        };
+      case 'pas-a-jour':
+        return {
+          ton: 'blocage',
+          titre: 'Carte pas à jour',
+          statut: 'Mauvais programme de base',
+          message: microbit
+            ? 'La micro:bit a un ancien programme de base. Clique sur « Enregistrer le fichier », puis glisse-le sur le lecteur MICROBIT ; si ça recommence, demande au professeur.'
+            : 'La carte a sans doute servi à un autre projet. Clique sur « Installer le programme de la carte » ; si ça recommence, demande au professeur.',
+          boutons: [{ cle: 'installer', texte: microbit ? 'Enregistrer le fichier' : 'Installer le programme de la carte', principal: true }],
+        };
+      case 'mauvaise-carte':
+        return {
+          ton: 'blocage',
+          titre: 'Ce n’est pas la bonne carte',
+          statut: `Carte branchée : ${e.branchee}`,
+          message: `Cet exercice se fait avec : ${nom}. Branche la bonne carte, puis clique sur « Réessayer ».`,
+          boutons: [{ cle: 'changer', texte: 'Réessayer', principal: true }],
+        };
+      case 'programme':
+        return { ton: 'ecart', titre: 'Programme à revoir', statut: 'Pas envoyé', message: e.message, boutons: [{ cle: 'terminer', texte: 'Retour' }] };
+      default:
+        return {
+          ton: 'blocage',
+          titre: 'La carte ne répond pas',
+          statut: 'Connexion perdue',
+          message: e.message || 'Débranche et rebranche le câble USB, puis clique sur « Réessayer ».',
+          boutons: [{ cle: 'reconnecter', texte: 'Réessayer', principal: true }],
+        };
+    }
+  }
+
+  const ICONES_TON = { reussi: 'coche', blocage: 'alerte', ecart: 'alerte', neutre: 'info' };
+
+  // racine : élément qui reçoit le panneau. options : { programme() → { octets, erreurs }, surEnvoi(r), surVidage(r) }
+  function creerPanneauCarte(racine, options) {
+    const o = options || {};
+    const connexion = A.connexionCarte();
+    function dessiner(e) {
+      const d = decrire(e, connexion.profil, !!o.seulementVider);
+      const icone = A.icone ? A.icone(ICONES_TON[d.ton] || 'info', { epaisseur: 2.6 }) : '';
+      let h = `<div class="pc-tete"><span class="pc-carte" aria-hidden="true">${dessinUsb()}</span><div class="pc-titres"><strong class="pc-titre">${echapper(d.titre)}</strong>`;
+      h += `<span class="pc-statut">${icone}<span>${echapper(d.statut)}</span></span></div></div>`;
+      if (d.progression !== undefined) {
+        const p = Math.round((d.progression || 0) * 100);
+        h += `<div class="pc-barre" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p}" aria-label="${d.libelle} : ${p} %"><div style="width:${p}%"></div></div>`;
+        h += `<div class="pc-avance">${d.libelle} : ${p} %</div>`;
+      }
+      h += `<p class="pc-message">${echapper(d.message)}</p>`;
+      if (d.boutons && d.boutons.length) {
+        h += '<div class="pc-actions">' + d.boutons.map((b) => `<button type="button" class="${b.principal ? 'btn-principal' : 'btn-secondaire'}" data-action="${b.cle}">${echapper(b.texte)}</button>`).join('') + '</div>';
+      }
+      racine.className = `panneau-carte pc-${d.ton}`;
+      racine.dataset.etat = e.cle;
+      racine.innerHTML = h;
+    }
+    const arreter = connexion.ecouter(dessiner);
+    racine.addEventListener('click', async (evt) => {
+      const b = evt.target.closest('button[data-action]');
+      if (!b) return;
+      switch (b.dataset.action) {
+        case 'connecter':
+          return connexion.connecter(false);
+        case 'reconnecter':
+          return connexion.connecter(false);
+        case 'changer':
+          return connexion.connecter(true);
+        case 'installer':
+          return connexion.installer();
+        case 'deconnecter':
+          return connexion.deconnecter();
+        case 'terminer':
+          return connexion.reprendre();
+        case 'envoyer': {
+          const p = o.programme ? o.programme() : null;
+          if (!p || (p.erreurs && p.erreurs.length)) {
+            return connexion.signaler({ cle: 'programme', message: 'Ton programme a un bloc incomplet ou inconnu : complète-le, puis réessaie.' });
+          }
+          const r = await connexion.envoyer(p.octets);
+          if (r && o.surEnvoi) o.surEnvoi(Object.assign({ octets: p.octets.length }, r));
+          return r;
+        }
+        case 'vider': {
+          const r = await connexion.vider();
+          if (r && o.surVidage) o.surVidage(r);
+          return r;
+        }
+        default:
+          return null;
+      }
+    });
+    return { choisirProfil: (p) => connexion.choisirProfil(p), arreter, connexion };
+  }
+
+  function dessinUsb() {
+    return (
+      '<svg width="46" height="34" viewBox="0 0 46 34"><rect x="2" y="4" width="34" height="26" rx="5" fill="#3F4E66"/>' +
+      '<rect x="36" y="12" width="8" height="10" rx="2" fill="#A9B6CC"/><circle cx="12" cy="14" r="3" fill="#F5C45E"/><circle cx="22" cy="14" r="3" fill="#55B0F0"/></svg>'
+    );
+  }
+
+  // Fenêtre autonome (ex. « Vider la carte » en fin de séance, depuis une page du projet).
+  //   options : { carte ('uno' | 'mbot' | 'microbit'), titre, intro, seulementVider, programme(), surEnvoi(r), surVidage(r) }
+  function ouvrirDialogueCarte(options) {
+    const o = options || {};
+    const d = global.document.createElement('dialog');
+    d.className = 'dialogue-carte-hote';
+    d.setAttribute('aria-label', o.titre || 'Carte');
+    d.style.cssText = 'border:none;border-radius:16px;padding:0;width:min(34rem, calc(100% - 2rem));background:transparent';
+    d.innerHTML =
+      '<div class="labo-blocs"><div class="dialogue-carte">' +
+      `<div class="dialogue-entete"><strong>${echapper(o.titre || 'Carte')}</strong><button type="button" class="btn-fermer-carte" aria-label="Fermer">×</button></div>` +
+      (o.intro ? `<p class="dc-intro">${echapper(o.intro)}</p>` : '') +
+      '<div class="panneau-carte" aria-live="polite"></div></div></div>';
+    global.document.body.append(d);
+    const panneau = creerPanneauCarte(d.querySelector('.panneau-carte'), o);
+    panneau.choisirProfil(A.profil ? A.profil(o.carte || 'uno') : connexion.profil);
+    if (['envoye', 'vide', 'programme'].includes(panneau.connexion.etat.cle)) panneau.connexion.reprendre();
+    d.querySelector('.btn-fermer-carte').addEventListener('click', () => d.close());
+    d.addEventListener('close', () => {
+      panneau.arreter();
+      d.remove();
+    });
+    d.showModal();
+    return d;
+  }
+
+  Object.assign(A, { creerPanneauCarte, ouvrirDialogueCarte, lirePong, decrireEtatCarte: decrire });
 })(this);
 
 // ===== interface/fichiers.js =====
@@ -2501,10 +3587,14 @@
             `<span>${echapper(NOMS_COMPOSANTS[c.type] || c.type)}${c.nom ? ' ' + echapper(c.nom) : ''} <span class="broche">${echapper(c.broche)}</span></span></li>`,
         )
         .join('');
+      // Ce qui est déjà sur la carte (rien à brancher).
+      const surLaCarte = { mbot: 'Sur le robot : moteurs, LED, buzzer, bouton, capteur à ultrasons (port 3) et suiveur de ligne (port 2).', microbit: 'Sur la carte : écran 5 × 5, boutons A et B, logo tactile, haut-parleur et capteurs.' }[ex.carte];
+      if (surLaCarte) $('.liste-composants', ecran).insertAdjacentHTML('beforeend', `<li class="composants-carte"><span class="composant-pastille composant-carte">${A.icone('puzzle', { epaisseur: 2.4 })}</span><span>${surLaCarte}</span></li>`);
       const avant = A.progressionExercice(D, ex.id);
       const statutAvant = avant.statut;
       editeur.charger(ex, programme ? (programme.blocks ? programme : A.versBlockly(programme)) : avant.programme);
       vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { appuyerBouton });
+      if (panneauCarte) panneauCarte.choisirProfil(A.profil(ex.carte));
       niveauDeLExercice(ex);
       afficher();
       A.noterOuverture(D, ex.id);
@@ -2603,12 +3693,16 @@
     }
     for (const b of ecran.querySelectorAll('.btn-niveau')) b.addEventListener('click', () => choisirNiveau(Number(b.dataset.niveau)));
     // Niveau choisi par le professeur pour l'exercice (ex.niveau), éventuellement verrouillé (évaluation).
+    // Le niveau 3 (code Arduino) n'existe que pour l'Arduino Uno.
     function niveauDeLExercice(ex) {
+      const avecCode = !ex.carte || ex.carte === 'uno';
       if (ex.niveau) choisirNiveau(Number(ex.niveau));
+      if (!avecCode && etat.niveau === 3) choisirNiveau(2);
       for (const b of ecran.querySelectorAll('.btn-niveau')) {
         const autre = Number(b.dataset.niveau) !== Number(ex.niveau);
-        b.disabled = !!ex.niveauVerrouille && autre;
-        b.title = b.disabled ? 'Ton professeur a choisi le niveau de cet exercice.' : '';
+        const sansCode = !avecCode && b.dataset.niveau === '3';
+        b.disabled = (!!ex.niveauVerrouille && autre) || sansCode;
+        b.title = sansCode ? 'Le code Arduino n’est montré que pour l’Arduino Uno.' : b.disabled ? 'Ton professeur a choisi le niveau de cet exercice.' : '';
       }
       $('.niveaux-libelle', ecran).textContent = ex.niveauVerrouille ? 'Niveau imposé' : 'Niveau';
     }
@@ -2649,12 +3743,43 @@
     const modes = paquet.modes || ['simulateur'];
     for (const b of ecran.querySelectorAll('.btn-mode')) b.hidden = !modes.includes(b.dataset.mode);
     ecran.querySelector('.modes').hidden = modes.length < 2;
+    etat.modeTest = 'simulateur';
+    const sectionTest = $('.simulateur', ecran);
+    function choisirModeTest(m) {
+      if (m === etat.modeTest) return;
+      if (m === 'carte' && etat.mode !== 'arrete') arreter();
+      etat.modeTest = m;
+      for (const b of ecran.querySelectorAll('.btn-mode')) b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+      sectionTest.classList.toggle('mode-carte', m === 'carte');
+      $('.panneau-carte', ecran).hidden = m !== 'carte';
+    }
+    for (const b of ecran.querySelectorAll('.btn-mode')) b.addEventListener('click', () => choisirModeTest(b.dataset.mode));
+
+    // « Dans la carte » : le programme de l'élève, compilé comme pour le simulateur, part dans la carte du parcours.
+    const panneauCarte = modes.includes('carte')
+      ? A.creerPanneauCarte($('.panneau-carte', ecran), {
+          programme() {
+            const ex = etat.exercice;
+            return A.codeOctet.compiler(editeur.lire().programme, { composants: ex.composants, boutonsVersMasse: ex.boutonsVersMasse });
+          },
+          surEnvoi(r) {
+            if (lecture || !etat.exercice) return;
+            A.noterEnvoi(D, etat.exercice.id, { carte: etat.exercice.carte, reussi: r.ok, octets: r.octets, message: r.message, programme: editeur.lire().programme });
+            session.aEnregistrer(true, true);
+          },
+          surVidage(r) {
+            if (lecture || !etat.exercice) return;
+            A.noterVidage(D, etat.exercice.id, { carte: etat.exercice.carte, reussi: r.ok });
+            session.aEnregistrer(true, true);
+          },
+        })
+      : null;
 
     // ----- Simulation -----
 
     function nouvelleSimulation() {
       const { programme } = editeur.lire();
-      etat.sim = A.creerSimulation(programme, { composants: etat.exercice.composants, boutonsVersMasse: etat.exercice.boutonsVersMasse });
+      etat.sim = A.creerSimulation(programme, { composants: etat.exercice.composants, boutonsVersMasse: etat.exercice.boutonsVersMasse, carte: etat.exercice.carte, capteurs: vue && vue.capteurs });
       etat.servos = {};
       etat.rejeu = null;
       $('.simu-note', ecran).textContent = '';
@@ -2752,7 +3877,7 @@
           if (!sim) etats[c.broche] = etat.servos[c.broche] = 0;
         }
       }
-      vue.afficher(etats, !!sim);
+      vue.afficher(etats, !!sim, sim);
       editeur.surligner(sim ? sim.blocsEnCours : null);
       $('.chrono-valeur', ecran).textContent = chrono(sim ? sim.t : 0);
     }
@@ -2841,12 +3966,15 @@
     // Rejoue le test raté dans le simulateur : les boutons s'appuient tout seuls.
     function rejouer(r) {
       fermerResultat();
+      // Les capteurs repartent des valeurs du test (celles de départ), pas de celles réglées à la main.
+      if (vue && vue.capteurs && A.capteursDepart) Object.assign(vue.capteurs, A.capteursDepart(etat.exercice.carte));
       nouvelleSimulation();
       etat.boutonsAvant = null;
-      for (const e of r.entrees) etat.sim.planifierEntree(e.t, e.broche, e.valeur);
+      for (const e of r.entrees) if (e.capteur !== undefined) etat.sim.planifierCapteur(e.t, e.capteur, e.valeur);
+        else etat.sim.planifierEntree(e.t, e.broche, e.valeur);
       etat.rejeu = { fin: r.temps + 600 };
       etat.mode = 'marche';
-      $('.simu-note', ecran).textContent = 'Le test se rejoue : les boutons s’appuient tout seuls.';
+      $('.simu-note', ecran).textContent = r.entrees.some((e) => e.capteur !== undefined) ? 'Le test se rejoue : les boutons et les capteurs changent tout seuls.' : 'Le test se rejoue : les boutons s’appuient tout seuls.';
       majCommandes();
     }
     function fermerResultat() {
@@ -2896,7 +4024,7 @@
 
     choisirNiveau(1);
     majCommandes();
-    return { ouvrir, quitter, editeur, etat, arreter };
+    return { ouvrir, quitter, editeur, etat, arreter, choisirModeTest };
   }
 
   Object.assign(A, { creerEcranExercice });
@@ -2981,8 +4109,11 @@
     poserIcones(document);
     preparerPleinEcran(document);
 
+    if (!A.projet) return erreurFatale('Le fichier du projet (projet.js) est absent.');
+    // ?parcours=<id> : un autre parcours chargé par la page (essais des cartes mBot et micro:bit), comme un projet à part.
+    const autre = q.get('parcours') && q.get('parcours') !== A.projet.parcours ? A.parcoursDefinis.find((p) => p.id === q.get('parcours')) : null;
+    if (autre) A.projet = Object.assign({}, A.projet, { id: autre.id, titre: autre.titre, parcours: autre.id, accent: '#2547D0', cheminSauvegarde: ['{classe}', '{equipe}'] });
     const projet = A.projet;
-    if (!projet) return erreurFatale('Le fichier du projet (projet.js) est absent.');
     const brut = A.parcoursDefinis.find((p) => p.id === projet.parcours);
     if (!brut) return erreurFatale(`Le parcours « ${projet.parcours} » est introuvable.`);
     const problemes = A.controler(brut);
@@ -3158,6 +4289,8 @@
         return ex;
       },
       quitter: ecran.quitter,
+      // 'simulateur' | 'carte' (si le parcours propose ce mode)
+      choisirModeTest: ecran.choisirModeTest,
       ecran,
     };
   }

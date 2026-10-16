@@ -29,7 +29,8 @@
     const o = options || {};
     const paquet = A.catalogue.paquet();
     const hote = $('.ecran-programmation');
-    return LB.monterExercice(hote, {
+    let monte = null;
+    monte = LB.monterExercice(hote, {
       session,
       paquet,
       projet: PROJET,
@@ -38,12 +39,13 @@
       toutDebloquer: o.toutDebloquer,
       solution: o.solution,
       listeExercices: o.listeExercices,
-      // Exercice 13 réussi : le programme du distributeur peut aller dans la vraie carte.
+      // Exercice 13 réussi : l'élève envoie son programme dans la carte de la maquette (mode « Dans la carte »).
       actionsReussite: (ex) =>
-        /^13/.test(String(ex.numero)) && A.envoiCarte && !session.lecture
-          ? [{ texte: 'Envoyer dans la carte Arduino', principal: true, action: () => A.envoiCarte.ouvrir(session) }]
+        /^13/.test(String(ex.numero)) && !session.lecture
+          ? [{ texte: 'Envoyer dans la carte Arduino', principal: true, action: () => monte.choisirModeTest('carte') }]
           : [],
     });
+    return monte;
   }
 
   // Mode enseignant (?enseignant=1) ou programme d'une équipe ouvert depuis prof.html : rien n'est enregistré.

@@ -46,11 +46,7 @@
     return c;
   }
 
-  // Ce qui décide du programme envoyé dans la vraie carte (exercices 13A et 13B) : la solution et les broches.
-  // Si une mise à jour du parcours la change, le programme compilé (site/firmware/programmes.js) n'est plus à jour.
-  const empreinteCarte = (ex) => LB.empreinte({ solutionReference: ex.solutionReference, composants: ex.composants });
-
-  const api = { creerCatalogue, empreinteCarte };
+  const api = { creerCatalogue };
   if (enNode) {
     api.chargerParcours = chargerParcours;
     let defaut = null;

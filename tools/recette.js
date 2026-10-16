@@ -8,6 +8,8 @@
 //   - aucune requête réseau hors du site, aucune erreur dans la console ;
 //   - enregistrer, fermer, rouvrir et reprendre (serveur seulement : dossier simulé) ;
 //   - le fichier d'équipe s'ouvre dans l'outil professeur ;
+//   - jalon 3 de Labo Blocs : l'élève envoie son programme de l'exercice 13A dans la carte (carte Arduino virtuelle à
+//     la place du câble USB) et « Vider la carte » du carnet efface le programme, noté dans le fichier de l'équipe ;
 //   - jalon 1 bis de Labo Blocs : un exercice modifié, installé par « Mettre à jour les exercices », arrive chez une
 //     équipe test sans perdre son travail (copie du site servie à part, le dépôt n'est pas modifié).
 // Le résultat est écrit dans RECETTE-AUTO.md.
@@ -237,6 +239,107 @@ async function cycleSauvegarde(navigateur, base) {
   };
 }
 
+// Jalon 3 de Labo Blocs : envoi du programme de l'élève dans la carte de la maquette, puis « Vider la carte ».
+// Une carte Arduino virtuelle (tools/carte-virtuelle.js) remplace le câble USB.
+const CARTE_VIRTUELLE = fs.readFileSync(path.join(__dirname, 'carte-virtuelle.js'), 'utf8');
+async function maquette(nav, base) {
+  const contexte = `${nav.nom}, serveur`;
+  const navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+  try {
+    // 1. Exercice 13A, « Dans la carte » : carte neuve → programme de base installé → programme de l'élève envoyé.
+    const page = await navigateur.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.evaluateOnNewDocument(`${CARTE_VIRTUELLE};installerCarteVirtuelle({ modele: 'uno' });`);
+    await ouvrirExercice(page, base, '13A');
+    const r = await page.evaluate(async () => {
+      const pause = (ms) => new Promise((x) => setTimeout(x, ms));
+      const E = Atelier.programmation.ecran;
+      E.editeur.charger(E.etat.exercice, LaboBlocs.versBlockly(E.etat.exercice.solutionReference));
+      document.querySelector('.btn-mode[data-mode="carte"]').click();
+      const panneau = document.querySelector('.panneau-carte');
+      const etapes = [];
+      async function cliquer(action, attendu) {
+        const avant = panneau.dataset.etat + panneau.textContent;
+        panneau.querySelector(`[data-action="${action}"]`).click();
+        for (let i = 0; i < 80; i++) {
+          await pause(250);
+          const e = panneau.dataset.etat;
+          if (!['connexion', 'installation', 'envoi', 'choisir'].includes(e) && e + panneau.textContent !== avant) break;
+        }
+        etapes.push(panneau.dataset.etat);
+        if (panneau.dataset.etat !== attendu) throw new Error(`${action} → ${panneau.dataset.etat} : ${panneau.querySelector('.pc-message').textContent}`);
+      }
+      await cliquer('connecter', 'a-installer');
+      await cliquer('installer', 'connectee');
+      await cliquer('envoyer', 'envoye');
+      const ex = E.etat.exercice;
+      const attendu = Array.from(LaboBlocs.codeOctet.compiler(ex.solutionReference, { composants: ex.composants, boutonsVersMasse: ex.boutonsVersMasse }).octets, (x) => x.toString(16).padStart(2, '0')).join('');
+      return { etapes, identique: carteVirtuelle.programmeHex() === attendu, octets: attendu.length / 2, firmware: carteVirtuelle.firmware };
+    });
+    noter('Maquette : l’élève envoie son programme de l’exercice 13A dans la carte Arduino', contexte, r.identique,
+      `${r.etapes.join(' → ')} ; programme de base ${r.firmware && r.firmware.version} installé, ${r.octets} octets envoyés ${r.identique ? '= programme de l’élève' : '≠ programme de l’élève'}`);
+    await page.close();
+
+    // 2. Équipe, carnet › Programmation › « Vider la carte » : fenêtre de Labo Blocs, vidage noté dans le fichier.
+    const p2 = await navigateur.newPage();
+    await p2.setViewport({ width: 1366, height: 768 });
+    await p2.evaluateOnNewDocument(`${CARTE_VIRTUELLE};installerCarteVirtuelle({ modele: 'uno', firmware: '0.2' });`);
+    await p2.goto(base + 'index.html', { waitUntil: 'load' });
+    const v = await p2.evaluate(async () => {
+      const pause = (ms) => new Promise((x) => setTimeout(x, ms));
+      localStorage.clear();
+      const racine = await navigator.storage.getDirectory();
+      for await (const [n] of racine.entries()) await racine.removeEntry(n, { recursive: true });
+      const parent = await racine.getDirectoryHandle('DISTRIBUTEUR DE CEREALES', { create: true });
+      window.showDirectoryPicker = async () => parent;
+      document.querySelector('.btn-nouvelle').click();
+      const c = document.querySelectorAll('.champ-prenom');
+      c[0].value = 'maquette';
+      c[1].value = 'test';
+      document.querySelector('.champ-classe').value = '5A';
+      document.querySelector('.formulaire-equipe button[type=submit]').click();
+      document.querySelector('.btn-choisir-dossier').click();
+      await pause(500);
+      document.querySelector('.btn-commencer').click();
+      await pause(500);
+      document.querySelector('[data-onglet="programmation"]').click();
+      await pause(300);
+      carteVirtuelle.programme = Uint8Array.of(1, 2, 3); // un ancien programme dans la carte
+      const envoiBloque = document.querySelector('.btn-envoi-carte').disabled;
+      document.querySelector('.btn-vider-carte').click();
+      await pause(300);
+      const dialogue = document.querySelector('.dialogue-carte-hote');
+      const panneau = dialogue.querySelector('.panneau-carte');
+      const attendre = async () => {
+        for (let i = 0; i < 60; i++) {
+          await pause(250);
+          if (!['connexion', 'choisir'].includes(panneau.dataset.etat)) return panneau.dataset.etat;
+        }
+        return panneau.dataset.etat;
+      };
+      panneau.querySelector('[data-action="connecter"]').click();
+      const connectee = await attendre();
+      const sansEnvoi = !panneau.querySelector('[data-action="envoyer"]');
+      panneau.querySelector('[data-action="vider"]').click();
+      await pause(400);
+      const vide = await attendre();
+      await pause(1200);
+      const dossier = await parent.getDirectoryHandle('Maquette_Test');
+      const d = JSON.parse(await (await (await dossier.getFileHandle('Maquette_Test.json')).getFile()).text());
+      const h = Object.values(d.programmation.exercices).flatMap((e) => e.historique || []);
+      return { envoiBloque, connectee, sansEnvoi, vide, carteVide: !carteVirtuelle.programme, note: h.some((x) => x.type === 'vider' && x.reussi) };
+    });
+    noter('Maquette : « Vider la carte » (carnet) efface le programme, noté dans le fichier de l’équipe', contexte,
+      v.connectee === 'connectee' && v.sansEnvoi && v.vide === 'vide' && v.carteVide && v.note && v.envoiBloque,
+      `connexion : ${v.connectee}, après « Vider » : ${v.vide}, carte ${v.carteVide ? 'vide' : 'pas vide'}, ${v.note ? 'noté dans le fichier' : 'non noté'} ; envoi depuis le carnet ${v.envoiBloque ? 'fermé tant que 13A n’est pas ouvert' : 'ouvert'}`);
+    await p2.close();
+  } catch (e) {
+    noter('Maquette (jalon 3) interrompue', contexte, false, String(e.message || e));
+  } finally {
+    await navigateur.close();
+  }
+}
+
 // Jalon 1 bis de Labo Blocs : une équipe réussit l'exercice 1 ; le professeur installe une version où l'exercice 1
 // a changé (« Mettre à jour les exercices », dossier du site simulé) ; l'équipe rouvre son travail.
 // Attendu : exercice 1 « à revérifier », réussite et blocs gardés, nouvelle consigne affichée, rien d'autre perdu.
@@ -365,6 +468,7 @@ async function miseAJourExercices(nav) {
     for (const nav of NAVIGATEURS) {
       await recetteNavigateur(nav, 'fichier', pathToFileURL(SITE).href + '/', 'file://');
       await recetteNavigateur(nav, 'serveur', `http://localhost:${PORT}/`, `http://localhost:${PORT}/`);
+      await maquette(nav, `http://localhost:${PORT}/`);
       await miseAJourExercices(nav);
     }
   } finally {

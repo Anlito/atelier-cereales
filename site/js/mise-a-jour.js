@@ -64,13 +64,7 @@
     const diff = LB.comparer(courant, candidat);
     const ordre = LB.comparerVersions(candidat.versionParcours, courant.versionParcours);
     const rien = !diff.ajoutes.length && !diff.supprimes.length && !diff.modifies.length && !diff.deplaces.length && !diff.textes.length;
-    // Le programme prêt pour la vraie carte (exercice 13) suit-il encore ?
-    const nouveaux = LB.preparer(candidat).exercices;
-    const carte = ['13A', '13B'].filter((n) => {
-      const ex = nouveaux.find((e) => String(e.numero) === n);
-      return ex && A.empreintesCarte && A.empreintesCarte[n] && A.empreinteCarte(ex) !== A.empreintesCarte[n];
-    });
-    return { problemes: [], diff, ordre, rien, carte };
+    return { problemes: [], diff, ordre, rien };
   }
 
   // Ce qui change dans un exercice modifié (pour l'aperçu).
@@ -160,9 +154,6 @@
       listeHtml('Exercices supprimés', d.supprimes, anciens, null, 'Le travail des équipes reste dans leur fichier (visible dans l’outil du professeur).') +
       listeHtml('Exercices déplacés', d.deplaces.filter((id) => !d.modifies.includes(id)), nouveaux, null) +
       listeHtml('Textes retouchés', d.textes, nouveaux, anciens, 'Titre, indices ou fiche : sans effet sur les réussites.');
-    if (r.carte.length) {
-      h += `<p class="mj-message attention">L’exercice ${r.carte.join(' et ')} change (solution ou broches) : l’envoi du programme du distributeur dans la carte Arduino sera indisponible jusqu’à la prochaine version du site (programme de la carte à recompiler).</p>`;
-    }
     h +=
       '<div class="mj-effet"><strong>Pour les élèves :</strong> les blocs et les réussites sont gardés. Les nouveaux exercices apparaissent quand ils rechargent l’atelier (F5).</div>' +
       '<div class="mj-actions"><button type="button" class="btn-principal btn-valider">Valider la mise à jour</button>' +

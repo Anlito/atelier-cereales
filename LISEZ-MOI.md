@@ -38,16 +38,14 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
    tout seul (à chaque vérification et peu après une modification).
 6. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
-7. **Tester sur la maquette** : quand l'exercice 13A est réussi, « Envoyer le programme dans la carte Arduino »
-   (onglet Programmation du carnet, ou message de réussite de l'exercice 13) envoie le programme du distributeur
-   dans la carte branchée en USB (Chrome ou Edge, aussi depuis le dossier réseau). C'est le programme de la
-   solution de référence (13B si le défi est réussi) : celui de l'équipe a réussi les mêmes tests, il fait la même
-   chose. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la résistance interne de la carte
-   (réglage "boutonsVersMasse" du parcours). Chaque envoi est noté pour le professeur.
-   Fin de séance : « Vider la carte » envoie un programme vierge (protocole de démontage).
-   Si une broche ou une solution de l'exercice 13 change (mise à jour des exercices), recompiler avec
-   « npm run firmware » (les fichiers site/firmware/distributeur_13A.ino et _13B.ino s'ouvrent aussi dans l'IDE
-   Arduino) : d'ici là, l'atelier refuse d'envoyer l'ancien programme.
+7. **Tester sur la maquette** : l'équipe envoie **son propre programme** dans la carte Arduino de sa maquette, depuis
+   l'écran d'exercice (« Tester » › **« Dans la carte »**, avec Chrome ou Edge, aussi depuis le dossier réseau), ou
+   depuis le carnet (onglet Programmation › « Envoyer mon programme dans la carte Arduino », qui ouvre l'exercice 13
+   dans ce mode). La première fois, la carte reçoit son **programme de base Labo Blocs** (« Installer le programme de
+   la carte », une dizaine de secondes, une fois pour toutes) ; ensuite chaque envoi ne prend que quelques secondes et
+   la carte garde le programme, même débranchée. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la
+   résistance interne de la carte (réglage "boutonsVersMasse" du parcours). Chaque envoi est noté pour le professeur.
+   Fin de séance : « Vider la carte » efface le programme (protocole de démontage).
 8. **Tutoriel de câblage** (`tuto.html`, lien dans le carnet) : la carte Arduino, la platine de test, les
    protocoles d'installation / d'envoi du programme / de démontage, le câblage du distributeur (construit depuis
    l'exercice 13A du parcours) et la fiche de branchement de chaque composant.
@@ -119,8 +117,7 @@ Bouton **« Exercices »** en haut de `prof.html` (ou le lien « Mettre à jour 
 
 **Le travail des élèves est protégé** : leurs blocs et leurs réussites sont gardés. Un exercice déjà réussi qui a
 changé apparaît « ↻ modifié, à revérifier » dans leur carnet : ils relancent la vérification. L'exercice suivant reste
-ouvert. Si l'exercice 13 change (solution ou broches), l'envoi du programme dans la carte Arduino est bloqué tant que
-le programme de la carte n'a pas été recompilé (`npm run firmware`, voir §2).
+ouvert. Une mise à jour ne demande rien d'autre : les élèves envoient leur propre programme dans la carte.
 
 ---
 
