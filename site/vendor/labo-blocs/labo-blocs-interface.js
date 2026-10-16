@@ -1060,10 +1060,10 @@
     else if (c.type === 'bouton')
       dessin =
         `<button type="button" class="composant-dessin bouton-poussoir" aria-pressed="false" ` +
-        `aria-label="Appuyer ou relâcher ${echapper(libelle(c))} ${c.broche}">${dessinBouton()}</button>`;
+        `aria-label="Bouton poussoir ${echapper(libelle(c))} ${c.broche} : maintenir pour appuyer">${dessinBouton()}</button>`;
     else if (c.type === 'buzzer') dessin = `<div class="composant-dessin">${dessinBuzzer()}</div>`;
     else dessin = `<div class="composant-dessin">${dessinServo()}</div>`;
-    const aide = c.type === 'bouton' && !compact ? '<span class="composant-aide">Clique pour appuyer ou relâcher</span>' : '';
+    const aide = c.type === 'bouton' && !compact ? '<span class="composant-aide">Maintiens le clic pour appuyer</span>' : '';
     return (
       `<div class="composant composant-${c.type}${compact ? ' compact' : ''}" data-broche="${c.broche}" data-type="${c.type}" style="--famille:${fam};--led:${couleurLed(c)}">` +
       dessin +
@@ -1115,6 +1115,39 @@
 
   // ---------- Vue complète ----------
 
+  // Bouton poussoir : appuyé tant qu'on garde le clic (ou la touche Espace / Entrée), relâché dès qu'on lâche.
+  function poussoir(el, appuyer) {
+    let tenu = false;
+    const lacher = () => {
+      if (!tenu) return;
+      tenu = false;
+      appuyer(0);
+    };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      tenu = true;
+      appuyer(1);
+    });
+    el.addEventListener('pointerup', lacher);
+    el.addEventListener('pointercancel', lacher);
+    el.addEventListener('lostpointercapture', lacher);
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== ' ' && e.key !== 'Enter') return;
+      e.preventDefault();
+      if (e.repeat || tenu) return;
+      tenu = true;
+      appuyer(1);
+    });
+    el.addEventListener('keyup', (e) => {
+      if (e.key !== ' ' && e.key !== 'Enter') return;
+      e.preventDefault();
+      lacher();
+    });
+    el.addEventListener('blur', lacher);
+  }
+
   function creerVue(racine, exercice, rappels) {
     const composants = exercice.composants || [];
     const compact = composants.length > 4;
@@ -1141,7 +1174,7 @@
         el.classList.remove('survol');
       });
       const b = el.querySelector('.bouton-poussoir');
-      if (b) b.addEventListener('click', () => rappels.basculerBouton(broche));
+      if (b) poussoir(b, (valeur) => rappels.appuyerBouton(broche, valeur));
     }
 
     const memoire = {};
@@ -2471,7 +2504,7 @@
       const avant = A.progressionExercice(D, ex.id);
       const statutAvant = avant.statut;
       editeur.charger(ex, programme ? (programme.blocks ? programme : A.versBlockly(programme)) : avant.programme);
-      vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { basculerBouton });
+      vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { appuyerBouton });
       niveauDeLExercice(ex);
       afficher();
       A.noterOuverture(D, ex.id);
@@ -2665,13 +2698,14 @@
       for (const [b, v] of Object.entries(etat.boutonsAvant)) etat.sim.changerEntree(b, v);
       etat.boutonsAvant = null;
     }
-    function basculerBouton(broche) {
+    // Bouton poussoir du simulateur : appuyé tant qu'on le tient. Programme arrêté : l'élève est invité à le lancer.
+    function appuyerBouton(broche, valeur) {
       if (etat.rejeu) return;
       if (!etat.sim) {
-        // Simulation arrêtée : on garde l'appui, il servira au lancement.
         etat.boutonsAvant = etat.boutonsAvant || {};
-        etat.boutonsAvant[broche] = etat.boutonsAvant[broche] ? 0 : 1;
-      } else etat.sim.changerEntree(broche, etat.sim.entrees[broche] ? 0 : 1);
+        etat.boutonsAvant[broche] = valeur;
+        if (valeur) $('.simu-note', ecran).textContent = 'Clique sur « Lancer » pour que ton programme réagisse au bouton.';
+      } else etat.sim.changerEntree(broche, valeur);
       afficher();
     }
     function majCommandes() {
