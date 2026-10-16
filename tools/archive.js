@@ -11,8 +11,8 @@ const SITE = path.join(RACINE, 'site');
 const SORTIE = path.join(RACINE, 'dist');
 const DOSSIER = 'atelier-cereales';
 
-if (!fs.existsSync(path.join(SITE, 'vendor', 'blockly', 'blockly_compressed.js'))) {
-  console.error('Blockly manque dans site/vendor : lancer d’abord « npm install » puis « npm run vendor ».');
+if (!fs.existsSync(path.join(SITE, 'vendor', 'labo-blocs', 'blockly', 'blockly_compressed.js'))) {
+  console.error('Labo Blocs manque dans site/vendor : lancer « npm run labo-blocs ».');
   process.exit(1);
 }
 
