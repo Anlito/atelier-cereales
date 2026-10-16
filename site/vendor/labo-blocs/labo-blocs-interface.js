@@ -57,6 +57,7 @@
     <section class="carte composants-liste" aria-label="Composants">
       <h2>Composants</h2>
       <ul class="liste-composants"></ul>
+      <p class="composants-note" hidden></p>
     </section>
   </aside>
 
@@ -147,6 +148,7 @@
     </section>
     <section class="carte verification">
       <button type="button" class="btn-verifier"><span data-icone="coche"></span>Vérifier mon programme</button>
+      <button type="button" class="btn-verifier btn-terminer" hidden><span data-icone="coche"></span>J’ai terminé</button>
       <div class="resultat" role="status" aria-live="polite" hidden></div>
     </section>
   </aside>
@@ -539,7 +541,7 @@
       previousStatement: null,
       nextStatement: null,
       style: 'variable',
-      tooltip: 'Range une valeur dans la boîte CHOIX.',
+      tooltip: 'Range une valeur dans la variable choisie (une boîte qui garde un nombre).',
     },
     {
       type: 'variable',
@@ -547,7 +549,7 @@
       args0: [{ type: 'field_label_serializable', name: 'VAR', text: 'CHOIX' }],
       output: 'Number',
       style: 'variable',
-      tooltip: 'La valeur rangée dans la boîte CHOIX.',
+      tooltip: 'La valeur rangée dans la variable choisie.',
     },
     {
       type: 'nombre',
@@ -615,15 +617,26 @@
 
   const SORTE_BROCHE = { led_etat: 'led', quand_bouton: 'bouton', bouton_etat: 'bouton', son: 'buzzer', servo_angle: 'servo' };
 
+  // Variables connues de l'éditeur en cours (celles de l'exercice, celles de la sauvegarde, celles créées) : les menus
+  // des blocs de variables les proposent. Réglé par l'éditeur à chaque chargement (interface/editeur.js).
+  A.variablesConnues = ['CHOIX'];
+  const BLOCS_VARIABLE = ['affecter', 'ajouter_a', 'variable'];
+  const optionsVariables = () => (A.variablesConnues.length ? A.variablesConnues.map((n) => [n, n]) : [['?', '?']]);
+
   // Palette d'un exercice : seulement ses blocs autorisés ; une catégorie vide n'apparaît pas.
-  function palette(blocsAutorises, composants) {
+  //   options : { variables (noms proposés), creerVariables (bouton « Créer une variable ») }
+  function palette(blocsAutorises, composants, options) {
+    const o = options || {};
+    const variables = o.variables || A.variablesConnues;
     const autorises = new Set(blocsAutorises || []);
     // Les blocs de la palette ne donnent pas la broche de l'exercice : l'élève la choisit en lisant la consigne.
     void composants;
     const contenu = [];
     for (const cat of CATEGORIES) {
-      const blocs = cat.blocs.filter((t) => autorises.has(t));
-      if (!blocs.length) continue;
+      // Blocs de variables : seulement s'il y a au moins une variable (sinon l'élève commence par en créer une).
+      const blocs = cat.blocs.filter((t) => autorises.has(t) && (!BLOCS_VARIABLE.includes(t) || variables.length));
+      const bouton = cat.cle === 'variables' && o.creerVariables;
+      if (!blocs.length && !bouton) continue;
       contenu.push({
         kind: 'category',
         name: cat.nom,
@@ -635,8 +648,10 @@
           label: 'blocklyToolboxCategoryLabel cat-libelle',
           selected: 'blocklyToolboxSelected cat-choisie',
         },
-        contents: blocs.map((type) => {
+        contents: (bouton ? [{ kind: 'button', text: 'Créer une variable', callbackKey: 'creerVariable' }] : []).concat(blocs.map((type) => {
           const forme = JSON.parse(JSON.stringify(FORMES_PALETTE[type] || {}));
+          // Variable de départ : la dernière créée (ou la première de l'exercice).
+          if (BLOCS_VARIABLE.includes(type)) forme.fields = Object.assign({}, forme.fields, { VAR: variables[variables.length - 1] });
           // Broche de départ : la première de la carte (D2 sur l'Uno, P0 sur la micro:bit), jamais celle de l'exercice.
           const sorte = SORTE_BROCHE[type];
           if (sorte && forme.fields && forme.fields.BROCHE) {
@@ -644,7 +659,7 @@
             if (!liste.includes(forme.fields.BROCHE)) forme.fields.BROCHE = liste[0];
           }
           return Object.assign({ kind: 'block', type }, forme);
-        }),
+        })),
       });
     }
     return { kind: 'categoryToolbox', contents: contenu };
@@ -665,6 +680,18 @@
       entree.removeField('ETAT');
       entree.insertFieldAt(rang, new Blockly.FieldDropdown(() => (A.aideLed ? HAUT_BAS_LED : HAUT_BAS)), 'ETAT');
     };
+    // Menus de variables : celles de l'exercice et celles créées par l'élève (le bloc « valeur » aussi).
+    for (const type of BLOCS_VARIABLE) {
+      const init = Blockly.Blocks[type].init;
+      Blockly.Blocks[type].init = function () {
+        init.call(this);
+        const champ = this.getField('VAR');
+        const entree = champ.getParentInput();
+        const rang = entree.fieldRow.indexOf(champ);
+        entree.removeField('VAR');
+        entree.insertFieldAt(rang, new Blockly.FieldDropdown(optionsVariables), 'VAR');
+      };
+    }
     // Menus de broches selon la carte de l'exercice.
     for (const [type, sorte] of [['led_etat', 'led'], ['bouton_etat', 'bouton'], ['quand_bouton', 'bouton'], ['servo_angle', 'servo'], ['son', 'buzzer']]) {
       const init = Blockly.Blocks[type].init;
@@ -808,17 +835,40 @@
 
     // ---------- Chargement / sauvegarde ----------
 
+    // Variables : celles de l'exercice (CHOIX si l'exercice n'en dit rien), celles déjà dans le programme, et celles que
+    // l'élève crée (« Créer une variable », si l'exercice le permet).
+    let exerciceCourant = null;
+    const optionsPalette = () => ({ variables: A.variablesConnues, creerVariables: !!(exerciceCourant && exerciceCourant.variablesLibres) });
+    function creerVariable() {
+      let message = 'Nom de ta nouvelle variable (par exemple : vitesse, compteur) :';
+      for (;;) {
+        const texte = global.prompt(message, '');
+        if (texte === null) return;
+        const r = A.nomDeVariable(texte, A.variablesConnues);
+        if (r.ok) {
+          A.variablesConnues = A.variablesConnues.concat(r.nom);
+          ws.updateToolbox(A.palette(exerciceCourant.blocsAutorises, exerciceCourant.composants, optionsPalette()));
+          return;
+        }
+        message = r.message + ' Nouveau nom :';
+      }
+    }
+    ws.registerButtonCallback('creerVariable', creerVariable);
+
     function charger(exercice, sauvegarde) {
       enChargement = true;
+      exerciceCourant = exercice;
       // Carte de l'exercice : les menus de broches des blocs la suivent (Uno : D2…D13, micro:bit : P0…P2).
       A.carteCourante = exercice.carte || 'uno';
       // Les événements de Blockly partent un instant plus tard : on les coupe pendant le chargement,
       // sinon ils passeraient pour une modification de l'élève (et arrêteraient la simulation).
       Blockly.Events.disable();
       try {
-        ws.updateToolbox(A.palette(exercice.blocsAutorises, exercice.composants));
-        ws.clear();
         const depart = sauvegarde || A.versBlockly(exercice.blocsDepart || { demarrage: [], boucle: [] });
+        const fournies = Array.isArray(exercice.variables) ? exercice.variables : ['CHOIX'];
+        A.variablesConnues = [...new Set(fournies.concat(A.variablesDeSauvegarde(depart)))];
+        ws.updateToolbox(A.palette(exercice.blocsAutorises, exercice.composants, optionsPalette()));
+        ws.clear();
         Blockly.serialization.workspaces.load(depart, ws);
         // « Au démarrage » et « Répéter indéfiniment » ne se suppriment pas, même dans une sauvegarde.
         for (const b of ws.getTopBlocks(false)) if (b.type === 'demarrage' || b.type === 'boucle') b.setDeletable(false);
@@ -950,7 +1000,7 @@
       retablir: () => ws.undo(true),
       horsProgramme: () => horsProgramme.slice(),
       // Éditeur du professeur : les blocs proposés changent sans recharger le programme.
-      changerPalette: (blocsAutorises) => ws.updateToolbox(A.palette(blocsAutorises)),
+      changerPalette: (blocsAutorises) => ws.updateToolbox(A.palette(blocsAutorises, null, optionsPalette())),
     };
   }
 
@@ -1409,10 +1459,15 @@
     grille.classList.toggle('compact', compact);
     grille.innerHTML = composants.map((c) => carteComposant(c, compact)).join('');
 
-    const cartes = {};
-    for (const el of grille.querySelectorAll('.composant')) {
+    // Une carte par composant (dans un exercice libre, deux composants peuvent partager une broche : signalé).
+    const cartes = [];
+    for (const [k, el] of [...grille.querySelectorAll('.composant')].entries()) {
       const broche = el.dataset.broche;
-      cartes[broche] = el;
+      cartes[k] = el;
+      if (composants[k] && composants[k].conflit) {
+        el.classList.add('conflit');
+        el.insertAdjacentHTML('beforeend', '<span class="composant-conflit" role="note">⚠ Broche partagée avec un autre composant</span>');
+      }
       el.addEventListener('mouseenter', () => {
         surlignerBroche(racine, broche);
         el.classList.add('survol');
@@ -1425,12 +1480,12 @@
       if (b) poussoir(b, (valeur) => rappels.appuyerBouton(broche, valeur));
     }
 
-    const memoire = {};
-    function maj(broche, valeur, quoi) {
-      if (memoire[broche] === valeur) return;
-      memoire[broche] = valeur;
-      const el = cartes[broche];
-      const c = composants.find((x) => x.broche === broche);
+    const memoire = [];
+    function maj(k, valeur, quoi) {
+      if (memoire[k] === valeur) return;
+      memoire[k] = valeur;
+      const el = cartes[k];
+      const c = composants[k];
       if (el && c) {
         const pastille = el.querySelector('.pastille-etat');
         if (c.type === 'led') {
@@ -1477,7 +1532,11 @@
     // etats : { broche: valeur } (LED 0/1, servo en degrés, boutons 0/1)
     // sim : le simulateur en cours (écran de la micro:bit, moteurs du mBot…), ou rien s'il est arrêté.
     function afficher(etats, enMarche, sim) {
-      for (const c of composants) maj(c.broche, etats[c.broche] || 0);
+      // État par « broche|sorte » s'il est donné (deux composants sur une broche), sinon par broche.
+      composants.forEach((c, k) => {
+        const cle = c.broche + '|' + c.type;
+        maj(k, (cle in etats ? etats[cle] : etats[c.broche]) || 0);
+      });
       majDistributeur(etats, enMarche);
       if (vueDeCarte) vueDeCarte.afficher(sim || null);
     }
@@ -3037,12 +3096,13 @@
     }
   }
 
-  // Le dossier choisi est-il celui de l'équipe, le dossier du projet (ex. « DISTRIBUTEUR DE CEREALES »), ou un autre ?
-  function analyserDossier(nomDossier, equipe) {
+  // Le dossier choisi est-il le dossier du projet (ex. « DISTRIBUTEUR DE CEREALES », celui qui contient les dossiers des
+  // équipes), celui de l'équipe, ou un autre ? parent : nom attendu du dossier du projet ({classe} déjà remplacé).
+  function analyserDossier(nomDossier, equipe, parent) {
     const s = A.simplifierNom(nomDossier);
-    if (s === A.simplifierNom(equipe)) return 'equipe';
-    const projet = A.projet && A.projet.cheminSauvegarde ? A.projet.cheminSauvegarde[A.projet.cheminSauvegarde.length - 2] : '';
+    const projet = parent !== undefined ? parent : A.projet && A.projet.cheminSauvegarde ? A.projet.cheminSauvegarde[A.projet.cheminSauvegarde.length - 2] : '';
     if (projet && s === A.simplifierNom(projet)) return 'parent';
+    if (s === A.simplifierNom(equipe)) return 'equipe';
     return 'autre';
   }
 
@@ -3447,15 +3507,20 @@
 
     // ----- Équipe -----
 
-    // Chemin du dossier (modèle) et dossier du projet, Firefox.
-    const modele = A.projet.cheminSauvegarde || ['{classe}', '{equipe}'];
-    $('.chemin-texte', racine).textContent = modele.map((p) => p.replace('{classe}', (A.projet.classes || ['5A'])[0]).replace('{equipe}', 'Prénom_Prénom')).join(' › ');
-    $('.nom-dossier-projet', racine).textContent = modele.length > 1 ? modele[modele.length - 2] : '';
     $('.info-firefox', racine).hidden = F.accesDossiers;
 
+    // Classes proposées et chemin du dossier (modèle) : redessinés si la liste du collège en ligne arrive après.
     const choixClasse = $('.champ-classe', racine);
-    choixClasse.innerHTML =
-      '<option value="">Choisis ta classe</option>' + (A.projet.classes || []).map((c) => `<option>${echapper(c)}</option>`).join('');
+    function majClasses() {
+      const modele = A.projet.cheminSauvegarde || ['{classe}', '{equipe}'];
+      $('.chemin-texte', racine).textContent = modele.map((p) => p.replace('{classe}', (A.projet.classes || ['5A'])[0] || '5A').replace('{equipe}', 'Prénom_Prénom')).join(' › ');
+      const choisie = choixClasse.value;
+      choixClasse.innerHTML =
+        '<option value="">Choisis ta classe</option>' + (A.projet.classes || []).map((c) => `<option>${echapper(c)}</option>`).join('');
+      if ((A.projet.classes || []).includes(choisie)) choixClasse.value = choisie;
+    }
+    majClasses();
+    A.surCollege = majClasses;
 
     $('.formulaire-equipe', racine).addEventListener('submit', (e) => {
       e.preventDefault();
@@ -3473,11 +3538,17 @@
 
     function preparerDossier() {
       const chemin = (A.projet.cheminSauvegarde || ['{classe}', '{equipe}']).map((p) => p.replace('{classe}', equipe.classe).replace('{equipe}', equipe.nom));
+      // Le chemin jusqu'au dossier du projet, celui-ci surligné : l'élève le sélectionne, Labo Blocs y crée le dossier de l'équipe.
+      const cible = chemin.length - 2;
       $('.chemin', racine).innerHTML = chemin
-        .map((p, i) => `<span class="chemin-dossier${i === chemin.length - 1 ? ' equipe' : ''}">${echapper(p)}</span>`)
+        .slice(0, -1)
+        .map((p, i) => `<span class="chemin-dossier${i === cible ? ' cible' : ''}">${echapper(p)}</span>`)
         .join('<span class="chemin-fleche" aria-hidden="true">›</span>');
       $('.nom-fichier', racine).textContent = equipe.nom + '.json';
       $('.nom-dossier-equipe', racine).textContent = equipe.nom;
+      // Dossier du projet : celui que l'élève choisit ; Labo Blocs y crée lui-même le dossier de l'équipe.
+      equipe.parent = chemin.length > 1 ? chemin[chemin.length - 2] : '';
+      for (const el of racine.querySelectorAll('.nom-dossier-projet')) el.textContent = equipe.parent || 'du projet';
       racine.querySelector('[data-panneau="dossier"]').classList.toggle('sans-acces', !F.accesDossiers);
       $('.dossier-resultat', racine).innerHTML = '';
       $('.btn-choisir-dossier', racine).hidden = !F.accesDossiers;
@@ -3497,27 +3568,32 @@
         return erreur('dossier', 'Ce dossier ne peut pas être utilisé. Choisis-en un autre.');
       }
       if (!choix) return;
-      const sorte = F.analyserDossier(choix.nom, equipe.nom);
-      if (sorte === 'equipe') return valider(choix.dossier, '');
-      if (sorte === 'parent') {
-        const dossier = await F.creerSousDossier(choix.dossier, equipe.nom);
-        return valider(dossier, `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`);
+      // Le dossier de l'équipe est toujours créé (ou retrouvé) par Labo Blocs dans le dossier du projet.
+      const creer = async () =>
+        valider(await F.creerSousDossier(choix.dossier, equipe.nom), `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`);
+      const sorte = F.analyserDossier(choix.nom, equipe.nom, equipe.parent);
+      if (sorte === 'parent') return creer();
+      if (sorte === 'equipe') {
+        // L'élève est allé un cran trop loin : le dossier du projet est celui qui contient ce dossier.
+        resultat(
+          `<div class="avertissement"><p>Tu as choisi le dossier <strong>« ${echapper(choix.nom)} »</strong>. ` +
+            `Choisis plutôt le dossier qui le contient, <strong>« ${echapper(equipe.parent || 'du projet')} »</strong> : Labo Blocs y retrouve ou y crée lui-même le dossier de ton équipe.</p>` +
+            '<div class="accueil-actions"><button type="button" class="btn-principal btn-autre-dossier">Choisir le dossier du projet</button></div></div>',
+        );
+        $('.btn-autre-dossier', racine).addEventListener('click', choisirDossier);
+        return;
       }
-      // Un autre dossier : on demande à l'élève.
+      // Un autre dossier : on demande à l'élève (le dossier de l'équipe sera quand même créé par Labo Blocs).
       resultat(
         `<div class="avertissement"><p>Le dossier choisi s’appelle <strong>« ${echapper(choix.nom)} »</strong>. ` +
-          `Le dossier de ton équipe devrait s’appeler <strong>« ${echapper(equipe.nom)} »</strong>.</p>` +
+          `Le dossier du projet s’appelle <strong>« ${echapper(equipe.parent || 'du projet')} »</strong>.</p>` +
           '<div class="accueil-actions">' +
           '<button type="button" class="btn-principal btn-autre-dossier">Choisir un autre dossier</button>' +
-          `<button type="button" class="btn-secondaire btn-creer-ici">Créer « ${echapper(equipe.nom)} » ici</button>` +
-          '<button type="button" class="btn-secondaire btn-garder">Utiliser ce dossier quand même</button>' +
+          `<button type="button" class="btn-secondaire btn-creer-ici">Créer « ${echapper(equipe.nom)} » dans « ${echapper(choix.nom)} »</button>` +
           '</div></div>',
       );
       $('.btn-autre-dossier', racine).addEventListener('click', choisirDossier);
-      $('.btn-creer-ici', racine).addEventListener('click', async () =>
-        valider(await F.creerSousDossier(choix.dossier, equipe.nom), `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`),
-      );
-      $('.btn-garder', racine).addEventListener('click', () => valider(choix.dossier, ''));
+      $('.btn-creer-ici', racine).addEventListener('click', creer);
     }
 
     async function valider(dossier, note) {
@@ -3623,7 +3699,9 @@
           const etat = A.etat(D, paquet, ex.id, opts);
           const courant = ex.id === reprendre.id && etat !== 'reussi' && etat !== 'verrouille';
           const e = courant ? { mot: 'En cours', icone: 'lecture' } : ETATS[etat];
-          const mot = ex.defi ? (etat === 'verrouille' ? 'Défi facultatif · verrouillé' : 'Défi facultatif · ' + e.mot.toLowerCase()) : e.mot;
+          const motEtat = ex.libre && etat === 'reussi' ? 'Terminé' : e.mot;
+          const prefixe = ex.defi ? 'Défi facultatif' : ex.libre ? 'Exercice libre' : '';
+          const mot = prefixe ? (etat === 'verrouille' ? prefixe + ' · verrouillé' : prefixe + ' · ' + motEtat.toLowerCase()) : motEtat;
           const classes = ['carte-exercice', 'etat-' + etat, courant ? 'courant' : '', ex.defi ? 'defi' : ''].join(' ');
           return (
             `<button type="button" class="${classes}" data-id="${echapper(ex.id)}"${etat === 'verrouille' ? ' aria-disabled="true"' : ''}>` +
@@ -3752,6 +3830,7 @@
         fermerResultat();
         programmeModifie();
         majCode();
+        if (etat.exercice && etat.exercice.libre) majComposantsLibres();
       },
       zoom(pourcent) {
         $('.zoom-valeur', ecran).textContent = pourcent + ' %';
@@ -3805,28 +3884,26 @@
       arreter();
       fermerResultat();
       fermerBulle();
-      etat.exercice = ex;
+      // Exercice libre : une copie dont les composants suivent le programme de l'élève.
+      etat.exercice = ex.libre ? Object.assign({}, ex, { composants: [] }) : ex;
       $('.consigne-numero', ecran).textContent = (ex.defi ? 'Défi · ' : '') + 'Exercice ' + ex.numero;
       $('.titre-exercice', ecran).textContent = ex.titre;
       document.title = `Exercice ${ex.numero} · ${ex.titre} — ${A.projet.titre}`;
       $('.consigne-texte', ecran).innerHTML = consigneHtml(ex.consigne, lexique);
       $('.consigne', ecran).classList.toggle('longue', ex.consigne.length > 300);
-      // Beaucoup de composants (exercice 13) : le simulateur prend plus de place.
-      ecran.classList.toggle('beaucoup', (ex.composants || []).length > 4);
-      $('.liste-composants', ecran).innerHTML = (ex.composants || [])
-        .map(
-          (c) =>
-            `<li><span class="composant-pastille composant-${c.type}">${A.icone(ICONES_COMPOSANTS[c.type] || 'info', { epaisseur: 2.4 })}</span>` +
-            `<span>${echapper(NOMS_COMPOSANTS[c.type] || c.type)}${c.nom ? ' ' + echapper(c.nom) : ''} <span class="broche">${echapper(c.broche)}</span></span></li>`,
-        )
-        .join('');
-      // Ce qui est déjà sur la carte (rien à brancher).
-      const surLaCarte = { mbot: 'Sur le robot : moteurs, LED, buzzer, bouton, capteur à ultrasons (port 3) et suiveur de ligne (port 2).', microbit: 'Sur la carte : écran 5 × 5, boutons A et B, logo tactile, haut-parleur et capteurs.' }[ex.carte];
-      if (surLaCarte) $('.liste-composants', ecran).insertAdjacentHTML('beforeend', `<li class="composants-carte"><span class="composant-pastille composant-carte">${A.icone('puzzle', { epaisseur: 2.4 })}</span><span>${surLaCarte}</span></li>`);
       const avant = A.progressionExercice(D, ex.id);
       const statutAvant = avant.statut;
       editeur.charger(ex, programme ? (programme.blocks ? programme : A.versBlockly(programme)) : avant.programme);
-      vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { appuyerBouton });
+      const libres = ex.libre ? composantsLibres() : null;
+      if (libres) etat.exercice.composants = libres.composants;
+      dessinerComposants(libres && libres.conflits);
+      vue = A.creerVueSimulateur($('.simulateur', ecran), etat.exercice, { appuyerBouton });
+      // Exercice libre : « J'ai terminé » à la place de « Vérifier » ; ni indice ni solution s'il n'y en a pas.
+      $('.btn-verifier:not(.btn-terminer)', ecran).hidden = !!ex.libre;
+      $('.btn-terminer', ecran).hidden = !ex.libre || lecture;
+      $('.verification', ecran).hidden = !!ex.libre && lecture; // mode enseignant : rien à vérifier ni à terminer
+      $('.carte-aide', ecran).hidden = !!ex.libre && !(ex.indices || []).some(Boolean);
+      btnSolution.hidden = !contexte.solution || !!ex.libre;
       if (panneauCarte) panneauCarte.choisirProfil(A.profil(ex.carte));
       montrerModes(ex);
       if (vue.verrouillerCapteurs) vue.verrouillerCapteurs(etat.modeTest === 'direct');
@@ -3841,6 +3918,57 @@
       // Rouvrir un exercice déjà commencé n'est pas un travail à enregistrer.
       if (A.progressionExercice(D, ex.id).statut !== statutAvant) session.aEnregistrer(true);
       return true;
+    }
+
+    // ----- Composants : ceux de l'exercice, ou ceux que le programme utilise (exercice libre) -----
+
+    function composantsLibres() {
+      const ex = etat.exercice;
+      if (ex.carte && ex.carte !== 'uno') return { composants: [], conflits: [] }; // mBot, micro:bit : tout est sur la carte
+      return A.composantsDuProgramme(editeur.lire().programme);
+    }
+    function dessinerComposants(conflits) {
+      const ex = etat.exercice;
+      // Beaucoup de composants (exercice 13) : le simulateur prend plus de place.
+      ecran.classList.toggle('beaucoup', (ex.composants || []).length > 4);
+      $('.liste-composants', ecran).innerHTML = (ex.composants || [])
+        .map(
+          (c) =>
+            `<li${c.conflit ? ' class="composant-en-conflit"' : ''}><span class="composant-pastille composant-${c.type}">${A.icone(ICONES_COMPOSANTS[c.type] || 'info', { epaisseur: 2.4 })}</span>` +
+            `<span>${echapper(NOMS_COMPOSANTS[c.type] || c.type)}${c.nom ? ' ' + echapper(c.nom) : ''} <span class="broche">${echapper(c.broche)}</span>${c.conflit ? ' <span class="broche-partagee">⚠ broche partagée</span>' : ''}</span></li>`,
+        )
+        .join('');
+      // Ce qui est déjà sur la carte (rien à brancher).
+      const surLaCarte = { mbot: 'Sur le robot : moteurs, LED, buzzer, bouton, capteur à ultrasons (port 3) et suiveur de ligne (port 2).', microbit: 'Sur la carte : écran 5 × 5, boutons A et B, logo tactile, haut-parleur et capteurs.' }[ex.carte];
+      if (surLaCarte) $('.liste-composants', ecran).insertAdjacentHTML('beforeend', `<li class="composants-carte"><span class="composant-pastille composant-carte">${A.icone('puzzle', { epaisseur: 2.4 })}</span><span>${surLaCarte}</span></li>`);
+      const note = $('.composants-note', ecran);
+      const liste = conflits || [];
+      note.classList.toggle('ecart', liste.length > 0);
+      if (liste.length) {
+        const nom = (t) => {
+          const n = NOMS_COMPOSANTS[t] || t;
+          return n === n.toUpperCase() ? n : n.toLowerCase();
+        };
+        note.textContent =
+          liste.map((c) => `La broche ${c.broche} sert à deux composants (${c.types.map(nom).join(' et ')}).`).join(' ') +
+          ' Une broche ne peut brancher qu’un seul composant : choisis une autre broche pour l’un d’eux.';
+        note.hidden = false;
+      } else if (ex.libre && (!ex.carte || ex.carte === 'uno')) {
+        note.textContent = ex.composants.length ? 'Les composants suivent ton programme : à brancher sur ces broches.' : 'Pose un bloc (LED, bouton, servomoteur, buzzer) : son composant apparaît ici et dans le simulateur.';
+        note.hidden = false;
+      } else note.hidden = true;
+    }
+    // Le programme a changé : si ses composants aussi, la liste et le simulateur suivent.
+    function majComposantsLibres() {
+      const ex = etat.exercice;
+      const r = composantsLibres();
+      const avant = JSON.stringify(ex.composants);
+      ex.composants = r.composants;
+      dessinerComposants(r.conflits);
+      if (JSON.stringify(r.composants) === avant || !vue) return;
+      vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { appuyerBouton });
+      if (vue.verrouillerCapteurs) vue.verrouillerCapteurs(etat.modeTest === 'direct');
+      afficher();
     }
 
     // ----- Consigne : bulle de définition -----
@@ -4134,6 +4262,16 @@
       return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
     };
 
+    // Valeur affichée d'un composant (deux composants d'un exercice libre peuvent partager une broche).
+    function etatComposant(c, sim) {
+      if (c.type === 'bouton') return sim ? sim.entrees[c.broche] || 0 : (etat.boutonsAvant && etat.boutonsAvant[c.broche]) || 0;
+      if (c.type === 'buzzer') {
+        const note = sim && sim.journal.filter((e) => e.broche === c.broche && e.type === 'son').pop();
+        return note && note.valeur && sim.t < note.t + note.duree ? note.valeur : 0;
+      }
+      if (c.type === 'servo') return etat.servos[c.broche] || 0;
+      return sim ? sim.sorties[c.broche] || 0 : 0;
+    }
     function afficher(dtVirtuel) {
       if (!vue) return;
       const sim = etat.sim;
@@ -4153,6 +4291,7 @@
           if (!sim) etats[c.broche] = etat.servos[c.broche] = 0;
         }
       }
+      for (const c of etat.exercice.composants || []) etats[c.broche + '|' + c.type] = etatComposant(c, sim, dtVirtuel);
       vue.afficher(etats, !!sim, sim);
       editeur.surligner(sim ? sim.blocsEnCours : null);
       $('.chrono-valeur', ecran).textContent = chrono(sim ? sim.t : 0);
@@ -4186,7 +4325,7 @@
     // ----- Vérification et résultat (A5) -----
 
     const resultat = $('.resultat', ecran);
-    const suivantDe = (ex) => exercices.slice(exercices.indexOf(ex) + 1).find((x) => A.estDebloque(D, paquet, x.id, opts));
+    const suivantDe = (ex) => exercices.slice(exercices.findIndex((x) => x.id === ex.id) + 1).find((x) => A.estDebloque(D, paquet, x.id, opts));
 
     function verifier() {
       fermerBulle();
@@ -4257,7 +4396,33 @@
     function fermerResultat() {
       resultat.hidden = true;
     }
-    $('.btn-verifier', ecran).addEventListener('click', verifier);
+    // Exercice libre : l'équipe a terminé. Pas de correction : le programme est gardé, le professeur le regardera.
+    function terminer() {
+      fermerBulle();
+      aides.fermer();
+      const { programme } = editeur.lire();
+      const ex = etat.exercice;
+      A.noterProgramme(D, ex.id, editeur.sauvegarder());
+      A.noterTermine(D, ex, programme);
+      session.aEnregistrer(true, true);
+      if (contexte.majBandeau) contexte.majBandeau(ex);
+      const suivant = suivantDe(ex);
+      resultat.className = 'resultat reussi';
+      resultat.innerHTML =
+        `<div class="resultat-message">${A.icone('coche', { epaisseur: 2.8 })}<div><strong>Ton programme est enregistré.</strong>` +
+        '<span>C’est un exercice libre : ton professeur regardera ce que tu as inventé. Tu peux encore le modifier.</span>' +
+        (suivant ? `<span>L’exercice ${echapper(suivant.numero)} est ouvert.</span>` : '') +
+        (session.handle || lecture ? '' : '<span class="resultat-note">Pense à enregistrer ton travail dans le dossier de ton équipe.</span>') +
+        '</div></div><div class="resultat-actions">' +
+        (suivant ? `<button type="button" class="btn-principal btn-suivant">Exercice suivant${A.icone('suivant', { epaisseur: 2.8 })}</button>` : '') +
+        `<button type="button" class="btn-secondaire btn-rester">${suivant ? 'Rester sur cet exercice' : 'Fermer'}</button></div>`;
+      if (suivant) $('.btn-suivant', resultat).addEventListener('click', () => ouvrir(suivant));
+      $('.btn-rester', resultat).addEventListener('click', fermerResultat);
+      resultat.hidden = false;
+      resultat.scrollIntoView({ block: 'nearest' });
+    }
+    $('.btn-verifier:not(.btn-terminer)', ecran).addEventListener('click', verifier);
+    $('.btn-terminer', ecran).addEventListener('click', terminer);
 
     // Mode enseignant : remplacer le programme par la solution de référence (démonstration en classe).
     const btnSolution = $('.btn-solution', ecran);
@@ -4394,15 +4559,41 @@
     if (!A.projet) return erreurFatale('Le fichier du projet (projet.js) est absent.');
     // ?parcours=<id> : un autre parcours chargé par la page (essais des cartes mBot et micro:bit), comme un projet à part.
     const autre = q.get('parcours') && q.get('parcours') !== A.projet.parcours ? A.parcoursDefinis.find((p) => p.id === q.get('parcours')) : null;
-    if (autre) A.projet = Object.assign({}, A.projet, { id: autre.id, titre: autre.titre, parcours: autre.id, accent: '#2547D0', cheminSauvegarde: ['{classe}', '{equipe}'] });
+    // Un autre parcours du site : ses classes (tous les niveaux) et son dossier (nom du parcours) dans le dossier de la classe.
+    if (autre) {
+      const dossier = autre.titre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+      A.projet = Object.assign({}, A.projet, { id: autre.id, titre: autre.titre, parcours: autre.id, accent: '#2547D0', niveaux: null, classes: null, cheminSauvegarde: null, cheminProjet: [dossier] });
+    }
+    const brut = A.parcoursDefinis.find((p) => p.id === A.projet.parcours);
+    if (!brut) return erreurFatale(`Le parcours « ${A.projet.parcours} » est introuvable.`);
+    // Classes et dossier de l'équipe : réglages du collège (liste commune), sauf s'ils sont réglés dans le parcours
+    // (éditeur › Réglages, sur le site de Labo Blocs) ; un projet qui garde ses propres réglages
+    // (reglagesDuProjetPrioritaires) les garde. Recalculé quand la version en ligne des réglages du collège arrive.
+    const base = A.projet;
+    const calculer = () => {
+      let p = A.projetAvecCollege ? A.projetAvecCollege(base) : base;
+      if (!base.reglagesDuProjetPrioritaires) {
+        const r = {};
+        if (brut.classes && brut.classes.length) r.classes = brut.classes.slice();
+        if (brut.cheminSauvegarde && brut.cheminSauvegarde.includes('{equipe}')) r.cheminSauvegarde = brut.cheminSauvegarde.slice();
+        p = Object.assign({}, p, r);
+      }
+      if (!p.cheminSauvegarde) p = Object.assign({}, p, { cheminSauvegarde: ['{classe}', '{equipe}'] });
+      return p;
+    };
+    A.projet = calculer();
+    document.addEventListener(A.EVENEMENT_COLLEGE || 'labo-blocs:college', () => {
+      A.projet = Object.assign({}, A.projet, { classes: calculer().classes, cheminSauvegarde: calculer().cheminSauvegarde });
+      if (A.surCollege) A.surCollege();
+    });
     const projet = A.projet;
-    const brut = A.parcoursDefinis.find((p) => p.id === projet.parcours);
-    if (!brut) return erreurFatale(`Le parcours « ${projet.parcours} » est introuvable.`);
     const problemes = A.controler(brut);
     if (problemes.length) return erreurFatale(problemes.join(' '));
     const paquet = A.preparer(brut);
 
     document.documentElement.style.setProperty('--accent', projet.accent || '#2547D0');
+    // Page d'un projet (npm run nouveau-projet) : les couleurs de Labo Blocs sont posées sur body.labo-blocs.
+    if (document.body.classList.contains('labo-blocs')) document.body.style.setProperty('--accent', projet.accent || '#2547D0');
     for (const el of document.querySelectorAll('.bandeau .logo')) el.src = projet.logo || 'img/logo.svg';
     for (const el of document.querySelectorAll('.titre-projet')) el.textContent = projet.titre;
     document.title = `${projet.titre} — Labo Blocs`;
@@ -4463,7 +4654,29 @@
     A.app = { session, paquet, ecranExercice, ecranParcours, versParcours };
   }
 
-  Object.assign(A, { demarrerApplication, ajusterEchelle, poserIcones, preparerPleinEcran, majAvancement });
+  // Site de Labo Blocs : charge tous les parcours de la liste (dossier/index.js, puis dossier/<id>/parcours.js), sans
+  // avoir à écrire chaque parcours dans la page. En file:// comme en ligne (scripts classiques).
+  function chargerParcoursDuSite(dossier) {
+    const charger = (src) =>
+      new Promise((ok) => {
+        const s = document.createElement('script');
+        s.src = src + '?t=' + Date.now(); // un parcours déposé ou republié apparaît tout de suite
+        s.onload = ok;
+        s.onerror = ok;
+        document.body.append(s);
+      });
+    let ids = [];
+    global.definirIndexParcours = (liste) => (ids = liste);
+    return charger(dossier + 'index.js')
+      .then(() => Promise.all(ids.map((id) => charger(`${dossier}${encodeURIComponent(id)}/parcours.js`))))
+      .then(() => {
+        // Ordre de la liste, quel que soit l'ordre de chargement.
+        A.parcoursDefinis.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        return ids;
+      });
+  }
+
+  Object.assign(A, { chargerParcoursDuSite, demarrerApplication, ajusterEchelle, poserIcones, preparerPleinEcran, majAvancement });
 })(this);
 
 // ===== interface/integration.js =====
@@ -4578,4 +4791,566 @@
   }
 
   A.monterExercice = monterExercice;
+})(this);
+
+// ===== interface/professeur.js =====
+// Outil du professeur de Labo Blocs (jalon 5, site/prof.html) : suivre une classe (maquette B10), fiche d'une
+// équipe (B11) avec le programme de chaque exercice rejouable dans le simulateur, niveaux par compétence (forcés si
+// besoin), commentaire, exports (CSV, et fichier de résultats pour le Carnet de classe).
+// Les fichiers des élèves ne sont jamais modifiés : les réglages du professeur vont dans labo-blocs-professeur.json,
+// dans le dossier de la classe (ou dans le navigateur quand les fichiers sont importés un par un).
+(function (global) {
+  'use strict';
+
+  const A = global.LaboBlocs;
+  const $ = (sel, racine) => (racine || document).querySelector(sel);
+  const $$ = (sel, racine) => [...(racine || document).querySelectorAll(sel)];
+  const echapper = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const nombreFr = (x, d) => (x === null || x === undefined ? '—' : String(Math.round(x * Math.pow(10, d || 1)) / Math.pow(10, d || 1)).replace('.', ','));
+  const SYMBOLES = { reussi: '✓', en_cours: '▶', a_reverifier: '!', a_faire: '·', verrouille: '' };
+  const MOTS = { reussi: 'réussi', en_cours: 'en cours', a_reverifier: 'modifié, à revérifier', a_faire: 'à faire', verrouille: 'pas encore ouvert' };
+  const CLE_LOCALE = 'labo-blocs-professeur';
+
+  const etat = {
+    dossier: null,
+    fichiersDossier: [],
+    fichiersImportes: [],
+    equipes: [],
+    refuses: [],
+    prof: A.professeurVide(),
+    vue: 'accueil',
+    equipe: null,
+    derniereLecture: null,
+    lecteurs: new Map(),
+  };
+  let paquets = [];
+
+  function message(texte, duree) {
+    const m = $('.message-bref');
+    m.textContent = texte;
+    m.hidden = false;
+    clearTimeout(message.t);
+    message.t = setTimeout(() => (m.hidden = true), duree || 3000);
+  }
+
+  // ---------- Dossier mémorisé (pour « Reprendre ») ----------
+  function base() {
+    return new Promise((ok, ko) => {
+      const r = indexedDB.open('labo-blocs-professeur', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('dossiers');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => ko(r.error);
+    });
+  }
+  async function memoriser(handle) {
+    try {
+      const db = await base();
+      db.transaction('dossiers', 'readwrite').objectStore('dossiers').put(handle, 'classe');
+    } catch {
+      // pas de mémoire : on redemandera le dossier
+    }
+  }
+  async function memorise() {
+    try {
+      const db = await base();
+      return await new Promise((ok) => {
+        const r = db.transaction('dossiers').objectStore('dossiers').get('classe');
+        r.onsuccess = () => ok(r.result || null);
+        r.onerror = () => ok(null);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  // ---------- Lecture des fichiers ----------
+  const cache = new Map();
+  async function lireDossier(dossier, chemin, profondeur) {
+    const sortie = [];
+    for await (const entree of dossier.values()) {
+      if (entree.kind === 'file' && /\.json$/i.test(entree.name)) {
+        const nom = chemin + entree.name;
+        let f;
+        try {
+          f = await entree.getFile();
+        } catch {
+          continue; // fichier en cours d'écriture par une équipe : relu au prochain passage
+        }
+        const connu = cache.get(nom);
+        if (connu && connu.date === f.lastModified && connu.taille === f.size) sortie.push({ nom, texte: connu.texte });
+        else {
+          const texte = await f.text();
+          cache.set(nom, { date: f.lastModified, taille: f.size, texte });
+          sortie.push({ nom, texte });
+        }
+      } else if (entree.kind === 'directory' && profondeur < 4) {
+        sortie.push(...(await lireDossier(entree, chemin + entree.name + ' › ', profondeur + 1)));
+      }
+    }
+    return sortie;
+  }
+  async function lireFichiers(liste) {
+    const sortie = [];
+    for (const f of liste) if (/\.json$/i.test(f.name)) sortie.push({ nom: f.name, texte: await f.text() });
+    return sortie;
+  }
+
+  // ---------- Réglages du professeur ----------
+  async function lireReglages() {
+    if (etat.dossier) {
+      try {
+        const f = await (await etat.dossier.getFileHandle(A.NOM_FICHIER_PROFESSEUR)).getFile();
+        etat.prof = A.lireProfesseur(await f.text());
+        return;
+      } catch {
+        etat.prof = A.professeurVide();
+        return;
+      }
+    }
+    try {
+      etat.prof = A.lireProfesseur(localStorage.getItem(CLE_LOCALE) || '');
+    } catch {
+      etat.prof = A.professeurVide();
+    }
+  }
+  let minuteurReglages = null;
+  function reglagesModifies() {
+    $('.pr-etat').textContent = 'Réglages modifiés…';
+    clearTimeout(minuteurReglages);
+    minuteurReglages = setTimeout(ecrireReglages, 600);
+  }
+  async function ecrireReglages() {
+    const texte = JSON.stringify(etat.prof, null, 2) + '\n';
+    if (etat.dossier) {
+      try {
+        if ((await etat.dossier.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('refus');
+        const h = await etat.dossier.getFileHandle(A.NOM_FICHIER_PROFESSEUR, { create: true });
+        const w = await h.createWritable();
+        await w.write(texte);
+        await w.close();
+        $('.pr-etat').textContent = 'Réglages enregistrés dans le dossier de la classe';
+        return;
+      } catch {
+        $('.pr-etat').textContent = 'Réglages gardés dans ce navigateur (le dossier n’a pas pu être écrit)';
+      }
+    }
+    try {
+      localStorage.setItem(CLE_LOCALE, texte);
+      if (!etat.dossier) $('.pr-etat').textContent = 'Réglages gardés dans ce navigateur';
+    } catch {
+      $('.pr-etat').textContent = 'Réglages non enregistrés';
+    }
+  }
+
+  // ---------- Classe ----------
+  function recalculer() {
+    const r = A.chargerEquipes([...etat.fichiersDossier, ...etat.fichiersImportes], paquets);
+    etat.equipes = r.equipes;
+    etat.refuses = r.refuses;
+    if (etat.vue === 'fiche' && !etat.equipes.some((e) => e.cle === etat.equipe)) etat.vue = 'classe';
+    dessiner();
+  }
+
+  async function actualiser() {
+    if (!etat.dossier) return recalculer();
+    try {
+      etat.fichiersDossier = await lireDossier(etat.dossier, etat.dossier.name + ' › ', 0);
+      etat.derniereLecture = new Date();
+    } catch {
+      message('Le dossier n’a pas pu être relu (réseau ?). Nouvel essai dans 30 secondes.', 5000);
+    }
+    recalculer();
+  }
+
+  async function ouvrirDossier(handle) {
+    try {
+      if ((await handle.queryPermission({ mode: 'read' })) !== 'granted' && (await handle.requestPermission({ mode: 'read' })) !== 'granted') throw new Error('refus');
+    } catch {
+      return erreurAccueil('Le dossier n’est pas accessible. Choisis-le à nouveau.');
+    }
+    etat.dossier = handle;
+    etat.fichiersImportes = [];
+    cache.clear();
+    await memoriser(handle);
+    await lireReglages();
+    etat.vue = 'classe';
+    await actualiser();
+    clearInterval(actualiser.minuteur);
+    actualiser.minuteur = setInterval(() => document.visibilityState === 'visible' && actualiser(), 30000);
+  }
+
+  async function importer(fichiers) {
+    if (!fichiers.length) return;
+    if (!etat.dossier && !etat.fichiersImportes.length) await lireReglages();
+    // Le même fichier importé deux fois remplace le premier.
+    const noms = new Set(fichiers.map((f) => f.nom));
+    etat.fichiersImportes = etat.fichiersImportes.filter((f) => !noms.has(f.nom)).concat(fichiers);
+    etat.vue = etat.vue === 'accueil' ? 'classe' : etat.vue;
+    recalculer();
+    if (!etat.equipes.length) {
+      etat.vue = 'accueil';
+      dessiner();
+      erreurAccueil(etat.refuses.length ? `Aucune sauvegarde d’équipe dans ces fichiers (${etat.refuses[0].raison})` : 'Aucune sauvegarde d’équipe dans ces fichiers.');
+    }
+  }
+
+  function erreurAccueil(texte) {
+    const e = $('.pr-erreur');
+    e.textContent = texte;
+    e.hidden = !texte;
+  }
+
+  // ---------- Dessin ----------
+  function dessiner() {
+    $('.pr-accueil').hidden = etat.vue !== 'accueil';
+    $('.pr-classe').hidden = etat.vue !== 'classe';
+    $('.pr-fiche').hidden = etat.vue !== 'fiche';
+    $('.pr-btn-changer').hidden = etat.vue === 'accueil';
+    if (etat.vue === 'classe') dessinerClasse();
+    if (etat.vue === 'fiche') dessinerFiche();
+  }
+
+  const reglagesDe = (e) => A.reglagesEquipe(etat.prof, e.cle);
+  const resumer = (e) => A.resumerEquipe(e, { forces: reglagesDe(e).forces, bareme: { objectif: etat.prof.objectif } });
+  const nomEquipe = (e) => e.eleves.join(' · ');
+
+  function paquetPrincipal() {
+    const p = etat.equipes[0] && etat.equipes[0].paquet;
+    return p || paquets.find((x) => x.id === (A.projet && A.projet.parcours)) || paquets[0];
+  }
+
+  function dessinerClasse() {
+    const paquet = paquetPrincipal();
+    const classes = [...new Set(etat.equipes.map((e) => e.classe).filter(Boolean))];
+    $('.pr-titre-classe').textContent = classes.length ? `Classe ${classes.join(', ')}` : 'Classe';
+    const lu = etat.derniereLecture ? ` · lu à ${etat.derniereLecture.getHours()} h ${String(etat.derniereLecture.getMinutes()).padStart(2, '0')}` : '';
+    $('.pr-chemin').textContent = (etat.dossier ? etat.dossier.name : 'Fichiers importés') + ` · ${paquet.titre}` + lu;
+    // Exercices attendus
+    const choix = $('.pr-choix-objectif');
+    choix.innerHTML =
+      `<option value="">Tous (${paquet.exercices.length})</option>` +
+      paquet.exercices.map((e, i) => `<option value="${i + 1}"${etat.prof.objectif === i + 1 ? ' selected' : ''}>Jusqu’à l’exercice ${echapper(e.numero)}</option>`).join('');
+    const resumes = etat.equipes.map((e) => ({ e, r: resumer(e) }));
+    const c = A.resumerClasse(resumes.map((x) => x.r));
+    const tuile = (n, texte, attention) => `<div class="pr-chiffre${attention && n ? ' pr-attention' : ''}"><b>${n}</b><span>${texte}</span></div>`;
+    $('.pr-chiffres').innerHTML =
+      tuile(c.equipes, c.equipes > 1 ? 'équipes' : 'équipe') +
+      tuile(c.bloquees, 'bloquée(s) depuis plus de 10 min', true) +
+      tuile(c.envoisAujourdhui, 'envoi(s) dans la carte aujourd’hui') +
+      tuile(c.aReverifier, 'exercice(s) modifié(s), à revérifier', true);
+    const refus = $('.pr-refuses');
+    refus.hidden = !etat.refuses.length;
+    refus.textContent = etat.refuses.length ? `${etat.refuses.length} fichier(s) ignoré(s) : ${etat.refuses.map((r) => `${r.nom} (${r.raison})`).join(' ; ')}` : '';
+    const codes = resumes.length ? resumes[0].r.evaluation.competences.map((x) => x.code) : [];
+    let h =
+      '<thead><tr><th scope="col">Équipe</th>' +
+      `<th scope="col">Exercices ${echapper(paquet.exercices[0].numero)} à ${echapper(paquet.exercices[paquet.exercices.length - 1].numero)}</th>` +
+      '<th scope="col">Indices</th><th scope="col">Dernier envoi carte</th><th scope="col">Activité</th>' +
+      codes.map((k) => `<th scope="col" title="${echapper(A.COMPETENCES.find((x) => x.code === k).libelle)}">${k}</th>`).join('') +
+      '<th scope="col">Note /20</th><th scope="col">État</th></tr></thead><tbody>';
+    for (const { e, r } of resumes) {
+      const cellules = r.cellules
+        .map((x) => `<span class="pr-cel pr-${x.etat}" title="Exercice ${echapper(x.numero)} : ${MOTS[x.etat]}">${SYMBOLES[x.etat]}</span>`)
+        .join('');
+      h +=
+        `<tr data-cle="${echapper(e.cle)}"><th scope="row"><button type="button" class="pr-lien-equipe" data-cle="${echapper(e.cle)}">${echapper(nomEquipe(e))}</button>` +
+        `<span class="pr-sous">${e.classe ? echapper(e.classe) + ' · ' : ''}${r.reussis} réussi(s) sur ${r.total}${r.defisReussis ? ' + défi' : ''}</span></th>` +
+        `<td><span class="pr-cellules" role="img" aria-label="${r.reussis} exercices réussis sur ${r.total}${r.enCours ? ', exercice ' + echapper(r.enCours) + ' en cours' : ''}">${cellules}</span></td>` +
+        `<td class="pr-nombre">${r.indices}</td>` +
+        `<td>${r.dernierEnvoi ? `${echapper(r.dernierEnvoi.numero)} · ${A.ilYa(r.dernierEnvoi.date)}` : 'Aucun envoi'}</td>` +
+        `<td>${A.ilYa(r.derniereActivite)}</td>` +
+        r.evaluation.competences.map((k) => `<td>${k.niveau ? `<span class="pr-niveau pr-niveau-${k.niveau}" title="${A.nomNiveau(k.niveau)}${k.force ? ' (forcé)' : ''}">${k.niveau}${k.force ? '*' : ''}</span>` : '—'}</td>`).join('') +
+        `<td class="pr-nombre">${nombreFr(r.evaluation.note)}</td>` +
+        `<td><span class="pr-etat-equipe pr-etat-${r.etat.cle}">${r.etat.cle === 'bloquee' ? '⚠ ' : ''}${echapper(r.etat.texte)}</span></td></tr>`;
+    }
+    $('.pr-tableau').innerHTML = h + '</tbody>';
+  }
+
+  function dessinerFiche() {
+    const e = etat.equipes.find((x) => x.cle === etat.equipe);
+    const r = resumer(e);
+    const reg = reglagesDe(e);
+    const ex = e.donnees.programmation.exercices;
+    const options = (k) =>
+      `<option value="">Calculé${k.calcule ? ` : ${k.calcule} · ${A.nomNiveau(k.calcule)}` : ' : pas évalué'}</option>` +
+      A.NIVEAUX_COMPETENCE.map((n) => `<option value="${n.v}"${k.force === n.v ? ' selected' : ''}>Forcer : ${n.v} · ${n.pronote}</option>`).join('');
+    let h =
+      '<div class="pr-fiche-tete"><button type="button" class="btn-secondaire pr-retour">← Classe</button>' +
+      `<div><h1>${echapper(nomEquipe(e))}</h1><p class="pr-chemin">${e.classe ? 'Classe ' + echapper(e.classe) + ' · ' : ''}${echapper(e.nom)} · ${r.reussis} réussi(s) sur ${r.total} · ${echapper(r.etat.texte)}</p></div></div>` +
+      '<div class="pr-fiche-grille">' +
+      '<section class="carte ed-carte"><div class="ed-carte-tete"><h3>Compétences</h3><span class="ed-aide">Programme de technologie du cycle 4 (BO 2024)</span></div>' +
+      '<table class="pr-competences"><tbody>' +
+      r.evaluation.competences
+        .map(
+          (k) =>
+            `<tr><th scope="row"><b>${k.code}</b> ${echapper(k.libelle)}<span class="pr-sous">${k.exercices.length} exercice(s) attendu(s)${k.moyenne !== null ? ` · réussite ${Math.round(k.moyenne * 100)} %` : ''}</span></th>` +
+            `<td>${k.niveau ? `<span class="pr-niveau pr-niveau-${k.niveau}">${k.niveau}</span> ${A.nomNiveau(k.niveau)}` : '—'}</td>` +
+            `<td><select class="pr-forcer" data-code="${k.code}" aria-label="Niveau ${k.code}">${options(k)}</select></td></tr>`,
+        )
+        .join('') +
+      `</tbody></table><p class="pr-note">Note : <b>${nombreFr(r.evaluation.note)}</b> / 20 <span class="ed-aide">(moyenne des niveaux × 5)</span></p>` +
+      `<label>Commentaire du professeur<textarea class="pr-commentaire" rows="3" placeholder="Visible dans l’export et dans le Carnet de classe.">${echapper(reg.commentaire)}</textarea></label></section>` +
+      '<section class="carte ed-carte"><div class="ed-carte-tete"><h3>Exercices</h3><span class="ed-aide">« Voir » ouvre le programme de l’équipe dans le simulateur (lecture seule).</span></div>' +
+      '<table class="pr-exercices"><thead><tr><th scope="col">Exercice</th><th scope="col">État</th><th scope="col">Vérifications</th><th scope="col">Indices</th><th scope="col">Temps</th><th scope="col">Carte</th><th scope="col"></th></tr></thead><tbody>';
+    for (const x of e.paquet.exercices) {
+      const p = ex[x.id];
+      const st = A.etat(e.donnees, e.paquet, x.id);
+      const envois = p ? (p.historique || []).filter((y) => y.type === 'envoi' && y.reussi) : [];
+      const minutes = p ? Math.round((p.tempsPasseSecondes || 0) / 60) : 0;
+      h +=
+        `<tr><th scope="row">${echapper(x.numero)} · ${echapper(x.titre)}${x.defi ? ' <span class="pr-sous">défi</span>' : ''}<span class="pr-sous">${echapper(A.competenceDe(x))}</span></th>` +
+        `<td><span class="pr-cel pr-${st}">${SYMBOLES[st]}</span> ${MOTS[st]}</td>` +
+        `<td class="pr-nombre">${p ? p.tentatives : 0}</td><td class="pr-nombre">${p ? p.indicesOuverts : 0}</td>` +
+        `<td class="pr-nombre">${minutes ? minutes + ' min' : '—'}</td>` +
+        `<td>${envois.length ? `${envois.length} envoi(s)` : '—'}</td>` +
+        `<td>${p && p.programme ? `<button type="button" class="btn-secondaire pr-voir" data-id="${echapper(x.id)}">Voir</button>` : ''}</td></tr>`;
+    }
+    h += '</tbody></table></section></div>';
+    const fiche = $('.pr-fiche');
+    fiche.innerHTML = h;
+    $('.pr-retour', fiche).onclick = () => {
+      etat.vue = 'classe';
+      dessiner();
+    };
+    for (const s of $$('.pr-forcer', fiche)) {
+      s.onchange = () => {
+        const r2 = (etat.prof.equipes[e.cle] = Object.assign({ forces: {}, commentaire: '' }, etat.prof.equipes[e.cle]));
+        if (s.value) r2.forces[s.dataset.code] = Number(s.value);
+        else delete r2.forces[s.dataset.code];
+        reglagesModifies();
+        dessinerFiche();
+      };
+    }
+    $('.pr-commentaire', fiche).oninput = (evt) => {
+      const r2 = (etat.prof.equipes[e.cle] = Object.assign({ forces: {}, commentaire: '' }, etat.prof.equipes[e.cle]));
+      r2.commentaire = evt.target.value;
+      reglagesModifies();
+    };
+    for (const b of $$('.pr-voir', fiche)) b.onclick = () => voirProgramme(e, b.dataset.id);
+  }
+
+  // Programme d'un exercice, dans l'écran d'exercice de Labo Blocs (lecture seule : rien n'est enregistré).
+  function voirProgramme(e, id) {
+    const dlg = $('.pr-programme');
+    let l = etat.lecteurs.get(e.cle);
+    if (!l || l.modifieLe !== e.modifieLe) {
+      const hote = document.createElement('div');
+      hote.className = 'pr-programme-hote';
+      $('.pr-programme-hote', dlg).replaceWith(hote);
+      const session = A.creerSession({ donnees: JSON.parse(JSON.stringify(e.donnees)), lecture: true });
+      A.relierParcours(session.donnees, e.paquet);
+      const ecran = A.monterExercice(hote, {
+        session,
+        paquet: e.paquet,
+        projet: { titre: `${nomEquipe(e)} · programme de l’équipe`, accent: '#14213D' },
+        toutDebloquer: true,
+        retour: { texte: 'Fermer', action: () => dlg.close() },
+      });
+      l = { ecran, hote, modifieLe: e.modifieLe };
+      etat.lecteurs.set(e.cle, l);
+    } else if ($('.pr-programme-hote', dlg) !== l.hote) $('.pr-programme-hote', dlg).replaceWith(l.hote);
+    dlg.showModal();
+    l.ecran.ouvrir(id, e.donnees.programmation.exercices[id].programme);
+    $('.equipe-texte', l.hote).textContent = `Équipe ${nomEquipe(e)} · lecture seule, rien n’est enregistré`;
+  }
+
+  // ---------- Exports ----------
+  function telecharger(nom, texte, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([texte], { type }));
+    a.download = nom;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function resultats() {
+    const paquet = paquetPrincipal();
+    return A.resultatsClasse(etat.equipes, etat.prof, { projet: { id: (A.projet && A.projet.id) || paquet.id, titre: (A.projet && A.projet.titre) || paquet.titre }, paquet });
+  }
+  function nomExport(ext) {
+    const classes = [...new Set(etat.equipes.map((e) => e.classe).filter(Boolean))].join('-') || 'classe';
+    const jour = new Date().toISOString().slice(0, 10);
+    return `labo-blocs-${paquetPrincipal().id}-${classes}-${jour}.${ext}`.replace(/\s+/g, '_');
+  }
+
+  // ---------- Démarrage ----------
+  async function demarrerProfesseur() {
+    for (const el of $$('[data-icone]')) el.outerHTML = A.icone(el.dataset.icone, { epaisseur: el.dataset.epaisseur });
+    for (const p of A.parcoursDefinis) if (!A.controler(p).length) paquets.push(A.preparer(p));
+    const q = new URLSearchParams(location.search);
+    if (q.get('parcours')) paquets.sort((a, b) => (a.id === q.get('parcours') ? -1 : b.id === q.get('parcours') ? 1 : 0));
+    else if (A.projet) paquets.sort((a, b) => (a.id === A.projet.parcours ? -1 : b.id === A.projet.parcours ? 1 : 0));
+    $('.pr-projet').textContent = `Suivi de classe · ${(A.projet && A.projet.titre) || paquets[0].titre}`;
+    document.title = `Suivi de classe — ${(A.projet && A.projet.titre) || 'Labo Blocs'}`;
+
+    const peutDossier = 'showDirectoryPicker' in global;
+    const ouvrir = $('.pr-ouvrir');
+    // Réglages du collège (liste commune) appliqués au projet.
+    if (A.projet && A.projetAvecCollege) A.projet = A.projetAvecCollege(A.projet);
+    // Exemple du dossier d'une classe, d'après les réglages du projet (dossier des équipes sans « {equipe} »).
+    const chemin = A.projet && A.projet.cheminSauvegarde;
+    if (chemin && chemin.length > 1) {
+      const classe = (A.projet.classes && A.projet.classes[0]) || '5A';
+      // À partir du dossier de la classe (« Bureau › Classe » avant lui n'aide pas à reconnaître le dossier).
+      const debut = Math.max(0, chemin.indexOf('{classe}'));
+      const dossier = chemin.slice(debut, chemin.indexOf('{equipe}') >= 0 ? chemin.indexOf('{equipe}') : chemin.length).map((x) => x.replace('{classe}', classe));
+      const court = dossier.length > 2 ? [dossier[0], '…', dossier[dossier.length - 1]] : dossier;
+      ouvrir.querySelector('span').textContent = `Ex. ${court.join(' › ')}. Relu toutes les 30 secondes (Chrome, Edge).`;
+    }
+    if (!peutDossier) {
+      ouvrir.disabled = true;
+      ouvrir.querySelector('span').textContent = 'Avec Chrome ou Edge seulement. Ici : importe les fichiers des équipes.';
+    }
+    ouvrir.onclick = async () => {
+      try {
+        await ouvrirDossier(await global.showDirectoryPicker({ id: 'labo-blocs-classe', mode: 'readwrite' }));
+      } catch {
+        // fenêtre fermée
+      }
+    };
+    const connu = peutDossier ? await memorise() : null;
+    if (connu) {
+      $('.pr-reprendre').hidden = false;
+      $('.pr-reprendre-nom').textContent = connu.name;
+      $('.pr-reprendre').onclick = () => ouvrirDossier(connu);
+    }
+    for (const entree of $$('.pr-fichiers')) {
+      entree.onchange = async () => {
+        await importer(await lireFichiers([...entree.files]));
+        entree.value = '';
+      };
+    }
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files.length) await importer(await lireFichiers([...e.dataTransfer.files]));
+    });
+    $('.pr-actualiser').onclick = () => actualiser().then(() => message('Classe relue.'));
+    $('.pr-btn-changer').onclick = () => {
+      clearInterval(actualiser.minuteur);
+      Object.assign(etat, { dossier: null, fichiersDossier: [], fichiersImportes: [], equipes: [], vue: 'accueil' });
+      erreurAccueil('');
+      dessiner();
+    };
+    $('.pr-choix-objectif').onchange = (evt) => {
+      etat.prof.objectif = evt.target.value ? Number(evt.target.value) : null;
+      reglagesModifies();
+      dessiner();
+    };
+    $('.pr-tableau').onclick = (evt) => {
+      const b = evt.target.closest('[data-cle]');
+      if (!b) return;
+      etat.equipe = b.dataset.cle;
+      etat.vue = 'fiche';
+      dessiner();
+      scrollTo(0, 0);
+    };
+    $('.pr-csv').onclick = () => {
+      telecharger(nomExport('csv'), A.csvResultats(resultats()), 'text/csv;charset=utf-8');
+      message('Le tableau (.csv) est dans tes téléchargements.');
+    };
+    $('.pr-carnet').onclick = () => {
+      telecharger(nomExport('labo-resultats.json'), JSON.stringify(resultats(), null, 2) + '\n', 'application/json');
+      message('Fichier pour le Carnet de classe téléchargé : Carnet › projet › Notes › « Importer des résultats Labo Blocs ».', 6000);
+    };
+    dessiner();
+  }
+
+  A.demarrerProfesseur = demarrerProfesseur;
+})(this);
+
+// ===== interface/college.js =====
+// Réglages du collège, communs à tous les outils de la classe (Labo Blocs, atelier du distributeur, projets…) :
+// la liste des classes et le chemin des dossiers de classe sur le réseau. Un seul fichier, modifié par le professeur
+// dans l'accueil de Labo Blocs (« Réglages du collège ») : https://anlito.github.io/labo-blocs/site/college.js
+//
+//   definirCollege({ format: 'labo-blocs/college', version: 1, classes: ['5A', '4B', …],
+//                    cheminClasse: ['Bureau', 'Classe', '{classe}', 'COMMUN', 'TECHNOLOGIE'] })
+//
+// Chaque outil garde une copie de secours (son propre college.js, lu en premier : hors ligne, c'est elle qui sert),
+// puis lit la version en ligne si internet répond (rien n'est envoyé : simple lecture du fichier).
+// Un projet dit seulement ses niveaux (niveaux: ['5']) et la fin de son chemin (cheminProjet: ['DISTRIBUTEUR DE CEREALES']).
+(function (global) {
+  'use strict';
+
+  const A = (global.LaboBlocs = global.LaboBlocs || {});
+  const FORMAT = 'labo-blocs/college';
+  const ADRESSE = 'https://anlito.github.io/labo-blocs/site/college.js';
+  const CHEMIN_CLASSE_DEFAUT = ['{classe}'];
+  const EVENEMENT = 'labo-blocs:college';
+
+  // Appelé par college.js (la copie de secours, puis la version en ligne) : la dernière lue compte.
+  global.definirCollege = (c) => {
+    if (!c || !Array.isArray(c.classes)) return;
+    const avant = A.college ? JSON.stringify(A.college) : '';
+    A.college = c;
+    if (avant !== JSON.stringify(c) && global.document && global.CustomEvent) global.document.dispatchEvent(new global.CustomEvent(EVENEMENT, { detail: c }));
+  };
+
+  // Lit la version en ligne (si internet répond), sans jamais bloquer la page ni garder une ancienne copie.
+  function chargerCollegeEnLigne(adresse) {
+    const doc = global.document;
+    if (!doc) return;
+    const s = doc.createElement('script');
+    s.src = (adresse || ADRESSE) + '?t=' + Date.now();
+    s.async = true;
+    s.onerror = () => s.remove(); // hors ligne : la copie de secours reste
+    (doc.head || doc.documentElement).appendChild(s);
+  }
+
+  // « 5A » → '5' ; « 4e B » → '4' ; « SEGPA » → ''
+  const niveauDe = (classe) => (String(classe).match(/\d/) || [''])[0];
+
+  // Classes d'un projet : celles du collège de ses niveaux (tous les niveaux si le projet n'en dit rien).
+  function classesDuCollege(college, niveaux) {
+    const n = (niveaux || []).map((x) => niveauDe(x)).filter(Boolean);
+    return (college.classes || []).filter((c) => !n.length || n.includes(niveauDe(c)));
+  }
+
+  // Réglages d'un projet complétés par ceux du collège :
+  //   projet.cheminProjet (fin du chemin, ex. ['DISTRIBUTEUR DE CEREALES']) → cheminClasse + cheminProjet + {equipe}
+  //   projet.niveaux → classes du collège de ces niveaux.
+  // Des classes ou un chemin écrits dans le projet lui-même restent prioritaires (anciens réglages).
+  function projetAvecCollege(projet, college) {
+    const c = college || A.college;
+    if (!projet || !c) return projet;
+    const r = Object.assign({}, projet);
+    if (!projet.classes || !projet.classes.length) r.classes = classesDuCollege(c, projet.niveaux);
+    if (!projet.cheminSauvegarde && projet.cheminProjet) r.cheminSauvegarde = (c.cheminClasse || CHEMIN_CLASSE_DEFAUT).concat(projet.cheminProjet, ['{equipe}']);
+    return r;
+  }
+
+  // Liste tapée par le professeur (« 5A, 5B » ou une par ligne) → classes sans doublon, dans l'ordre.
+  function lireListeClasses(texte) {
+    const vues = new Set();
+    return String(texte || '')
+      .split(/[\n,;]+/)
+      .map((x) => x.trim().replace(/\s+/g, ' '))
+      .filter((x) => x && !vues.has(x.toLowerCase()) && vues.add(x.toLowerCase()));
+  }
+
+  // Chemin tapé (« Bureau › Classe › {classe} › COMMUN ») → morceaux ; {classe} doit y être.
+  function lireCheminClasse(texte) {
+    const morceaux = String(texte || '')
+      .split(/[›/\\>]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (!morceaux.includes('{classe}')) return { ok: false, message: 'Le chemin doit contenir {classe} (le dossier de la classe).' };
+    if (morceaux.includes('{equipe}')) return { ok: false, message: 'Le chemin s’arrête au dossier des projets de la classe : sans {equipe}.' };
+    return { ok: true, chemin: morceaux };
+  }
+
+  function scriptCollege(c) {
+    const donnees = { format: FORMAT, version: 1, classes: c.classes, cheminClasse: c.cheminClasse, modifieLe: c.modifieLe || new Date().toISOString().slice(0, 10) };
+    return (
+      '// Réglages du collège, communs à tous les outils : liste des classes et chemin des dossiers de classe.\n' +
+      '// Modifié dans l’accueil de Labo Blocs (« Réglages du collège »). Chaque outil en garde une copie de secours.\n' +
+      `definirCollege(${JSON.stringify(donnees, null, 2)});\n`
+    );
+  }
+
+  const api = { FORMAT_COLLEGE: FORMAT, ADRESSE_COLLEGE: ADRESSE, EVENEMENT_COLLEGE: EVENEMENT, chargerCollegeEnLigne, classesDuCollege, projetAvecCollege, lireListeClasses, lireCheminClasse, scriptCollege, niveauDe };
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else Object.assign(A, api);
 })(this);

@@ -27,7 +27,9 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 2. **Dossier de l'équipe** : le chemin à suivre s'affiche
    (`Bureau › Classe › 5A › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES`). L'élève sélectionne seulement
    `DISTRIBUTEUR DE CEREALES` : l'atelier y crée le dossier de l'équipe (`Prénom_Prénom`). Le professeur n'a que le
-   dossier DISTRIBUTEUR DE CEREALES à créer dans chaque classe. (Choisir directement le dossier de l'équipe marche aussi.)
+   dossier DISTRIBUTEUR DE CEREALES à créer dans chaque classe. Le dossier de l'équipe est toujours créé par
+   l'atelier : si l'élève choisit ce dossier lui-même, l'atelier lui demande le dossier qui le contient ; un autre
+   dossier → « Créer … dedans » ou « Choisir un autre dossier ».
    Une sauvegarde déjà présente n'est jamais écrasée : l'atelier propose de l'ouvrir.
 3. **Carnet de projet** (il remplace le document élève) : six onglets — Problématique (idées, définition),
    Objet automatisé (classement capteur / carte / actionneur), Algorigrammes (deux exercices),
@@ -137,7 +139,8 @@ Ils sont dans le dossier du site (`site/` dans le dépôt, `atelier-cereales/` d
 
 | Je veux modifier… | Fichier | Champ |
 |---|---|---|
-| la **liste des classes** et le **chemin** affiché | `donnees/classes.js` | `definirClasses`, `definirCheminSauvegarde` |
+| la **liste des classes** et le **début du chemin** (`Bureau › Classe › {classe} › …`), communs à tous les outils | accueil de **Labo Blocs**, « Réglages du collège » (code professeur) | publié en ligne ; l'atelier lit cette version, sinon sa copie de secours `donnees/college.js`, rafraîchie à chaque publication du site |
+| les **niveaux** du projet (classes proposées) et le **dossier du projet** | `donnees/classes.js` | `definirReglagesAtelier({ niveaux: ["5"], cheminProjet: ["DISTRIBUTEUR DE CEREALES"] })` |
 | les **couleurs de câbles en stock** (choix du câblage) | `donnees/carnet.js` | `"couleursCables"` : une liste pour `"led"`, une pour `"bouton"` |
 | les **composants du tutoriel** (photo, branchement) | `donnees/tuto-composants.js` | `"branchement"`, `"note"` |
 | le **barème** de la note | `donnees/notation.js` | chaque réglage est expliqué dans le fichier |

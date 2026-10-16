@@ -83,9 +83,17 @@
 
     // ----- Équipe -----
 
+    // Classes des réglages du collège : redessinées si la version en ligne arrive après l'ouverture (choix gardé).
     const choixClasse = $('.champ-classe', racine);
-    choixClasse.innerHTML =
-      '<option value="">Choisis ta classe</option>' + (A.classes || []).map((c) => `<option>${echapper(c)}</option>`).join('');
+    function majClasses() {
+      const avant = choixClasse.value;
+      choixClasse.innerHTML =
+        '<option value="">Choisis ta classe</option>' + (A.classes || []).map((c) => `<option>${echapper(c)}</option>`).join('');
+      if ((A.classes || []).includes(avant)) choixClasse.value = avant;
+      if (equipe && !racine.querySelector('[data-panneau="dossier"]').hidden) preparerDossier();
+    }
+    majClasses();
+    A.surCollege = majClasses;
 
     $('.formulaire-equipe', racine).addEventListener('submit', (e) => {
       e.preventDefault();
@@ -133,27 +141,45 @@
         return erreur('dossier', 'Ce dossier ne peut pas être utilisé. Choisis-en un autre.');
       }
       if (!choix) return;
-      const sorte = F.analyserDossier(choix.nom, equipe.nom);
-      if (sorte === 'equipe') return valider(choix.dossier, '');
-      if (sorte === 'parent') {
-        const dossier = await F.creerSousDossier(choix.dossier, equipe.nom);
-        return valider(dossier, `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`);
+      const sorte = F.analyserDossier(choix.nom, equipe.nom, dossierProjet());
+      // Le dossier de l'équipe est toujours créé par l'atelier : on choisit le dossier qui le contient.
+      if (sorte === 'equipe') {
+        resultat(
+          `<div class="avertissement"><p>Tu as choisi le dossier <strong>« ${echapper(choix.nom)} »</strong>, celui de ton équipe. ` +
+            `L’atelier le crée lui-même : choisis le dossier qui le contient, <strong>« ${echapper(dossierProjet())} »</strong>.</p>` +
+            '<div class="accueil-actions"><button type="button" class="btn-principal btn-autre-dossier">Choisir un autre dossier</button></div></div>',
+        );
+        $('.btn-autre-dossier', racine).addEventListener('click', choisirDossier);
+        return;
       }
+      if (sorte === 'parent') return creerEtValider(choix);
       // Un autre dossier : on demande à l'élève.
       resultat(
         `<div class="avertissement"><p>Le dossier choisi s’appelle <strong>« ${echapper(choix.nom)} »</strong>. ` +
-          `Le dossier de ton équipe devrait s’appeler <strong>« ${echapper(equipe.nom)} »</strong>.</p>` +
+          `Le dossier attendu est <strong>« ${echapper(dossierProjet())} »</strong> : l’atelier y crée le dossier « ${echapper(equipe.nom)} ».</p>` +
           '<div class="accueil-actions">' +
           '<button type="button" class="btn-principal btn-autre-dossier">Choisir un autre dossier</button>' +
-          `<button type="button" class="btn-secondaire btn-creer-ici">Créer « ${echapper(equipe.nom)} » ici</button>` +
-          '<button type="button" class="btn-secondaire btn-garder">Utiliser ce dossier quand même</button>' +
+          `<button type="button" class="btn-secondaire btn-creer-ici">Créer « ${echapper(equipe.nom)} » dedans</button>` +
           '</div></div>',
       );
       $('.btn-autre-dossier', racine).addEventListener('click', choisirDossier);
-      $('.btn-creer-ici', racine).addEventListener('click', async () =>
-        valider(await F.creerSousDossier(choix.dossier, equipe.nom), `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`),
-      );
-      $('.btn-garder', racine).addEventListener('click', () => valider(choix.dossier, ''));
+      $('.btn-creer-ici', racine).addEventListener('click', () => creerEtValider(choix));
+    }
+
+    async function creerEtValider(choix) {
+      let dossier;
+      try {
+        dossier = await F.creerSousDossier(choix.dossier, equipe.nom);
+      } catch {
+        return erreur('dossier', 'Le dossier de l’équipe n’a pas pu être créé ici. Choisis un autre dossier, ou demande à ton professeur.');
+      }
+      return valider(dossier, `Le dossier « ${equipe.nom} » est prêt dans « ${choix.nom} ».`);
+    }
+
+    // Avant-dernier dossier du chemin (ex. DISTRIBUTEUR DE CEREALES) : celui que l'équipe choisit.
+    function dossierProjet() {
+      const chemin = A.cheminSauvegarde || ['{classe}', '{equipe}'];
+      return String(chemin[chemin.length - 2] || '').replace('{classe}', equipe.classe);
     }
 
     async function valider(dossier, note) {

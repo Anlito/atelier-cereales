@@ -69,6 +69,20 @@
     global.definirCarnet = (carnet) => (Atelier.carnet = carnet);
     global.definirBareme = (bareme) => (Atelier.bareme = bareme);
     global.definirCheminSauvegarde = (chemin) => (Atelier.cheminSauvegarde = chemin);
+    // Réglages du projet complétés par ceux du collège (Labo Blocs, « Réglages du collège ») :
+    // niveaux → classes du collège ; cheminProjet → chemin de la classe + cheminProjet + {equipe}.
+    // Recalculés quand la version en ligne des réglages du collège arrive.
+    global.definirReglagesAtelier = (reglages) => {
+      const L = global.LaboBlocs || {};
+      const appliquer = () => {
+        const r = L.projetAvecCollege ? L.projetAvecCollege(reglages) : reglages;
+        if (r.classes && r.classes.length) Atelier.classes = r.classes;
+        if (r.cheminSauvegarde) Atelier.cheminSauvegarde = r.cheminSauvegarde;
+        if (Atelier.surCollege) Atelier.surCollege();
+      };
+      appliquer();
+      if (global.document) global.document.addEventListener(L.EVENEMENT_COLLEGE || 'labo-blocs:college', appliquer);
+    };
     global.definirComposantsTuto = (liste) => (Atelier.composantsTuto = liste);
   }
 })(this);
