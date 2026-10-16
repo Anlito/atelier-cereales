@@ -16,7 +16,7 @@ le travail de chaque équipe tient dans un fichier `.json` enregistré dans son 
 | `site/parcours/` | `distributeur.js` : les exercices 01 à 13B, leurs fiches et le lexique, venus de Labo Blocs (« Mettre à jour les exercices » dans `prof.html`) |
 | `site/js/moteur/` | moteur du projet, aussi exécuté sous Node : catalogue (parcours), progression (vue par numéro), carnet de projet, notation, tableau de classe, export Excel |
 | `site/js/` | interface : accueil, fichiers, carnet, exercices (écran de Labo Blocs), envoi dans la carte, outil professeur, mise à jour des exercices |
-| `site/donnees/` | carnet, classes, barème, composants du tutoriel |
+| `site/donnees/` | carnet, réglages du projet (niveaux, dossier du projet), copie de secours des réglages du collège (`college.js`, classes et chemin communs à tous les outils), barème, composants du tutoriel |
 | `tests/` | tests Node (`node:test`) |
 | `tools/` | serveur local, recette dans de vrais navigateurs, archive ZIP, sauvegardes d'exemple, programmes de la carte |
 

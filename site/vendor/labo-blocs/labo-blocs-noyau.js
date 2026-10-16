@@ -966,7 +966,70 @@
     return types;
   }
 
-  const api = { depuisBlockly, versBlockly, versV1, versSimplifie, appliquerParametres, typesDeBlocs, FORMAT_PROGRAMME: FORMAT };
+  // Exercice libre (Arduino Uno) : les composants que le programme utilise, dans l'ordre où ils apparaissent.
+  //   → { composants: [{ type, broche, conflit? }], conflits: [{ broche, types: ['led', 'bouton'] }] }
+  // Une broche employée pour deux sortes de composants est un conflit : les deux composants restent (l'élève les voit
+  // dans le simulateur), marqués « conflit », et le conflit est signalé.
+  const SORTE_DU_BLOC = { led_etat: 'led', servo_angle: 'servo', son: 'buzzer', bouton_etat: 'bouton' };
+  function composantsDuProgramme(programme) {
+    const composants = [];
+    const voir = (type, broche) => {
+      if (!broche || composants.some((c) => c.type === type && c.broche === broche)) return;
+      composants.push({ type, broche });
+    };
+    (function parcourir(x) {
+      if (Array.isArray(x)) return x.forEach(parcourir);
+      if (!x || typeof x !== 'object') return;
+      if (x.quand === 'appui' || x.quand === 'relache') voir('bouton', x.broche);
+      if (SORTE_DU_BLOC[x.bloc]) voir(SORTE_DU_BLOC[x.bloc], x.broche);
+      for (const k of Object.keys(x)) if (x[k] && typeof x[k] === 'object') parcourir(x[k]);
+    })(programme ? versV1(programme).fils : []);
+    const conflits = [];
+    for (const c of composants) {
+      const memes = composants.filter((x) => x.broche === c.broche);
+      if (memes.length < 2) continue;
+      c.conflit = true;
+      if (!conflits.some((x) => x.broche === c.broche)) conflits.push({ broche: c.broche, types: memes.map((x) => x.type) });
+    }
+    return { composants, conflits };
+  }
+
+  // Nom d'une variable créée par un élève (« ma vitesse » → « ma_vitesse ») : lettres sans accent, chiffres et « _ »,
+  // une lettre au début, 16 caractères au plus, pas un mot du langage Arduino, pas déjà pris (majuscules comprises).
+  //   → { ok, nom } ou { ok: false, message }
+  const MOTS_RESERVES = new Set(
+    'if else for while do switch case break continue return int float long char bool boolean byte void true false const static setup loop delay millis digitalWrite digitalRead analogRead analogWrite pinMode tone noTone random HIGH LOW INPUT OUTPUT Serial Servo'
+      .toLowerCase()
+      .split(' '),
+  );
+  function nomDeVariable(texte, existantes) {
+    const nom = String(texte || '')
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s'’-]+/g, '_')
+      .replace(/[^A-Za-z0-9_]/g, '');
+    if (!nom) return { ok: false, message: 'Écris un nom pour ta variable (par exemple : vitesse).' };
+    if (!/^[A-Za-z]/.test(nom)) return { ok: false, message: 'Le nom d’une variable commence par une lettre.' };
+    if (nom.length > 16) return { ok: false, message: 'Ce nom est trop long : 16 lettres au plus.' };
+    if (MOTS_RESERVES.has(nom.toLowerCase())) return { ok: false, message: `« ${nom} » est déjà un mot du langage de la carte : choisis un autre nom.` };
+    if ((existantes || []).some((v) => v.toLowerCase() === nom.toLowerCase())) return { ok: false, message: `La variable « ${nom} » existe déjà.` };
+    return { ok: true, nom };
+  }
+
+  // Noms des variables d'une sauvegarde Blockly (champs VAR), pour que les menus les connaissent avant le chargement.
+  function variablesDeSauvegarde(sauvegarde) {
+    const noms = new Set();
+    (function parcourir(x) {
+      if (Array.isArray(x)) return x.forEach(parcourir);
+      if (!x || typeof x !== 'object') return;
+      if (x.fields && typeof x.fields.VAR === 'string' && x.fields.VAR) noms.add(x.fields.VAR);
+      for (const k of Object.keys(x)) if (x[k] && typeof x[k] === 'object') parcourir(x[k]);
+    })(sauvegarde);
+    return [...noms];
+  }
+
+  const api = { nomDeVariable, variablesDeSauvegarde, composantsDuProgramme, depuisBlockly, versBlockly, versV1, versSimplifie, appliquerParametres, typesDeBlocs, FORMAT_PROGRAMME: FORMAT };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign((global.LaboBlocs = global.LaboBlocs || {}), api);
 })(this);
@@ -2938,8 +3001,11 @@
 //
 //   { format: 'labo-blocs/parcours', version: 1, id, titre, versionParcours, date, moteurMinimum, carte, modes,
 //     boutonsVersMasse, parametres, exercices: [ { id (stable, jamais réutilisé), numero, titre, defi, consigne,
-//     composants, blocsAutorises, blocsDepart, scenarios, indices (2 écrits), aSavoir, solutionReference, … } ],
-//     fiches, lexique }
+//     composants, blocsAutorises, blocsDepart, scenarios, indices (2 écrits), aSavoir, solutionReference, libre
+//     (exercice libre : composants déduits du programme de l'élève, pas de solution, « J'ai terminé »), variables
+//     (noms donnés aux élèves ; absent : ['CHOIX']), variablesLibres (bouton « Créer une variable »), … } ],
+//     fiches, lexique, classes (facultatif : classes proposées aux élèves), cheminSauvegarde (facultatif : dossier de
+//     l'équipe, ex. ['{classe}', 'COMMUN', 'TECHNOLOGIE', 'ROBOT', '{equipe}']) }
 //
 // L'« empreinte » d'un exercice résume ce qui décide de sa réussite (consigne, composants, blocs, scénarios,
 // solution, paramètres) : si elle change, un exercice déjà réussi passe « à revérifier ».
@@ -3002,8 +3068,9 @@
       else if (vus.has(e.id)) pb.push(`${nom} : l’identifiant « ${e.id} » est déjà utilisé.`);
       vus.add(e.id);
       if (!e.titre) pb.push(`${nom} : pas de titre.`);
-      if (!e.solutionReference) pb.push(`${nom} : pas de solution de référence.`);
-      if (!(e.scenarios || []).length) pb.push(`${nom} : pas de scénario de test.`);
+      // Exercice libre : ni solution ni scénario (l'élève fait ce qu'il veut avec les blocs proposés).
+      if (!e.libre && !e.solutionReference) pb.push(`${nom} : pas de solution de référence.`);
+      if (!e.libre && !(e.scenarios || []).length) pb.push(`${nom} : pas de scénario de test.`);
     }
     if (!(paquet.exercices || []).length) pb.push('Le parcours n’a aucun exercice.');
     // Modes proposés (parcours, ou exercice qui en choisit d'autres) : le simulateur reste toujours (« Vérifier »).
@@ -3011,6 +3078,16 @@
     if (paquet.modes && !modesValides(paquet.modes)) pb.push('Modes du parcours inconnus (simulateur, direct, carte ; le simulateur est obligatoire).');
     for (const [i, e] of (paquet.exercices || []).entries()) {
       if (e.modes && !modesValides(e.modes)) pb.push(`Exercice ${e.numero || i + 1} : modes inconnus (simulateur, direct, carte ; le simulateur est obligatoire).`);
+      if (e.variables !== undefined && !(Array.isArray(e.variables) && e.variables.every((v) => typeof v === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,15}$/.test(v)))) {
+        pb.push(`Exercice ${e.numero || i + 1} : noms de variables invalides (lettres sans accent, chiffres, « _ »).`);
+      }
+    }
+    // Classes et dossier de l'équipe (réglages facultatifs du parcours, pour le site de Labo Blocs).
+    if (paquet.classes !== undefined && !(Array.isArray(paquet.classes) && paquet.classes.length && paquet.classes.every((c) => typeof c === 'string' && c.trim()))) {
+      pb.push('Classes du parcours : une liste de noms de classes (ex. 4A, 4B).');
+    }
+    if (paquet.cheminSauvegarde !== undefined && !(Array.isArray(paquet.cheminSauvegarde) && paquet.cheminSauvegarde.includes('{equipe}'))) {
+      pb.push('Dossier de l’équipe du parcours : il doit contenir {equipe}.');
     }
     return pb;
   }
@@ -3148,8 +3225,11 @@
     } catch {
       return { ok: false, raison: 'Ce fichier n’est pas une sauvegarde : il est illisible.' };
     }
-    if (!d || !(d.application in APPLICATIONS)) return { ok: false, raison: 'Ce fichier vient d’une autre application : ce n’est pas une sauvegarde d’équipe.' };
-    if (typeof d.formatVersion !== 'number' || d.formatVersion > APPLICATIONS[d.application]) {
+    // Fichier d'un autre projet (son application, ses rubriques) : lisible s'il porte une rubrique « programmation » de
+    // Labo Blocs ; son propre format reste l'affaire du projet.
+    const autreProjet = d && !(d.application in APPLICATIONS) && typeof d.application === 'string' && d.programmation && d.programmation.format === FORMAT;
+    if (!d || (!(d.application in APPLICATIONS) && !autreProjet)) return { ok: false, raison: 'Ce fichier vient d’une autre application : ce n’est pas une sauvegarde d’équipe.' };
+    if (!autreProjet && (typeof d.formatVersion !== 'number' || d.formatVersion > APPLICATIONS[d.application])) {
       return { ok: false, raison: 'Cette sauvegarde vient d’une version plus récente : demande à ton professeur.' };
     }
     if (d.programmation && d.programmation.version > VERSION) return { ok: false, raison: 'Cette sauvegarde vient d’une version plus récente de Labo Blocs : demande à ton professeur.' };
@@ -3247,6 +3327,18 @@
     modifie(d);
   }
 
+  // Exercice libre : l'équipe dit qu'elle a terminé. L'exercice compte comme fait (le suivant s'ouvre), sans niveau.
+  function noterTermine(d, ex, programme) {
+    const e = exercice(d, ex.id);
+    const date = maintenant();
+    e.historique.push({ date, type: 'termine', programme: sansIds(programme) });
+    e.statut = 'reussi';
+    e.empreinte = ex.empreinte;
+    delete e.aReverifier;
+    if (!e.premiereReussite) e.premiereReussite = date;
+    modifie(d);
+  }
+
   // Indices révélés un par un : on garde le plus haut niveau ouvert et chaque ouverture.
   function noterIndice(d, id, niveau) {
     const e = exercice(d, id);
@@ -3320,6 +3412,7 @@
   }
 
   const api = {
+    noterTermine,
     FORMAT_SAUVEGARDE: FORMAT,
     APPLICATION,
     nomEquipe,
@@ -3427,17 +3520,19 @@
     const ex = (donnees && donnees.programmation && donnees.programmation.exercices) || {};
     const liste = paquet.exercices || [];
     const attendus = b.objectif ? liste.slice(0, b.objectif) : liste;
-    const codes = COMPETENCES.map((c) => c.code).filter((code) => liste.some((e) => competenceDe(e) === code));
+    // Exercices libres : pas de niveau (le professeur juge lui-même), ils ne comptent dans aucune compétence.
+    const evalues = liste.filter((e) => !e.libre);
+    const codes = COMPETENCES.map((c) => c.code).filter((code) => evalues.some((e) => competenceDe(e) === code));
     const competences = codes.map((code) => {
       const c = COMPETENCES.find((x) => x.code === code);
-      const siens = attendus.filter((e) => competenceDe(e) === code && !e.defi);
+      const siens = attendus.filter((e) => competenceDe(e) === code && !e.defi && !e.libre);
       const scores = siens.map((e) => scoreExercice(ex[e.id], b).score);
       let calcule = null;
       let moyenne = null;
       if (scores.length) {
         moyenne = Math.round((scores.reduce((s, x) => s + x, 0) / scores.length) * 10000) / 10000;
         calcule = moyenne < b.partiel ? 1 : moyenne < b.atteint ? 2 : 3;
-        const defis = liste.filter((e) => competenceDe(e) === code && e.defi);
+        const defis = evalues.filter((e) => competenceDe(e) === code && e.defi);
         if (calcule === 3 && defis.some((e) => ex[e.id] && ex[e.id].statut === 'reussi')) calcule = 4;
       }
       const force = forces[code] >= 1 && forces[code] <= 4 ? Number(forces[code]) : null;

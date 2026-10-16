@@ -40,6 +40,22 @@ const TAILLES = [
 const IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A', '13B'];
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Réglages du collège : la page lit aussi la version en ligne de Labo Blocs. En recette (sans internet),
+// cette lecture reçoit la copie de secours du dépôt ; c'est la seule adresse hors du site permise.
+const ADRESSE_COLLEGE = 'https://anlito.github.io/labo-blocs/site/college.js';
+const COLLEGE_LOCAL = fs.readFileSync(path.join(SITE, 'donnees', 'college.js'), 'utf8');
+async function lancer(nav) {
+  const b = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+  const nouvellePage = b.newPage.bind(b);
+  b.newPage = async () => {
+    const p = await nouvellePage();
+    await p.setRequestInterception(true);
+    p.on('request', (r) => (r.url().startsWith(ADRESSE_COLLEGE) ? r.respond({ status: 200, contentType: 'text/javascript', body: COLLEGE_LOCAL }) : r.continue()));
+    return p;
+  };
+  return b;
+}
+
 const resultats = []; // { critere, contexte, ok, detail }
 function noter(critere, contexte, ok, detail) {
   resultats.push({ critere, contexte, ok, detail: detail || '' });
@@ -53,7 +69,7 @@ function surveiller(page, origine) {
   page.on('pageerror', (e) => s.erreurs.push(String(e.message || e)));
   page.on('request', (r) => {
     const u = r.url();
-    if (!u.startsWith(origine) && !u.startsWith('data:') && !u.startsWith('blob:')) s.externes.push(u);
+    if (!u.startsWith(origine) && !u.startsWith('data:') && !u.startsWith('blob:') && !u.startsWith(ADRESSE_COLLEGE)) s.externes.push(u);
   });
   return s;
 }
@@ -67,7 +83,7 @@ async function recetteNavigateur(nav, mode, base, origine) {
   const contexte = `${nav.nom}, ${mode}`;
   let navigateur;
   try {
-    navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+    navigateur = await lancer(nav);
   } catch (e) {
     noter('Le navigateur démarre en mode automatique', contexte, false, String(e.message || e).split('\n')[0]);
     return;
@@ -168,6 +184,12 @@ async function recetteNavigateur(nav, mode, base, origine) {
       }
     }
 
+    // Réglages du collège : classes de 5e seulement, mises à jour par la version en ligne ; dossier de l'équipe imposé.
+    if (mode === 'serveur') {
+      const r = await reglagesCollege(navigateur, base);
+      noter('Réglages du collège : classes du niveau, mises à jour en ligne, dossier de l’équipe créé par l’atelier', contexte, r.ok, r.detail);
+    }
+
     noter('Aucune requête réseau hors du site', contexte, !s.externes.length, [...new Set(s.externes)].slice(0, 3).join(' '));
     noter('Aucune erreur dans la console', contexte, !s.erreurs.length, [...new Set(s.erreurs)].slice(0, 3).join(' | '));
   } catch (e) {
@@ -175,6 +197,52 @@ async function recetteNavigateur(nav, mode, base, origine) {
   } finally {
     await navigateur.close();
   }
+}
+
+async function reglagesCollege(navigateur, base) {
+  const page = await navigateur.newPage();
+  await page.setViewport({ width: 1366, height: 768 });
+  await page.goto(base + 'index.html', { waitUntil: 'load' });
+  const r = await page.evaluate(async () => {
+    const pause = (ms) => new Promise((x) => setTimeout(x, ms));
+    const options = () => [...document.querySelectorAll('.champ-classe option')].map((o) => o.value).filter(Boolean);
+    localStorage.clear();
+    const avant = options();
+    document.querySelector('.btn-nouvelle').click();
+    document.querySelector('.champ-classe').value = avant[0];
+    // La version en ligne arrive : une 4e est ignorée (le distributeur est un projet de 5e), le chemin change.
+    definirCollege({ format: 'labo-blocs/college', version: 1, classes: ['5A', '5G', '4A'], cheminClasse: ['Reseau', '{classe}'] });
+    const apres = options();
+    const garde = document.querySelector('.champ-classe').value;
+    const c = document.querySelectorAll('.champ-prenom');
+    c[0].value = 'college';
+    c[1].value = 'test';
+    document.querySelector('.formulaire-equipe button[type=submit]').click();
+    const chemin = document.querySelector('.chemin').innerText.replace(/\s+/g, ' ');
+    // L'élève choisit le dossier de son équipe : refusé, l'atelier le crée lui-même.
+    const racine = await navigator.storage.getDirectory();
+    for await (const [n] of racine.entries()) await racine.removeEntry(n, { recursive: true });
+    const projet = await racine.getDirectoryHandle('DISTRIBUTEUR DE CEREALES', { create: true });
+    const equipe = await projet.getDirectoryHandle('College_Test', { create: true });
+    window.showDirectoryPicker = async () => equipe;
+    document.querySelector('.btn-choisir-dossier').click();
+    await pause(400);
+    const refus = document.querySelector('.dossier-resultat').innerText;
+    window.showDirectoryPicker = async () => projet;
+    document.querySelector('.btn-autre-dossier').click();
+    await pause(500);
+    let cree = false;
+    try {
+      await (await projet.getDirectoryHandle('College_Test')).getFileHandle('College_Test.json');
+      cree = true;
+    } catch {}
+    return { avant, apres, garde, chemin, refus, cree, commencer: !!document.querySelector('.btn-commencer') };
+  });
+  await page.close();
+  const ok =
+    r.avant.length && r.avant.every((c) => c.startsWith('5')) && r.apres.join() === '5A,5G' && r.garde === '5A' &&
+    /Reseau › 5A › DISTRIBUTEUR DE CEREALES/.test(r.chemin) && /qui le contient/.test(r.refus) && r.cree && r.commencer;
+  return { ok, detail: ok ? r.apres.join(', ') : JSON.stringify(r).slice(0, 300) };
 }
 
 // Nouvelle équipe → dossier (simulé) → exercice 1 réussi → la page est fermée → « Reprendre ».
@@ -244,7 +312,7 @@ async function cycleSauvegarde(navigateur, base) {
 const CARTE_VIRTUELLE = fs.readFileSync(path.join(__dirname, 'carte-virtuelle.js'), 'utf8');
 async function maquette(nav, base) {
   const contexte = `${nav.nom}, serveur`;
-  const navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+  const navigateur = await lancer(nav);
   try {
     // 1. Exercice 13A, « Dans la carte » : carte neuve → programme de base installé → programme de l'élève envoyé.
     const page = await navigateur.newPage();
@@ -369,7 +437,7 @@ async function miseAJourExercices(nav) {
   const base = `http://localhost:${port}/`;
   const serveur = spawn(process.execPath, [path.join(__dirname, 'serve.js')], { env: { ...process.env, PORT: String(port), SITE: copie }, stdio: 'ignore' });
   await attendre(800);
-  const navigateur = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
+  const navigateur = await lancer(nav);
   try {
     const page = await navigateur.newPage();
     await page.setViewport({ width: 1366, height: 768 });

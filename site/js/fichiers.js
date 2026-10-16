@@ -41,9 +41,11 @@
   }
 
   // Le dossier choisi est-il celui de l'équipe, le dossier « DISTRIBUTEUR DE CEREALES », ou un autre ?
-  function analyserDossier(nomDossier, equipe) {
+  // parent : nom du dossier du projet attendu (avant-dernier dossier du chemin, ex. DISTRIBUTEUR DE CEREALES).
+  function analyserDossier(nomDossier, equipe, parent) {
     const s = A.simplifierNom(nomDossier);
     if (s === A.simplifierNom(equipe)) return 'equipe';
+    if (parent && s === A.simplifierNom(parent)) return 'parent';
     if (s.includes('distributeur')) return 'parent';
     return 'autre';
   }
