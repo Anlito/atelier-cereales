@@ -1,67 +1,82 @@
 // Progression d'une équipe : tout l'état tient dans un seul objet, enregistré dans un fichier .json.
-// Pour chaque exercice : statut, tentatives, indices, temps passé, programme, et un historique
-// de chaque vérification (avec tous les écarts trouvés) et de chaque indice ouvert, pour le professeur.
+//
+// Les exercices de programmation sont ceux de Labo Blocs : leur travail est rangé dans la rubrique « programmation »
+// du fichier, sous les identifiants stables du parcours (« dist-01 » …), et c'est le module Labo Blocs qui l'écrit
+// (vérifications, indices, temps, programme). Le carnet de projet reste dans la rubrique « carnet ».
+//
+// Pour le carnet, l'outil du professeur et la notation, la sauvegarde présente aussi (sans l'écrire dans le fichier)
+//   exercices      { « 1 » … « 13B » : la progression de l'exercice } — les mêmes objets que dans « programmation »
+//   exerciceCourant, exercice13 { versionReussie: 'A' | 'B' | null }
+//
+// Les sauvegardes d'avant Labo Blocs (format 1 : exercices rangés par numéro) se lisent : leur travail est recopié
+// dans « programmation » à l'ouverture, rien n'est perdu. Le fichier passe au format 2 au premier enregistrement.
 
 (function (global) {
   'use strict';
 
-  const C = typeof module === 'object' && module.exports ? require('./carnet.js') : global.Atelier;
+  const enNode = typeof module === 'object' && module.exports;
+  const C = enNode ? require('./carnet.js') : global.Atelier;
+  const LB = enNode ? require('../../vendor/labo-blocs/labo-blocs-noyau.js') : global.LaboBlocs;
+  const catalogue = () => (enNode ? require('./catalogue.js').catalogue : global.Atelier.catalogue);
 
   const APPLICATION = 'atelier-cereales';
-  const FORMAT = 1;
-  const ORDRE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A', '13B'];
+  const FORMAT = 2;
+  const ORDRE = enNode ? catalogue().ordre : global.Atelier.catalogue.ordre;
 
-  // Date et heure locales, au format du brief : 2026-10-12T09:03:00
-  function maintenant() {
-    const d = new Date();
-    const deux = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}T${deux(d.getHours())}:${deux(d.getMinutes())}:${deux(d.getSeconds())}`;
-  }
-
-  const prenom = (p) => {
-    const t = String(p).trim();
-    return t.charAt(0).toUpperCase() + t.slice(1);
+  const paquet = () => catalogue().paquet();
+  const idDe = (numero) => {
+    const e = paquet().exercices.find((x) => String(x.numero) === String(numero));
+    return e ? e.id : null;
+  };
+  const numeroDe = (id) => {
+    const e = paquet().exercices.find((x) => x.id === id);
+    return e ? String(e.numero) : id;
   };
 
-  // « Léa », « hugo » → « Léa_Hugo » (nom du dossier et du fichier de l'équipe).
-  function nomEquipe(eleves) {
-    return eleves
-      .map((p) =>
-        String(p)
-          .trim()
-          .replace(/[\\/:*?"<>|.]+/g, '')
-          .replace(/\s+/g, '-'),
-      )
-      .filter(Boolean)
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join('_');
-  }
+  const nomEquipe = LB.nomEquipe;
+  const simplifier = LB.simplifierNom;
 
-  // Pour comparer des noms de dossier sans tenir compte des accents, majuscules et séparateurs.
-  function simplifier(nom) {
-    return String(nom)
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
+  // Vue de l'atelier (exercices par numéro, exercice 13), recalculée à chaque lecture, jamais écrite dans le fichier.
+  function relier(d) {
+    const changes = LB.relierParcours(d, paquet());
+    delete d.exercices;
+    delete d.exerciceCourant;
+    delete d.exercice13;
+    d.formatVersion = FORMAT;
+    const prog = () => d.programmation.exercices;
+    Object.defineProperty(d, 'exercices', {
+      configurable: true,
+      enumerable: false,
+      get() {
+        const vue = {};
+        for (const [id, e] of Object.entries(prog())) vue[numeroDe(id)] = e;
+        return vue;
+      },
+    });
+    Object.defineProperty(d, 'exerciceCourant', {
+      configurable: true,
+      enumerable: false,
+      get: () => (d.programmation.exerciceCourant ? numeroDe(d.programmation.exerciceCourant) : ORDRE[0]),
+    });
+    Object.defineProperty(d, 'exercice13', {
+      configurable: true,
+      enumerable: false,
+      get: () => ({ versionReussie: reussi(d, '13B') ? 'B' : reussi(d, '13A') ? 'A' : null }),
+    });
+    return changes;
   }
 
   function creer(equipe) {
-    const date = maintenant();
-    return {
-      application: APPLICATION,
-      formatVersion: FORMAT,
-      equipe: { eleves: equipe.eleves.map(prenom).filter(Boolean), classe: equipe.classe || '' },
-      creeLe: date,
-      modifieLe: date,
-      exerciceCourant: ORDRE[0],
-      exercices: {},
-      exercice13: { versionReussie: null },
-      carnet: C.carnetVide(),
-    };
+    const d = LB.creerSauvegarde(equipe, { application: APPLICATION, parcours: paquet(), projet: 'distributeur' });
+    delete d.projet;
+    d.formatVersion = FORMAT;
+    d.carnet = C.carnetVide();
+    relier(d);
+    return d;
   }
 
   // Vérifie un fichier ouvert par l'équipe. Rien n'est modifié si le fichier est refusé.
+  //   { ok, donnees, changes : exercices passés « modifié, à revérifier » (numéros) } ou { ok: false, raison }
   function lire(texte) {
     let d;
     try {
@@ -72,112 +87,54 @@
     if (!d || d.application !== APPLICATION) {
       return { ok: false, raison: 'Ce fichier vient d’une autre application : ce n’est pas une sauvegarde de l’atelier.' };
     }
-    if (typeof d.formatVersion !== 'number' || d.formatVersion > FORMAT) {
+    if (typeof d.formatVersion !== 'number' || d.formatVersion > FORMAT || (d.programmation && d.programmation.version > 1)) {
       return { ok: false, raison: 'Cette sauvegarde vient d’une version plus récente de l’atelier : demande à ton professeur.' };
     }
     if (!d.equipe || !Array.isArray(d.equipe.eleves)) return { ok: false, raison: 'Cette sauvegarde est incomplète : il manque l’équipe.' };
-    d.exercices = d.exercices || {};
-    d.exercice13 = d.exercice13 || { versionReussie: null };
+    if (d.exercices) for (const e of Object.values(d.exercices)) e.historique = e.historique || [];
     // Sauvegardes d'avant le carnet de projet : on ajoute un carnet vide.
     d.carnet = C.completerCarnet(d.carnet);
-    for (const e of Object.values(d.exercices)) e.historique = e.historique || [];
-    return { ok: true, donnees: d };
+    const changes = relier(d).map(numeroDe);
+    // Gardé le temps de la séance (pas dans le fichier) : le carnet prévient l'équipe une fois.
+    Object.defineProperty(d, 'exercicesModifies', { value: changes, configurable: true, enumerable: false });
+    return { ok: true, donnees: d, changes };
   }
 
-  function exercice(d, id) {
-    if (!d.exercices[id]) {
-      d.exercices[id] = {
-        statut: 'non_commence',
-        tentatives: 0,
-        indicesOuverts: 0,
-        tempsPasseSecondes: 0,
-        premiereReussite: null,
-        programme: null,
-        historique: [],
-      };
-    }
-    return d.exercices[id];
+  // Données déjà lues puis recopiées (ex. programme ouvert depuis l'outil du professeur) : la vue est reposée.
+  function relierDonnees(d) {
+    if (!Object.getOwnPropertyDescriptor(d, 'exercices') || Object.getOwnPropertyDescriptor(d, 'exercices').enumerable) relier(d);
+    return d;
   }
 
-  const modifie = (d) => (d.modifieLe = maintenant());
+  const reussi = (d, numero) => {
+    const id = idDe(numero);
+    const e = id && d.programmation && d.programmation.exercices[id];
+    return !!(e && e.statut === 'reussi');
+  };
 
-  function noterOuverture(d, id) {
-    const e = exercice(d, id);
-    if (e.statut === 'non_commence') e.statut = 'en_cours';
-    d.exerciceCourant = id;
-    modifie(d);
+  // Déblocage du parcours (règle de Labo Blocs : l'exercice suivant s'ouvre quand le précédent est réussi, 13B est
+  // un défi après 13A).
+  function estDebloque(d, numero, options) {
+    const id = idDe(numero);
+    return !!id && LB.estDebloque(d, paquet(), id, options);
   }
 
-  function noterProgramme(d, id, programme) {
-    exercice(d, id).programme = programme;
-    modifie(d);
-  }
-
-  // Programme simplifié sans les identifiants des blocs (plus court, lisible par le professeur).
-  function sansIds(programme) {
-    return programme ? JSON.parse(JSON.stringify(programme, (k, v) => (k === 'id' ? undefined : v))) : null;
-  }
-
-  // Chaque clic sur « Vérifier mon programme » est une tentative, gardée dans l'historique.
-  //   resultat : { reussi, message, ecarts: [messages de tous les scénarios ratés], notes: [...], programme }
-  function noterVerification(d, id, resultat) {
-    const e = exercice(d, id);
-    const date = maintenant();
-    e.tentatives += 1;
-    const trace = { date, type: 'verification', reussi: !!resultat.reussi };
-    if (!resultat.reussi) {
-      trace.message = resultat.message || '';
-      trace.ecarts = resultat.ecarts || (resultat.message ? [resultat.message] : []);
-      if (resultat.notes && resultat.notes.length) trace.notes = resultat.notes;
-    }
-    trace.programme = sansIds(resultat.programme);
-    e.historique.push(trace);
-    if (resultat.reussi) {
-      e.statut = 'reussi';
-      if (!e.premiereReussite) e.premiereReussite = date;
-      if (id === '13B') d.exercice13.versionReussie = 'B';
-      else if (id === '13A' && d.exercice13.versionReussie !== 'B') d.exercice13.versionReussie = 'A';
-    } else if (e.statut === 'non_commence') e.statut = 'en_cours';
-    modifie(d);
-  }
-
-  // Indices révélés un par un : on garde le plus haut niveau ouvert et chaque ouverture.
-  function noterIndice(d, id, niveau) {
-    const e = exercice(d, id);
-    if (niveau <= e.indicesOuverts) return;
-    e.indicesOuverts = niveau;
-    e.historique.push({ date: maintenant(), type: 'indice', niveau });
-    modifie(d);
-  }
-
-  function ajouterTemps(d, id, secondes) {
-    exercice(d, id).tempsPasseSecondes += secondes;
-  }
-
-  const reussi = (d, id) => !!(d.exercices[id] && d.exercices[id].statut === 'reussi');
-
-  // Déblocage linéaire : l'exercice N+1 s'ouvre quand le N est réussi (13B après 13A).
-  function estDebloque(d, id, options) {
-    if (options && options.toutDebloquer) return true;
-    const i = ORDRE.indexOf(String(id));
-    if (i <= 0) return i === 0;
-    return reussi(d, ORDRE[i - 1]);
-  }
-
-  // Exercice à ouvrir en reprenant : celui de la dernière fois s'il est ouvert et pas encore réussi,
-  // sinon le premier exercice ouvert non réussi.
+  // Exercice à ouvrir en reprenant (numéro).
   function aReprendre(d) {
-    if (d.exerciceCourant && estDebloque(d, d.exerciceCourant) && !reussi(d, d.exerciceCourant)) return d.exerciceCourant;
-    return ORDRE.find((id) => estDebloque(d, id) && !reussi(d, id)) || ORDRE[ORDRE.length - 1];
+    return numeroDe(LB.exerciceAReprendre(d, paquet()));
   }
 
-  // Avancement affiché : 13 exercices (13A suffit pour le dernier).
+  // Avancement affiché : exercices obligatoires réussis (13A suffit pour le dernier).
   function avancement(d) {
-    let n = 0;
-    for (const id of ORDRE.slice(0, 12)) if (reussi(d, id)) n++;
-    if (reussi(d, '13A') || reussi(d, '13B')) n++;
-    return n;
+    return LB.avancement(d, paquet()).reussis;
   }
+
+  // Écritures par numéro, pour les outils et les tests (en classe, c'est l'écran d'exercice de Labo Blocs qui écrit).
+  const exerciceDuParcours = (numero) => paquet().exercices.find((x) => String(x.numero) === String(numero));
+  const noterOuverture = (d, numero) => LB.noterOuverture(d, idDe(numero));
+  const noterVerification = (d, numero, resultat) => LB.noterVerification(d, exerciceDuParcours(numero), resultat);
+  const noterIndice = (d, numero, niveau) => LB.noterIndice(d, idDe(numero), niveau);
+  const ajouterTemps = (d, numero, secondes) => LB.ajouterTemps(d, idDe(numero), secondes);
 
   const api = {
     APPLICATION,
@@ -187,9 +144,10 @@
     simplifierNom: simplifier,
     creerProgression: creer,
     lireSauvegarde: lire,
-    progressionExercice: exercice,
+    relierDonnees,
+    idExercice: idDe,
+    numeroExercice: numeroDe,
     noterOuverture,
-    noterProgramme,
     noterVerification,
     noterIndice,
     ajouterTemps,
@@ -197,6 +155,6 @@
     exerciceAReprendre: aReprendre,
     avancement,
   };
-  if (typeof module === 'object' && module.exports) module.exports = api;
+  if (enNode) module.exports = api;
   else Object.assign((global.Atelier = global.Atelier || {}), api);
 })(this);

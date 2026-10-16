@@ -392,22 +392,26 @@
       for (const ex of exercices) {
         const p = D.exercices[ex.id];
         const ouvert = A.estDebloque(D, ex.id);
-        const statut = !ouvert ? 'verrouille' : p ? p.statut : 'non_commence';
-        const symbole = { verrouille: '🔒', reussi: '✓', en_cours: '●', non_commence: '○' }[statut];
-        const mot = { verrouille: 'verrouillé', reussi: 'réussi', en_cours: 'en cours', non_commence: 'à faire' }[statut];
+        // « à revérifier » : réussi, mais le professeur a modifié l'exercice depuis (mise à jour des exercices).
+        const statut = !ouvert ? 'verrouille' : p ? (p.statut === 'reussi' && p.aReverifier ? 'a_reverifier' : p.statut) : 'non_commence';
+        const symbole = { verrouille: '🔒', reussi: '✓', a_reverifier: '↻', en_cours: '●', non_commence: '○' }[statut];
+        const mot = { verrouille: 'verrouillé', reussi: 'réussi', a_reverifier: 'modifié, à revérifier', en_cours: 'en cours', non_commence: 'à faire' }[statut];
         h += `<button type="button" class="ligne-exercice statut-${statut}" data-exercice="${ex.id}"${ouvert ? '' : ' disabled'}>` +
           `<span class="liste-numero">${ex.id}</span><span class="liste-titre">${echapper(ex.titre)}</span>` +
           `<span class="liste-statut"><span aria-hidden="true">${symbole}</span> ${mot}${p && p.tentatives ? ` · ${p.tentatives} vérification${p.tentatives > 1 ? 's' : ''}` : ''}</span></button>`;
       }
-      // Fin du parcours : le programme du distributeur peut aller dans la vraie carte.
-      const version = A.envoiCarte.versionPossible(D, session.lecture);
+      // Maquette : l'élève envoie SON programme de l'exercice 13 (mode « Dans la carte » de l'écran d'exercice).
+      const version = versionMaquette();
       h += '</div><div class="tester-maquette">' +
         `<h3>${A.icone('lumiere', { epaisseur: 2.4 })}Tester sur la maquette</h3>` +
-        (version
-          ? `<p>Ton programme du distributeur est validé${version === '13B' ? ' (défi compris)' : ''} : envoie-le dans la carte Arduino de ta maquette.</p>` +
-            '<button type="button" class="btn-principal btn-envoi-carte">Envoyer le programme dans la carte Arduino</button>'
-          : '<p>Quand l’exercice 13 sera réussi, tu pourras envoyer le programme du distributeur dans la carte Arduino de ta maquette.</p>' +
-            '<button type="button" class="btn-principal btn-envoi-carte" disabled>Envoyer le programme dans la carte Arduino</button>') +
+        (!version
+          ? '<p>Quand l’exercice 13 sera ouvert, tu pourras envoyer ton programme du distributeur dans la carte Arduino de ta maquette.</p>' +
+            '<button type="button" class="btn-principal btn-envoi-carte" disabled>Envoyer mon programme dans la carte Arduino</button>'
+          : (D.exercices[version] && D.exercices[version].statut === 'reussi'
+              ? `<p>Ton programme du distributeur est validé${version === '13B' ? ' (défi compris)' : ''} : envoie-le dans la carte Arduino de ta maquette.</p>`
+              : `<p>Ton programme de l’exercice ${version} n’est pas encore validé : tu peux quand même l’essayer sur ta maquette.</p>`) +
+            `<button type="button" class="btn-principal btn-envoi-carte" data-version="${version}">Envoyer mon programme dans la carte Arduino</button> ` +
+            `<button type="button" class="btn-secondaire btn-direct-carte" data-version="${version}" title="Le programme tourne dans l’ordinateur et la maquette obéit tout de suite (câble branché)">Essayer en direct sur la maquette</button>`) +
         '<p class="demontage">Fin de séance (démontage) : <button type="button" class="btn-secondaire btn-vider-carte">Vider la carte</button> ' +
         '<a class="lien-tuto" href="tuto.html" target="_blank" rel="noopener">Tutoriel de câblage</a></p>' +
         '</div>';
@@ -449,8 +453,9 @@
       if (!b || !racine.contains(b)) return;
       if (b.dataset.verifier) return verifier(b.dataset.verifier);
       if (b.dataset.exercice) return A.ouvrirExercice(b.dataset.exercice);
-      if (b.classList.contains('btn-envoi-carte')) return A.envoiCarte.ouvrir(session);
-      if (b.classList.contains('btn-vider-carte')) return A.envoiCarte.ouvrir(session, { vierge: true });
+      if (b.classList.contains('btn-envoi-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'carte' });
+      if (b.classList.contains('btn-direct-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'direct' });
+      if (b.classList.contains('btn-vider-carte')) return viderLaCarte();
       if (b.dataset.couleur) {
         K.couleurs[b.dataset.broche] = K.couleurs[b.dataset.broche] === b.dataset.couleur ? undefined : b.dataset.couleur;
         if (!K.couleurs[b.dataset.broche]) delete K.couleurs[b.dataset.broche];
@@ -521,23 +526,50 @@
   let carnet = null;
   function demarrerProjet(s) {
     session = s;
+    A.sessionCourante = s;
     carnet = creerCarnet(s);
     montrerCarnet('problematique');
   }
   function montrerCarnet(onglet) {
-    if (A.ecran && A.ecran.arreter) A.ecran.arreter();
-    $('.ecran-exercice').hidden = true;
+    if (A.programmation) A.programmation.quitter();
+    $('.ecran-programmation').hidden = true;
     $('.ecran-carnet').hidden = false;
     document.title = 'Carnet de projet — Distributeur de céréales';
     carnet.montrer(onglet);
   }
-  function ouvrirExercice(id) {
-    const ex = A.catalogue.exercices().find((e) => e.id === id);
-    if (!ex || !A.estDebloque(session.donnees, id)) return;
+  // Exercices : écran de Labo Blocs, posé à la première ouverture ; « Carnet » ramène à l'onglet Programmation.
+  //   options : { mode: 'carte' | 'direct' } (« Tester sur la maquette » : envoyer son programme dans la carte, ou
+  //   le faire tourner en direct, câble branché)
+  function ouvrirExercice(numero, options) {
+    if (!A.idExercice(numero) || !A.estDebloque(session.donnees, numero)) return;
     $('.ecran-carnet').hidden = true;
-    $('.ecran-exercice').hidden = false;
-    if (!A.ecran) A.demarrerEcranExercice(session, { exercice: id });
-    else A.ecran.ouvrir(ex);
+    $('.ecran-programmation').hidden = false;
+    if (!A.programmation) A.programmation = A.monterProgrammation(session, { retour: { texte: 'Carnet', action: () => montrerCarnet('programmation') } });
+    A.programmation.ouvrir(A.idExercice(numero));
+    A.programmation.choisirModeTest(options && ['carte', 'direct'].includes(options.mode) ? options.mode : 'simulateur');
+  }
+
+  // Exercice 13 à envoyer dans la maquette : 13B s'il est réussi, sinon 13A (s'il est ouvert).
+  function versionMaquette() {
+    const D = session.donnees;
+    if (D.exercices['13B'] && D.exercices['13B'].statut === 'reussi') return '13B';
+    return A.estDebloque(D, '13A') ? '13A' : null;
+  }
+
+  // Fin de séance (démontage) : la carte de la maquette est vidée, son programme effacé.
+  function viderLaCarte() {
+    const D = session.donnees;
+    global.LaboBlocs.ouvrirDialogueCarte({
+      carte: 'uno',
+      titre: 'Vider la carte Arduino',
+      intro: 'Protocole de démontage : on efface le programme de la carte. Elle ne commandera plus rien : tu pourras ensuite débrancher délicatement les câbles et les composants.',
+      seulementVider: true,
+      surVidage(r) {
+        if (session.lecture) return;
+        global.LaboBlocs.noterVidage(D, A.idExercice('13A'), { carte: 'uno', reussi: !!(r && r.ok) });
+        session.aEnregistrer(true, true);
+      },
+    });
   }
 
   Object.assign(A, { demarrerProjet, montrerCarnet, ouvrirExercice });

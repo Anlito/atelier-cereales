@@ -33,22 +33,25 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
    Algorigramme du distributeur, Programmation, Câblage. Un bouton « Vérifier » corrige le classement et les
    algorigrammes : il dit combien de réponses sont justes et marque « à revoir » ce qui est faux, sans donner la réponse.
 4. **Exercices de programmation** (onglet Programmation) : on réussit l'exercice N pour ouvrir le N+1
-   (13B est un défi après 13A). Le bouton « Carnet » de l'écran d'exercice ramène au carnet.
+   (13B est un défi après 13A). L'écran d'exercice est celui de **Labo Blocs** (le même dans tous les projets) ;
+   son bouton « Carnet » ramène au carnet.
 5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
    tout seul (à chaque vérification et peu après une modification).
 6. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
-7. **Tester sur la maquette** : quand l'exercice 13A est réussi, « Envoyer le programme dans la carte Arduino »
-   (onglet Programmation du carnet, ou message de réussite de l'exercice 13) envoie le programme du distributeur
-   dans la carte branchée en USB (Chrome ou Edge, aussi depuis le dossier réseau). C'est le programme de la
-   solution de référence (13B si le défi est réussi) : celui de l'équipe a réussi les mêmes tests, il fait la même
-   chose. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la résistance interne de la carte
-   (réglage "boutonsVersMasse" de exercices/parametres.js). Chaque envoi est noté pour le professeur.
-   Fin de séance : « Vider la carte » envoie un programme vierge (protocole de démontage).
-   Si une broche ou une solution de l'exercice 13 change, recompiler avec « npm run firmware » (les fichiers
-   site/firmware/distributeur_13A.ino et _13B.ino s'ouvrent aussi dans l'IDE Arduino).
+7. **Tester sur la maquette** : l'équipe envoie **son propre programme** dans la carte Arduino de sa maquette, depuis
+   l'écran d'exercice (« Tester » › **« Dans la carte »**, avec Chrome ou Edge, aussi depuis le dossier réseau), ou
+   depuis le carnet (onglet Programmation › « Envoyer mon programme dans la carte Arduino », qui ouvre l'exercice 13
+   dans ce mode). La première fois, la carte reçoit son **programme de base Labo Blocs** (« Installer le programme de
+   la carte », une dizaine de secondes, une fois pour toutes) ; ensuite chaque envoi ne prend que quelques secondes et
+   la carte garde le programme, même débranchée. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la
+   résistance interne de la carte (réglage "boutonsVersMasse" du parcours). Chaque envoi est noté pour le professeur.
+   **En direct** (« Tester » › « En direct », ou « Essayer en direct sur la maquette » dans le carnet) : le programme
+   tourne dans l'ordinateur et la maquette obéit tout de suite (ses vrais boutons comptent) ; le câble doit rester
+   branché, le programme s'arrête si l'onglet est fermé (la carte éteint tout).
+   Fin de séance : « Vider la carte » efface le programme (protocole de démontage).
 8. **Tutoriel de câblage** (`tuto.html`, lien dans le carnet) : la carte Arduino, la platine de test, les
    protocoles d'installation / d'envoi du programme / de démontage, le câblage du distributeur (construit depuis
-   exercices/13A.js) et la fiche de branchement de chaque composant.
+   l'exercice 13A du parcours) et la fiche de branchement de chaque composant.
 
 ## 3. Outil professeur (`prof.html`)
 
@@ -97,6 +100,28 @@ Bouton « Barème » de `prof.html` (réglages valables le temps de la page), ou
 
 Les élèves sont prévenus dans le panneau des indices qu'un indice enlève un peu de points.
 
+### Mettre à jour les exercices
+
+Les exercices de programmation viennent de **Labo Blocs**, l'outil de programmation par blocs commun aux projets :
+l'atelier en garde une copie, `parcours/distributeur.js`, et ne change que si vous le décidez.
+
+Bouton **« Exercices »** en haut de `prof.html` (ou le lien « Mettre à jour les exercices » de l'accueil) :
+
+1. **Version installée** : numéro et date de la version des exercices.
+2. **Chercher une nouvelle version** : « Chercher en ligne » (la dernière version publiée par Labo Blocs, connexion
+   internet nécessaire) ou « Choisir un fichier… » (un parcours exporté par Labo Blocs, `….labo-parcours.json`).
+3. **Les différences** s'affichent : exercices modifiés (avec la consigne avant / après), ajoutés, supprimés,
+   déplacés, textes retouchés. Une version faite pour un Labo Blocs plus récent est refusée, avec la raison.
+4. **« Valider la mise à jour »**, puis choisir le **dossier du site** (celui qui contient `index.html` et `parcours`) :
+   le nouveau fichier remplace l'ancien, gardé dans `parcours/distributeur-precedent.js`. Les élèves ont les nouveaux
+   exercices en rechargeant l'atelier (F5). Avec Firefox, ou depuis le site en ligne, le fichier est téléchargé :
+   le copier à la main dans `parcours/`.
+5. **« Revenir à la version précédente »** remet l'ancienne version (la version actuelle prend sa place).
+
+**Le travail des élèves est protégé** : leurs blocs et leurs réussites sont gardés. Un exercice déjà réussi qui a
+changé apparaît « ↻ modifié, à revérifier » dans leur carnet : ils relancent la vérification. L'exercice suivant reste
+ouvert. Une mise à jour ne demande rien d'autre : les élèves envoient leur propre programme dans la carte.
+
 ---
 
 ## 4. Modifier les contenus (sans toucher au programme)
@@ -111,39 +136,25 @@ Ils sont dans le dossier du site (`site/` dans le dépôt, `atelier-cereales/` d
 
 | Je veux modifier… | Fichier | Champ |
 |---|---|---|
-| la **consigne** d'un exercice | `exercices/04.js` (etc., `13A.js`, `13B.js`) | `"consigne"` ; `\n` = retour à la ligne |
-| le **titre** d'un exercice | même fichier | `"titre"` |
-| une **broche** ou le **nom** d'un composant | même fichier | `"composants"` : `{ "type": "led", "nom": "Trappe", "broche": "D5" }` |
-| les **blocs proposés** dans la palette | même fichier | `"blocsAutorises"` |
-| les **indices 1 et 2** | même fichier | `"indices"` (l'indice 3, la silhouette, est tiré de la solution) |
-| la **solution de référence** | même fichier | `"solutionReference"` |
-| la **fiche « À savoir »** | `donnees/fiches.js` | la fiche dont le numéro est le `"aSavoir"` de l'exercice |
-| l'explication des blocs **« Au démarrage » / « Répéter indéfiniment »** | `donnees/fiches.js` | fiche `"demarrage-boucle"` |
-| le **lexique** (définitions, mots soulignés) | `donnees/lexique.js` | `"definition"`, `"formes"` |
 | la **liste des classes** et le **chemin** affiché | `donnees/classes.js` | `definirClasses`, `definirCheminSauvegarde` |
-| la **durée de la trappe** (CHOIX = 3 ou 7) | `exercices/parametres.js` | `"dureePetiteDose"`, `"dureeGrandeDose"` |
-| jusqu'à quel exercice le bloc LED affiche « allumée / éteinte » | `exercices/parametres.js` | `"aideLedJusquAExercice"` (0 = jamais) |
 | les **couleurs de câbles en stock** (choix du câblage) | `donnees/carnet.js` | `"couleursCables"` : une liste pour `"led"`, une pour `"bouton"` |
 | les **composants du tutoriel** (photo, branchement) | `donnees/tuto-composants.js` | `"branchement"`, `"note"` |
 | le **barème** de la note | `donnees/notation.js` | chaque réglage est expliqué dans le fichier |
-| le **carnet de projet** (problématique, éléments à classer et leur bonne colonne, étapes des algorigrammes, couleurs de câbles) | `donnees/carnet.js` | chaque partie est expliquée dans le fichier ; le tableau de câblage est construit depuis `exercices/13A.js` |
+| le **carnet de projet** (problématique, éléments à classer et leur bonne colonne, étapes des algorigrammes, couleurs de câbles) | `donnees/carnet.js` | chaque partie est expliquée dans le fichier ; le tableau de câblage est construit depuis l'exercice 13A du parcours |
 
-**Attention aux broches** : si vous changez une broche dans `"composants"`, changez-la aussi dans
-`"solutionReference"` et dans les `"scenarios"` (les tests de « Vérifier mon programme »), sinon la
-vérification attendra l'ancienne broche. Les broches suivent le **tableau de câblage** : boutons PetiteDose D3,
-GrandeDose D4, Trappe D5 ; LED PetiteDose D9, GrandeDose D10, Trappe D11 ; servo D6. Le tableau « Câblage » du
-carnet est construit à partir de `exercices/13A.js` : il suit automatiquement une modification de ce fichier.
-Les menus des blocs proposent toutes les broches D2 à D13 : c'est à l'élève de choisir la bonne.
-
-**Les tests de vérification** (`"scenarios"`) décrivent ce qu'on observe : attendre, appuyer sur un bouton,
-vérifier l'état d'une LED ou l'angle du servo. On peut les laisser tels quels si on ne change que des textes.
+**Les exercices de programmation** (consigne, titre, composants et broches, blocs proposés, indices, tests de
+vérification, solution, fiches « À savoir », lexique, durées de la trappe) ne se modifient plus ici : ils viennent de
+Labo Blocs et arrivent par **« Exercices › Mettre à jour les exercices »** (§3). En attendant l'éditeur d'exercices
+de Labo Blocs, une correction urgente peut se faire dans `parcours/distributeur.js` (texte, mêmes règles d'écriture),
+mais elle sera remplacée par la prochaine mise à jour : la signaler pour qu'elle soit faite aussi dans Labo Blocs.
+Le tableau « Câblage » du carnet suit l'exercice 13A du parcours.
 
 ---
 
 ## 5. Points à confirmer (choix faits pour cette version)
 
 - **Grande dose** : CHOIX vaut **7** (la consigne), alors que les captures du programme affectent 10
-  (`exercices/parametres.js`).
+  (paramètres du parcours).
 - **Exercice 12** : le bouton est sur **D5** (bouton Trappe) et le moteur sur **D6**, comme au câblage.
 - **Consignes** : les numéros de broches des consignes Vittascience ont été remplacés par ceux du câblage.
 - **Exercice 11** : un programme qui reste 4 s à 0° (cinq positions écrites, puis la boucle) est accepté.

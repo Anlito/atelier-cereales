@@ -4,6 +4,7 @@
   'use strict';
 
   const A = global.Atelier;
+  const LB = global.LaboBlocs;
   const $ = (sel, racine) => (racine || document).querySelector(sel);
   const $$ = (sel, racine) => [...(racine || document).querySelectorAll(sel)];
   const echapper = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -613,6 +614,16 @@
           h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Indice ${ev.niveau} ouvert</li>`;
           return;
         }
+        // Événements de Labo Blocs : reprise d'une sauvegarde de l'ancien atelier, exercice modifié par le professeur.
+        if (ev.type === 'migration') {
+          h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Travail repris de l’ancienne version de l’atelier</li>`;
+          return;
+        }
+        if (ev.type === 'modifie') {
+          h += `<li class="ev-indice"><span class="ev-heure">${echapper(heure(ev.date))}</span> Exercice modifié par la mise à jour ${echapper(ev.versionParcours || '')} : à revérifier</li>`;
+          return;
+        }
+        if (ev.type !== 'verification') return;
         h +=
           `<li class="${ev.reussi ? 'ev-reussi' : 'ev-ecart'}"><span class="ev-heure">${echapper(heure(ev.date))}</span> ` +
           (ev.reussi ? '<strong>✓ Vérification réussie</strong>' : '<strong>Vérification : écart</strong>');
@@ -634,6 +645,29 @@
     return h + '</section>';
   }
 
+  // Programmes envoyés dans la carte de la maquette : mode « Dans la carte » (historique de chaque exercice), et
+  // anciennes sauvegardes (programme 13A / 13B précompilé, « envoisCarte »). Triés par date.
+  function envoisReussis(d) {
+    const anciens = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
+    const nouveaux = [];
+    const ex = (d.programmation && d.programmation.exercices) || {};
+    for (const [id, e] of Object.entries(ex)) for (const h of e.historique || []) if (h.type === 'envoi' && h.reussi) nouveaux.push({ date: h.date, exercice: A.numeroExercice ? A.numeroExercice(id) : id });
+    return anciens.concat(nouveaux).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }
+
+  // Niveaux par compétence (Labo Blocs), ceux du fichier pour le Carnet de classe.
+  function competencesHtml(eq) {
+    const lb = equipesLaboBlocs([{ eq }])[0];
+    if (!lb) return '';
+    const ev = LB.evaluerEquipe(lb.donnees, lb.paquet);
+    return (
+      '<section class="pe-carte"><h3>Compétences (Labo Blocs)</h3><div class="pe-infos">' +
+      ev.competences.map((k) => `<div class="pe-info"><span>${k.code} · ${echapper(k.libelle)}</span><strong>${k.niveau ? `${k.niveau} · ${LB.nomNiveau(k.niveau)}` : '—'}</strong></div>`).join('') +
+      `<div class="pe-info"><span>Note par compétences</span><strong>${ev.note === null ? '—' : A.nombreFr(ev.note, 2) + ' / 20'}</strong></div>` +
+      '</div><p class="pe-aide">Ce que reçoit le Carnet de classe (bouton « Carnet de classe » en haut).</p></section>'
+    );
+  }
+
   // Onglet « Bilan » : la note et ce qui la compose, l'avancement, la maquette.
   function bilanHtml(eq, d, r, note) {
     const parties = note.detail.filter((x) => !x.id.startsWith('carnet:'));
@@ -641,7 +675,7 @@
     const somme = (l, cle) => l.reduce((s, x) => s + x[cle], 0);
     const enCours = ORDRE.find((id) => r.cellules[id].statut === 'en_cours');
     const bloques = ORDRE.filter((id) => r.cellules[id].bloque);
-    const envois = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
+    const envois = envoisReussis(d);
     const dernierEnvoi = envois[envois.length - 1];
     const ligne = (etiquette, valeur) => `<div class="pe-info"><span>${etiquette}</span><strong>${valeur}</strong></div>`;
     return (
@@ -667,8 +701,9 @@
       '</section>' +
       '<section class="pe-carte"><h3>Maquette</h3><div class="pe-infos">' +
       ligne('Exercice 13', d.exercice13 && d.exercice13.versionReussie ? `réussi (version ${echapper(d.exercice13.versionReussie)})` : 'pas encore réussi') +
-      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}` : 'pas encore') +
+      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}${dernierEnvoi.exercice || dernierEnvoi.version ? ` (exercice ${echapper(dernierEnvoi.exercice || dernierEnvoi.version)})` : ''}` : 'pas encore') +
       '</div></section>' +
+      competencesHtml(eq) +
       `<p class="pe-fichier">Fichier : ${echapper(eq.fichier)}</p>` +
       '</div>'
     );
@@ -725,7 +760,7 @@
       const programme = d.exercices[id].historique[Number(k)].programme;
       if (b.dataset.lancer) return ouvrirDansAtelier(d, id, programme);
       const zoneBlocs = b.closest('li').querySelector('.ev-blocs');
-      if (zoneBlocs.hidden) zoneBlocs.innerHTML = A.blocsHtml(programme, { avecVides: true });
+      if (zoneBlocs.hidden) zoneBlocs.innerHTML = `<div class="labo-blocs">${global.LaboBlocs.blocsHtml(programme, { avecVides: true })}</div>`;
       zoneBlocs.hidden = !zoneBlocs.hidden;
       b.textContent = zoneBlocs.hidden ? 'Voir les blocs' : 'Masquer les blocs';
     };
@@ -782,6 +817,18 @@
     const liste = selection();
     const t = A.tableauClasse(liste.map((x) => x.r), seuils());
     telecharger(A.enCsv(t.entete, [...t.lignes, [], t.legende]), 'text/csv;charset=utf-8', nomExport('csv'));
+  });
+  // Niveaux par compétence (calculés par Labo Blocs) pour le Carnet de classe : fichier « …labo-resultats.json »,
+  // importé dans le Carnet (projet › Notes › « Importer des résultats Labo Blocs »).
+  function equipesLaboBlocs(liste) {
+    const paquet = A.catalogue.paquet();
+    return liste.map((x) => LB.chargerEquipes([{ nom: x.eq.fichier || x.eq.cle + '.json', texte: JSON.stringify(x.eq.donnees) }], [paquet]).equipes[0]).filter(Boolean);
+  }
+  $('.btn-carnet').addEventListener('click', () => {
+    const equipes = equipesLaboBlocs(selection());
+    if (!equipes.length) return;
+    const r = LB.resultatsClasse(equipes, LB.professeurVide(), { projet: { id: 'distributeur', titre: 'Distributeur de céréales' }, paquet: A.catalogue.paquet() });
+    telecharger(JSON.stringify(r, null, 2) + '\n', 'application/json', nomExport('labo-resultats.json'));
   });
   $('.btn-xlsx').addEventListener('click', () => {
     const liste = selection();

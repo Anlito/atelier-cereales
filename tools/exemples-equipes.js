@@ -1,12 +1,14 @@
 // Fabrique des sauvegardes d'équipes d'exemple, pour essayer l'outil professeur (prof.html) :
 //   npm run exemples
 // Les fichiers sont créés dans exemples/DISTRIBUTEUR DE CEREALES/<Équipe>/<Équipe>.json, comme sur le réseau.
-// Les tentatives sont réalistes : de vrais programmes faux passés au vrai validateur, puis la solution.
+// Les tentatives sont réalistes : de vrais programmes faux passés au validateur de Labo Blocs, puis la solution,
+// notées comme le fait l'écran d'exercice. Une « ancienne copie » est au format de l'atelier d'avant Labo Blocs.
 
 const fs = require('node:fs');
 const path = require('node:path');
+const LB = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
 const P = require('../site/js/moteur/progression.js');
-const { valider, jouerScenario } = require('../site/js/moteur/validation.js');
+const { catalogue } = require('../site/js/moteur/catalogue.js');
 const { chargerExercices } = require('../tests/outils.js');
 const faux = require('../tests/programmes-faux.js');
 
@@ -22,10 +24,11 @@ const iso = () => {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
 };
 
+const duParcours = (ex) => catalogue.paquet().exercices.find((e) => e.id === ex.idParcours);
+
 function verifier(d, ex, programme) {
-  const r = valider(ex, programme);
-  const ecarts = r.reussi ? [] : ex.scenarios.map((sc) => jouerScenario(ex, programme, sc)).filter((x) => !x.reussi).map((x) => x.message);
-  P.noterVerification(d, ex.id, { reussi: r.reussi, message: r.message, ecarts, programme });
+  const r = LB.valider(duParcours(ex), programme);
+  LB.noterVerification(d, duParcours(ex), { reussi: r.reussi, message: r.message, programme: LB.versV1(programme) });
   const e = d.exercices[ex.id];
   e.historique[e.historique.length - 1].date = iso();
   if (r.reussi && e.historique.filter((h) => h.type === 'verification' && h.reussi).length === 1) e.premiereReussite = iso();
@@ -39,10 +42,10 @@ function equipe(eleves, classe, profil) {
     if (!P.estDebloque(d, ex.id)) break;
     const p = profil(ex.id);
     if (!p) break;
-    P.noterOuverture(d, ex.id);
+    LB.noterOuverture(d, ex.idParcours);
     for (let n = 1; n <= p.indices; n++) {
       avancer(2);
-      P.noterIndice(d, ex.id, n);
+      LB.noterIndice(d, ex.idParcours, n);
       const h = d.exercices[ex.id].historique;
       h[h.length - 1].date = iso();
     }
@@ -120,8 +123,16 @@ for (const d of equipes) {
 // Un fichier qui n'est pas une sauvegarde, pour voir qu'il est ignoré.
 fs.writeFileSync(path.join(RACINE, 'Léa_Hugo', 'notes.json'), '{"titre":"pas une sauvegarde"}');
 // Une ancienne copie d'une équipe : l'outil garde la plus récente et le signale.
+// Elle est au format 1 (atelier d'avant Labo Blocs : exercices rangés par numéro), comme les fichiers des équipes
+// qui n'ont pas retravaillé depuis la mise à jour.
 const ancienne = JSON.parse(JSON.stringify(equipes[4]));
 ancienne.modifieLe = '2026-10-05T10:00:00';
-for (const id of ['10', '11', '12']) delete ancienne.exercices[id];
+ancienne.formatVersion = 1;
+ancienne.exercices = {};
+for (const [id, e] of Object.entries(equipes[4].exercices)) if (!['10', '11', '12'].includes(id)) ancienne.exercices[id] = JSON.parse(JSON.stringify(e));
+for (const e of Object.values(ancienne.exercices)) for (const h of e.historique) if (h.programme) h.programme = LB.versSimplifie(h.programme);
+ancienne.exerciceCourant = '10';
+ancienne.exercice13 = { versionReussie: null };
+delete ancienne.programmation;
 fs.writeFileSync(path.join(RACINE, 'Chloé_Lucas', 'Chloé_Lucas (ancienne copie).json'), JSON.stringify(ancienne, null, 1));
 console.log('\nDossier :', RACINE);

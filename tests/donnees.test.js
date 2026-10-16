@@ -1,21 +1,25 @@
-// Les fichiers de données modifiables par le professeur restent complets et cohérents.
+// Les données du projet restent complètes et cohérentes : le parcours venu de Labo Blocs (exercices, fiches,
+// lexique) et les fichiers modifiables par le professeur (site/donnees/).
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 const { chargerExercices } = require('./outils.js');
 
-const DONNEES = path.join(__dirname, '..', 'site', 'donnees');
-function charger(fichier, fonction) {
-  let valeur;
-  vm.runInNewContext(fs.readFileSync(path.join(DONNEES, fichier), 'utf8'), { [fonction]: (v) => (valeur = v) });
-  return valeur;
-}
-
 const exercices = chargerExercices();
-const fiches = charger('fiches.js', 'definirFiches');
-const lexique = charger('lexique.js', 'definirLexique');
+// Fiches « À savoir » et lexique de l'écran d'exercice : ils font partie du parcours de Labo Blocs.
+const { catalogue } = require('../site/js/moteur/catalogue.js');
+const { fiches, lexique } = catalogue.paquet();
+
+test('le parcours de Labo Blocs est complet : 14 exercices, identifiants stables, aucun problème', () => {
+  const LB = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
+  const { catalogue } = require('../site/js/moteur/catalogue.js');
+  const paquet = catalogue.paquet();
+  assert.deepEqual(LB.controler(paquet.brut), []);
+  assert.equal(paquet.id, 'distributeur');
+  assert.deepEqual(
+    exercices.map((e) => e.idParcours),
+    ['dist-01', 'dist-02', 'dist-03', 'dist-04', 'dist-05', 'dist-06', 'dist-07', 'dist-08', 'dist-09', 'dist-10', 'dist-11', 'dist-12', 'dist-13a', 'dist-13b'],
+  );
+});
 
 test('chaque exercice a deux indices écrits et une fiche « À savoir »', () => {
   for (const ex of exercices) {

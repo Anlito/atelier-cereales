@@ -1,18 +1,8 @@
 // Outils communs aux tests : chargement des exercices et petits constructeurs de programmes.
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const { creerCatalogue } = require('../site/js/moteur/catalogue.js');
+const { catalogue } = require('../site/js/moteur/catalogue.js');
 
-const DOSSIER = path.join(__dirname, '..', 'site', 'exercices');
-
+// Exercices du parcours de Labo Blocs (site/parcours/distributeur.js), au format de l'atelier (id = numéro).
 function chargerExercices() {
-  const catalogue = creerCatalogue();
-  const contexte = { definirParametres: catalogue.definirParametres, definirExercice: catalogue.definirExercice };
-  const fichiers = fs.readdirSync(DOSSIER).filter((f) => f.endsWith('.js'));
-  // Les paramètres d'abord, comme dans index.html.
-  fichiers.sort((a, b) => (a === 'parametres.js' ? -1 : b === 'parametres.js' ? 1 : a.localeCompare(b)));
-  for (const f of fichiers) vm.runInNewContext(fs.readFileSync(path.join(DOSSIER, f), 'utf8'), contexte, { filename: f });
   return catalogue.exercices();
 }
 
@@ -32,11 +22,10 @@ const si = (condition, alors) => ({ bloc: 'si_alors', condition, alors });
 const siSinon = (condition, alors, sinon) => ({ bloc: 'si_sinon', condition, alors, sinon });
 const prog = (demarrage, boucle) => ({ demarrage: demarrage || [], boucle: boucle || [] });
 
-// Réglages de exercices/parametres.js.
+// Réglages du parcours (durées des doses, boutons vers la masse).
 function chargerParametres() {
-  let p = {};
-  vm.runInNewContext(fs.readFileSync(path.join(DOSSIER, 'parametres.js'), 'utf8'), { definirParametres: (x) => (p = x) });
-  return JSON.parse(JSON.stringify(p));
+  const paquet = catalogue.paquet();
+  return Object.assign({ boutonsVersMasse: paquet.boutonsVersMasse !== false }, paquet.parametres);
 }
 
 module.exports = {

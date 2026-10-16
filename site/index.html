@@ -6,6 +6,7 @@
 <title>Projet distributeur de céréales</title>
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/atelier.css">
+<link rel="stylesheet" href="vendor/labo-blocs/labo-blocs.css">
 <link rel="stylesheet" href="css/carnet.css">
 </head>
 <body>
@@ -93,170 +94,31 @@
   <main class="carnet-contenu"></main>
 </div>
 
-<div class="ecran-exercice" hidden>
-
-  <header class="entete">
-    <button type="button" class="btn-parcours"><span data-icone="retour" data-epaisseur="2.8"></span>Parcours</button>
-    <div class="entete-titre">
-      <span class="pastille-exercice">Exercice</span>
-      <span class="titre-exercice"></span>
-    </div>
-    <div class="entete-equipe">
-      <span data-icone="equipe" data-epaisseur="2.4"></span>
-      <span class="equipe-noms"></span><span class="equipe-classe"></span>
-    </div>
-  </header>
-
-  <div class="zone-consigne">
-    <section class="consigne" aria-label="Consigne">
-      <div class="consigne-libelle"><span data-icone="crayon"></span>Consigne</div>
-      <div class="consigne-texte"></div>
-      <p class="consigne-courte"></p>
-      <button type="button" class="consigne-bascule" aria-expanded="true"><span data-icone="chevronHaut" data-epaisseur="2.8"></span>Réduire</button>
-    </section>
-    <div class="bulle" role="dialog" aria-label="Définition" hidden>
-      <div class="bulle-entete">
-        <span data-icone="livre" data-epaisseur="2.4"></span>
-        <strong class="bulle-mot"></strong>
-        <button type="button" class="bulle-fermer" aria-label="Fermer">×</button>
-      </div>
-      <p class="bulle-definition"></p>
-    </div>
-  </div>
-
-  <main class="principal">
-    <section class="editeur" aria-label="Éditeur de blocs">
-      <div class="editeur-blockly"></div>
-      <div class="editeur-etiquettes" aria-hidden="true"></div>
-      <aside class="panneau-aide" aria-labelledby="titre-aide" hidden>
-        <div class="panneau-aide-entete">
-          <span class="panneau-aide-icone"></span>
-          <h2 class="panneau-aide-titre" id="titre-aide"></h2>
-          <button type="button" class="panneau-aide-fermer" aria-label="Fermer">×</button>
-        </div>
-        <div class="panneau-aide-corps"></div>
-      </aside>
-      <div class="editeur-outils">
-        <div class="groupe-outils">
-          <button type="button" class="btn-annuler" aria-label="Annuler" title="Annuler (Ctrl+Z)"><span data-icone="annuler"></span></button>
-          <button type="button" class="btn-retablir" aria-label="Rétablir" title="Rétablir (Ctrl+Y)"><span data-icone="retablir"></span></button>
-        </div>
-        <div class="groupe-outils">
-          <button type="button" class="btn-zoom-moins" aria-label="Dézoomer">−</button>
-          <span class="zoom-valeur">100 %</span>
-          <button type="button" class="btn-zoom-plus" aria-label="Zoomer">+</button>
-        </div>
-        <div class="groupe-outils">
-          <button type="button" class="btn-recentrer" aria-label="Recentrer" title="Recentrer"><span data-icone="recentrer"></span></button>
-        </div>
-      </div>
-    </section>
-
-    <section class="simulateur" aria-label="Simulateur">
-      <div class="simu-titre">
-        <span>Simulateur</span>
-        <span class="simu-note" aria-live="polite"></span>
-        <div class="chrono" aria-label="Temps de la simulation"><span data-icone="horloge" data-epaisseur="2.4"></span><span class="chrono-valeur">00:00</span></div>
-      </div>
-      <div class="simu-carte"></div>
-      <div class="simu-milieu">
-        <div class="simu-composants"></div>
-        <div class="simu-distributeur"></div>
-      </div>
-      <div class="simu-commandes">
-        <button type="button" class="btn-lancer" aria-pressed="false"><span data-icone="lecture"></span>Lancer</button>
-        <button type="button" class="btn-commande btn-pause" disabled><span data-icone="pause" data-epaisseur="3.4"></span>Pause</button>
-        <button type="button" class="btn-commande btn-recommencer" disabled><span data-icone="recommencer" data-epaisseur="2.8"></span>Recommencer</button>
-        <div class="vitesse" role="group" aria-label="Vitesse">
-          <button type="button" class="btn-vitesse" data-vitesse="1" aria-pressed="true">×1</button>
-          <button type="button" class="btn-vitesse" data-vitesse="2" aria-pressed="false">×2</button>
-          <button type="button" class="btn-vitesse" data-vitesse="5" aria-pressed="false">×5</button>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="aide">
-    <button type="button" class="btn-aide" data-aide="fiche" aria-expanded="false"><span data-icone="info"></span>À savoir</button>
-    <button type="button" class="btn-aide" data-aide="indice" aria-expanded="false"><span data-icone="ampoule"></span>Indice<span class="compteur compteur-indices">0/3</span></button>
-    <button type="button" class="btn-aide btn-lexique"><span data-icone="livre"></span>Lexique</button>
-    <button type="button" class="btn-aide btn-solution" hidden><span data-icone="oeil"></span>Solution</button>
-    <span class="etat-enregistrement" aria-live="polite"></span>
-    <button type="button" class="btn-aide btn-enregistrer"><span data-icone="disquette" data-epaisseur="2.4"></span>Enregistrer</button>
-    <button type="button" class="btn-verifier"><span data-icone="coche"></span>Vérifier mon programme</button>
-  </footer>
-
-  <div class="panneau-verification" role="status" hidden></div>
-
-  <dialog class="dialogue-lexique" aria-label="Lexique">
-    <div class="dialogue-entete">
-      <span data-icone="livre" data-epaisseur="2.4"></span>
-      <strong>Lexique</strong>
-      <button type="button" class="btn-fermer-lexique" aria-label="Fermer">×</button>
-    </div>
-    <div class="lexique-outils">
-      <input type="search" class="lexique-recherche" placeholder="Chercher un mot…" aria-label="Chercher un mot">
-      <label class="lexique-filtre"><input type="checkbox" class="lexique-vus"> Mots déjà vus</label>
-    </div>
-    <div class="lexique-grille" aria-live="polite"></div>
-  </dialog>
-
-  <dialog class="dialogue-parcours" aria-label="Choisir un exercice">
-    <div class="dialogue-entete">
-      <strong>Choisir un exercice</strong>
-      <button type="button" class="btn-fermer-parcours" aria-label="Fermer">×</button>
-    </div>
-    <p class="dialogue-note"><strong class="dialogue-avancement"></strong> · Réussis un exercice pour ouvrir le suivant.</p>
-    <div class="liste-exercices"></div>
-  </dialog>
-</div>
+<!-- Exercices de programmation : écran de Labo Blocs (vendor/labo-blocs), posé par js/exercices.js -->
+<div class="ecran-programmation" hidden></div>
 
 <div class="message-bref" role="status" hidden></div>
 
-<!-- Bibliothèques (copiées dans le dépôt : aucun CDN) -->
-<script src="vendor/blockly/blockly_compressed.js"></script>
-<script src="vendor/blockly/fr.js"></script>
-<!-- Moteur (le même que celui des tests Node) -->
-<script src="js/moteur/programme.js"></script>
-<script src="js/moteur/simulation.js"></script>
-<script src="js/moteur/validation.js"></script>
+<!-- Labo Blocs : Blockly, moteur et écran d'exercice (copiés dans le dépôt : aucun CDN) -->
+<script src="vendor/labo-blocs/blockly/blockly_compressed.js"></script>
+<script src="vendor/labo-blocs/blockly/fr.js"></script>
+<script src="vendor/labo-blocs/labo-blocs-noyau.js"></script>
+<script src="vendor/labo-blocs/labo-blocs-interface.js"></script>
+<!-- Moteur de l'atelier : carnet de projet et progression de l'équipe -->
 <script src="js/moteur/catalogue.js"></script>
 <script src="js/moteur/carnet.js"></script>
 <script src="js/moteur/progression.js"></script>
-<!-- Données modifiables par le professeur -->
-<script src="exercices/parametres.js"></script>
-<script src="exercices/01.js"></script>
-<script src="exercices/02.js"></script>
-<script src="exercices/03.js"></script>
-<script src="exercices/04.js"></script>
-<script src="exercices/05.js"></script>
-<script src="exercices/06.js"></script>
-<script src="exercices/07.js"></script>
-<script src="exercices/08.js"></script>
-<script src="exercices/09.js"></script>
-<script src="exercices/10.js"></script>
-<script src="exercices/11.js"></script>
-<script src="exercices/12.js"></script>
-<script src="exercices/13A.js"></script>
-<script src="exercices/13B.js"></script>
-<script src="donnees/lexique.js"></script>
+<!-- Exercices (parcours de Labo Blocs, mis à jour depuis l'outil du professeur) et données du projet -->
+<script src="parcours/distributeur.js"></script>
 <script src="donnees/classes.js"></script>
-<script src="donnees/fiches.js"></script>
 <script src="donnees/carnet.js"></script>
 <!-- Interface -->
 <script src="js/icones.js"></script>
-<script src="js/blocs.js"></script>
-<script src="js/editeur.js"></script>
-<script src="js/simulateur-vue.js"></script>
-<script src="js/aides.js"></script>
-<script src="js/ecran-exercice.js"></script>
 <script src="js/fichiers.js"></script>
 <script src="js/accueil.js"></script>
 <script src="js/session.js"></script>
+<script src="js/exercices.js"></script>
 <script src="js/carnet-ecran.js"></script>
-<script src="js/flasher.js"></script>
-<script src="firmware/programmes.js"></script>
-<script src="js/carte-envoi.js"></script>
 <script>
   Atelier.ajusterEchelle();
   addEventListener('resize', Atelier.ajusterEchelle);
@@ -268,21 +130,20 @@
         var r = JSON.parse(localStorage.getItem('atelier-cereales-revue'));
         if (r && r.donnees) {
           document.title = 'Lecture · ' + r.donnees.equipe.eleves.join(', ');
-          document.querySelector('.ecran-exercice').hidden = false;
-          return Atelier.demarrerEcranExercice(Atelier.creerSession({ donnees: r.donnees, lecture: true }), { exercice: r.exercice, programme: r.programme });
+          return Atelier.demarrerLecture(Atelier.creerSession({ donnees: Atelier.relierDonnees(r.donnees), lecture: true }), { exercice: r.exercice, programme: r.programme });
         }
       } catch (e) { /* on ouvre l'accueil */ }
     }
     // Mode enseignant : pas d'accueil, une équipe fictive, rien n'est enregistré.
     if (q.has('enseignant')) {
-      document.querySelector('.ecran-exercice').hidden = false;
-      return Atelier.demarrerEcranExercice(
-        Atelier.creerSession({ donnees: Atelier.creerProgression({ eleves: ['Mode enseignant'], classe: '' }), lecture: true }),
-      );
+      return Atelier.demarrerLecture(Atelier.creerSession({ donnees: Atelier.creerProgression({ eleves: ['Mode enseignant'], classe: '' }), lecture: true }));
     }
     // Élèves : créer ou ouvrir le projet de l'équipe, puis le carnet de projet.
     Atelier.demarrerAccueil(function (r) {
-      Atelier.demarrerProjet(Atelier.creerSession(r));
+      var session = Atelier.creerSession(r);
+      Atelier.demarrerProjet(session);
+      var modifies = r.donnees.exercicesModifies || [];
+      if (modifies.length) session.message('Ton professeur a modifié ' + (modifies.length > 1 ? modifies.length + ' exercices' : 'l’exercice ' + modifies[0]) + '. Tes blocs sont gardés : relance la vérification.', 7000);
     });
   })();
 </script>
