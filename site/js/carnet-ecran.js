@@ -410,7 +410,8 @@
           : (D.exercices[version] && D.exercices[version].statut === 'reussi'
               ? `<p>Ton programme du distributeur est validé${version === '13B' ? ' (défi compris)' : ''} : envoie-le dans la carte Arduino de ta maquette.</p>`
               : `<p>Ton programme de l’exercice ${version} n’est pas encore validé : tu peux quand même l’essayer sur ta maquette.</p>`) +
-            `<button type="button" class="btn-principal btn-envoi-carte" data-version="${version}">Envoyer mon programme dans la carte Arduino</button>`) +
+            `<button type="button" class="btn-principal btn-envoi-carte" data-version="${version}">Envoyer mon programme dans la carte Arduino</button> ` +
+            `<button type="button" class="btn-secondaire btn-direct-carte" data-version="${version}" title="Le programme tourne dans l’ordinateur et la maquette obéit tout de suite (câble branché)">Essayer en direct sur la maquette</button>`) +
         '<p class="demontage">Fin de séance (démontage) : <button type="button" class="btn-secondaire btn-vider-carte">Vider la carte</button> ' +
         '<a class="lien-tuto" href="tuto.html" target="_blank" rel="noopener">Tutoriel de câblage</a></p>' +
         '</div>';
@@ -453,6 +454,7 @@
       if (b.dataset.verifier) return verifier(b.dataset.verifier);
       if (b.dataset.exercice) return A.ouvrirExercice(b.dataset.exercice);
       if (b.classList.contains('btn-envoi-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'carte' });
+      if (b.classList.contains('btn-direct-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'direct' });
       if (b.classList.contains('btn-vider-carte')) return viderLaCarte();
       if (b.dataset.couleur) {
         K.couleurs[b.dataset.broche] = K.couleurs[b.dataset.broche] === b.dataset.couleur ? undefined : b.dataset.couleur;
@@ -536,14 +538,15 @@
     carnet.montrer(onglet);
   }
   // Exercices : écran de Labo Blocs, posé à la première ouverture ; « Carnet » ramène à l'onglet Programmation.
-  //   options : { mode: 'carte' } (« Tester sur la maquette » : envoyer son programme dans la carte)
+  //   options : { mode: 'carte' | 'direct' } (« Tester sur la maquette » : envoyer son programme dans la carte, ou
+  //   le faire tourner en direct, câble branché)
   function ouvrirExercice(numero, options) {
     if (!A.idExercice(numero) || !A.estDebloque(session.donnees, numero)) return;
     $('.ecran-carnet').hidden = true;
     $('.ecran-programmation').hidden = false;
     if (!A.programmation) A.programmation = A.monterProgrammation(session, { retour: { texte: 'Carnet', action: () => montrerCarnet('programmation') } });
     A.programmation.ouvrir(A.idExercice(numero));
-    A.programmation.choisirModeTest(options && options.mode === 'carte' ? 'carte' : 'simulateur');
+    A.programmation.choisirModeTest(options && ['carte', 'direct'].includes(options.mode) ? options.mode : 'simulateur');
   }
 
   // Exercice 13 à envoyer dans la maquette : 13B s'il est réussi, sinon 13A (s'il est ouvert).

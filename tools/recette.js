@@ -278,6 +278,23 @@ async function maquette(nav, base) {
     });
     noter('Maquette : l’élève envoie son programme de l’exercice 13A dans la carte Arduino', contexte, r.identique,
       `${r.etapes.join(' → ')} ; programme de base ${r.firmware && r.firmware.version} installé, ${r.octets} octets envoyés ${r.identique ? '= programme de l’élève' : '≠ programme de l’élève'}`);
+    // En direct (jalon 4) : le programme 13A tourne dans l'ordinateur, la maquette obéit (servo, boutons surveillés).
+    const dir = await page.evaluate(async () => {
+      const pause = (ms) => new Promise((x) => setTimeout(x, ms));
+      document.querySelector('.btn-mode[data-mode="direct"]').click();
+      await pause(200);
+      document.querySelector('.btn-lancer').click();
+      await pause(1200);
+      const panneau = document.querySelector('.panneau-carte');
+      const r = { etat: panneau.dataset.etat, bandeau: panneau.querySelector('.pc-message').textContent, surveillees: carteVirtuelle.surveillees.join(' '), sorties: JSON.stringify(carteVirtuelle.sorties) };
+      panneau.querySelector('[data-action="arreter-direct"]').click();
+      await pause(500);
+      r.fin = carteVirtuelle.journal.slice(-2).join(' ; ');
+      return r;
+    });
+    noter('Maquette : l’exercice 13A tourne en direct, la carte obéit et s’éteint à l’arrêt', contexte,
+      dir.etat === 'direct' && /câble branché/.test(dir.bandeau) && dir.surveillees === '3 4 5' && JSON.parse(dir.sorties)['6'] === 90 && /W ; OFF/.test(dir.fin),
+      `boutons surveillés : ${dir.surveillees} ; sorties : ${dir.sorties} ; à l’arrêt : ${dir.fin}`);
     await page.close();
 
     // 2. Équipe, carnet › Programmation › « Vider la carte » : fenêtre de Labo Blocs, vidage noté dans le fichier.

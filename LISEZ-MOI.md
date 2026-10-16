@@ -45,6 +45,9 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
    la carte », une dizaine de secondes, une fois pour toutes) ; ensuite chaque envoi ne prend que quelques secondes et
    la carte garde le programme, même débranchée. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la
    résistance interne de la carte (réglage "boutonsVersMasse" du parcours). Chaque envoi est noté pour le professeur.
+   **En direct** (« Tester » › « En direct », ou « Essayer en direct sur la maquette » dans le carnet) : le programme
+   tourne dans l'ordinateur et la maquette obéit tout de suite (ses vrais boutons comptent) ; le câble doit rester
+   branché, le programme s'arrête si l'onglet est fermé (la carte éteint tout).
    Fin de séance : « Vider la carte » efface le programme (protocole de démontage).
 8. **Tutoriel de câblage** (`tuto.html`, lien dans le carnet) : la carte Arduino, la platine de test, les
    protocoles d'installation / d'envoi du programme / de démontage, le câblage du distributeur (construit depuis
