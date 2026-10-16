@@ -104,9 +104,14 @@
 
     function preparerDossier() {
       const chemin = (A.cheminSauvegarde || ['{classe}', '{equipe}']).map((p) => p.replace('{classe}', equipe.classe).replace('{equipe}', equipe.nom));
+      // Le dossier à choisir (DISTRIBUTEUR DE CEREALES) est surligné ; le dossier de l'équipe est créé par l'atelier.
+      const cible = chemin.length - 2;
       $('.chemin', racine).innerHTML = chemin
-        .map((p, i) => `<span class="chemin-dossier${i === chemin.length - 1 ? ' equipe' : ''}">${echapper(p)}</span>`)
+        .slice(0, -1)
+        .map((p, i) => `<span class="chemin-dossier${i === cible ? ' cible' : ''}">${echapper(p)}</span>`)
         .join('<span class="chemin-fleche" aria-hidden="true">›</span>');
+      $('.nom-dossier-cible', racine).textContent = chemin[cible] || '';
+      for (const el of racine.querySelectorAll('.nom-dossier-cible-bis')) el.textContent = chemin[cible] || '';
       $('.nom-fichier', racine).textContent = equipe.nom + '.json';
       $('.nom-dossier-equipe', racine).textContent = equipe.nom;
       racine.querySelector('[data-panneau="dossier"]').classList.toggle('sans-acces', !F.accesDossiers);

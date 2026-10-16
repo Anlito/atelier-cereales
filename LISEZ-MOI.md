@@ -24,9 +24,10 @@ et le travail de chaque équipe est enregistré dans **un fichier** dans le doss
 ## 2. Ce que font les élèves
 
 1. **Accueil** : « Nouvelle équipe » (1 à 3 prénoms et la classe) ou « Ouvrir notre sauvegarde ».
-2. **Dossier de l'équipe** : le chemin attendu s'affiche
-   (`5A › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES › Prénom_Prénom`).
-   L'élève choisit ce dossier ; s'il n'existe pas, il choisit `DISTRIBUTEUR DE CEREALES` et l'atelier le crée.
+2. **Dossier de l'équipe** : le chemin à suivre s'affiche
+   (`Bureau › Classe › 5A › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES`). L'élève sélectionne seulement
+   `DISTRIBUTEUR DE CEREALES` : l'atelier y crée le dossier de l'équipe (`Prénom_Prénom`). Le professeur n'a que le
+   dossier DISTRIBUTEUR DE CEREALES à créer dans chaque classe. (Choisir directement le dossier de l'équipe marche aussi.)
    Une sauvegarde déjà présente n'est jamais écrasée : l'atelier propose de l'ouvrir.
 3. **Carnet de projet** (il remplace le document élève) : six onglets — Problématique (idées, définition),
    Objet automatisé (classement capteur / carte / actionneur), Algorigrammes (deux exercices),
