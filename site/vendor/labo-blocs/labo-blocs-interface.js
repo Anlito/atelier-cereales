@@ -1,4 +1,4 @@
-// Labo Blocs 0.2.0 — interface. Fichier construit par « npm run module » : ne pas modifier ici.
+// Labo Blocs 0.3.0 — interface. Fichier construit par « npm run module » : ne pas modifier ici.
 // ===== interface/gabarits.js =====
 // Gabarits HTML des écrans partagés : le bandeau et l'écran d'exercice (A4, A5). Le site de Labo Blocs et les
 // projets (distributeur de céréales…) affichent ainsi exactement le même écran.
@@ -672,7 +672,34 @@
     return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
 
-  Object.assign(A, { definirBlocs, palette, CATEGORIES, COULEURS_BLOCS: COULEURS });
+  // Noms des blocs pour l'éditeur du professeur (cases « blocs proposés aux élèves »), dans les mots de la palette.
+  const NOMS_BLOCS = {
+    quand_bouton: 'quand le bouton est appuyé',
+    led_etat: 'contrôler la LED',
+    son: 'jouer une note',
+    attendre: 'attendre … seconde(s)',
+    bouton_etat: 'état sur la broche (bouton)',
+    valeur_haut_bas: 'HAUT / BAS',
+    servo_angle: 'contrôler l’angle (servomoteur)',
+    si_alors: 'si … alors',
+    si_sinon: 'si … alors … sinon',
+    comparaison: 'comparaison (=, ≠, <, >)',
+    logique: 'et / ou',
+    non: 'non',
+    repeter_n: 'répéter … fois',
+    tant_que: 'tant que … répéter',
+    repeter_jusqua: 'répéter jusqu’à',
+    operation: 'calcul (+, −, ×, ÷)',
+    hasard: 'nombre au hasard',
+    affecter: 'affecter une valeur à une variable',
+    ajouter_a: 'ajouter à une variable',
+    variable: 'valeur d’une variable',
+    nombre: 'nombre',
+  };
+  // Broches que proposent les menus des blocs, par sorte de composant (l'éditeur du professeur propose les mêmes).
+  const BROCHES_COMPOSANTS = { led: BROCHES_LED, bouton: BROCHES_BOUTON, servo: BROCHES_SERVO, buzzer: BROCHES_NUMERIQUES };
+
+  Object.assign(A, { definirBlocs, palette, CATEGORIES, COULEURS_BLOCS: COULEURS, NOMS_BLOCS, BROCHES_COMPOSANTS });
 })(this);
 
 // ===== interface/editeur.js =====
@@ -856,6 +883,8 @@
       annuler: () => ws.undo(false),
       retablir: () => ws.undo(true),
       horsProgramme: () => horsProgramme.slice(),
+      // Éditeur du professeur : les blocs proposés changent sans recharger le programme.
+      changerPalette: (blocsAutorises) => ws.updateToolbox(A.palette(blocsAutorises)),
     };
   }
 
@@ -2443,6 +2472,7 @@
       const statutAvant = avant.statut;
       editeur.charger(ex, programme ? (programme.blocks ? programme : A.versBlockly(programme)) : avant.programme);
       vue = A.creerVueSimulateur($('.simulateur', ecran), ex, { basculerBouton });
+      niveauDeLExercice(ex);
       afficher();
       A.noterOuverture(D, ex.id);
       aides.changerExercice(ex);
@@ -2539,6 +2569,16 @@
       majCode();
     }
     for (const b of ecran.querySelectorAll('.btn-niveau')) b.addEventListener('click', () => choisirNiveau(Number(b.dataset.niveau)));
+    // Niveau choisi par le professeur pour l'exercice (ex.niveau), éventuellement verrouillé (évaluation).
+    function niveauDeLExercice(ex) {
+      if (ex.niveau) choisirNiveau(Number(ex.niveau));
+      for (const b of ecran.querySelectorAll('.btn-niveau')) {
+        const autre = Number(b.dataset.niveau) !== Number(ex.niveau);
+        b.disabled = !!ex.niveauVerrouille && autre;
+        b.title = b.disabled ? 'Ton professeur a choisi le niveau de cet exercice.' : '';
+      }
+      $('.niveaux-libelle', ecran).textContent = ex.niveauVerrouille ? 'Niveau imposé' : 'Niveau';
+    }
     let code = null;
     let blocChoisi = null;
     function majCode() {

@@ -1,4 +1,4 @@
-// Labo Blocs 0.2.0 — moteur. Fichier construit par « npm run module » : ne pas modifier ici.
+// Labo Blocs 0.3.0 — moteur. Fichier construit par « npm run module » : ne pas modifier ici.
 (function () {
   var module, exports, require;
 // ===== noyau/programme.js =====
@@ -2107,7 +2107,7 @@
   const P = typeof module === 'object' && module.exports ? require('./programme.js') : global.LaboBlocs;
 
   const FORMAT = 'labo-blocs/parcours';
-  const VERSION_MOTEUR = '0.2.0';
+  const VERSION_MOTEUR = '0.3.0';
 
   // JSON aux clés triées : deux objets égaux donnent toujours le même texte.
   function canonique(x) {
