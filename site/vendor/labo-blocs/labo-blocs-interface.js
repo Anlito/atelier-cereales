@@ -3513,7 +3513,7 @@
     const choixClasse = $('.champ-classe', racine);
     function majClasses() {
       const modele = A.projet.cheminSauvegarde || ['{classe}', '{equipe}'];
-      $('.chemin-texte', racine).textContent = modele.map((p) => p.replace('{classe}', (A.projet.classes || ['5A'])[0] || '5A').replace('{equipe}', 'Prénom_Prénom')).join(' › ');
+      $('.chemin-texte', racine).textContent = A.remplirChemin(modele, (A.projet.classes || ['5A'])[0] || '5A', 'Prénom_Prénom').join(' › ');
       const choisie = choixClasse.value;
       choixClasse.innerHTML =
         '<option value="">Choisis ta classe</option>' + (A.projet.classes || []).map((c) => `<option>${echapper(c)}</option>`).join('');
@@ -3537,7 +3537,7 @@
     // ----- Dossier de l'équipe -----
 
     function preparerDossier() {
-      const chemin = (A.projet.cheminSauvegarde || ['{classe}', '{equipe}']).map((p) => p.replace('{classe}', equipe.classe).replace('{equipe}', equipe.nom));
+      const chemin = A.remplirChemin(A.projet.cheminSauvegarde || ['{classe}', '{equipe}'], equipe.classe, equipe.nom);
       // Le chemin jusqu'au dossier du projet, celui-ci surligné : l'élève le sélectionne, Labo Blocs y crée le dossier de l'équipe.
       const cible = chemin.length - 2;
       $('.chemin', racine).innerHTML = chemin
@@ -5194,7 +5194,7 @@
       const classe = (A.projet.classes && A.projet.classes[0]) || '5A';
       // À partir du dossier de la classe (« Bureau › Classe » avant lui n'aide pas à reconnaître le dossier).
       const debut = Math.max(0, chemin.indexOf('{classe}'));
-      const dossier = chemin.slice(debut, chemin.indexOf('{equipe}') >= 0 ? chemin.indexOf('{equipe}') : chemin.length).map((x) => x.replace('{classe}', classe));
+      const dossier = A.remplirChemin(chemin.slice(debut, chemin.indexOf('{equipe}') >= 0 ? chemin.indexOf('{equipe}') : chemin.length), classe);
       const court = dossier.length > 2 ? [dossier[0], '…', dossier[dossier.length - 1]] : dossier;
       ouvrir.querySelector('span').textContent = `Ex. ${court.join(' › ')}. Relu toutes les 30 secondes (Chrome, Edge).`;
     }
@@ -5271,6 +5271,8 @@
 // Chaque outil garde une copie de secours (son propre college.js, lu en premier : hors ligne, c'est elle qui sert),
 // puis lit la version en ligne si internet répond (rien n'est envoyé : simple lecture du fichier).
 // Un projet dit seulement ses niveaux (niveaux: ['5']) et la fin de son chemin (cheminProjet: ['DISTRIBUTEUR DE CEREALES']).
+// Groupes : une classe qui finit par un chiffre après la lettre (3D1, 3C2) est un groupe de la classe 3D, 3C.
+// Son dossier est dans celui de la classe : Bureau › Classe › 3D › COMMUN › TECHNOLOGIE › 3D1 › (projet).
 (function (global) {
   'use strict';
 
@@ -5302,6 +5304,22 @@
   // « 5A » → '5' ; « 4e B » → '4' ; « SEGPA » → ''
   const niveauDe = (classe) => (String(classe).match(/\d/) || [''])[0];
 
+  // « 3D1 » → { classe: '3D', groupe: '3D1' } ; « 5A » → { classe: '5A', groupe: '' }
+  function classeEtGroupe(classe) {
+    const c = String(classe || '').trim();
+    const m = c.match(/^(\d+\s*[A-Za-z]+)\s*\d+$/);
+    return m ? { classe: m[1], groupe: c } : { classe: c, groupe: '' };
+  }
+
+  // Chemin d'une équipe : {classe} → dossier de la classe, {groupe} → dossier du groupe (retiré s'il n'y en a pas),
+  // {equipe} → dossier de l'équipe.
+  function remplirChemin(chemin, classe, equipe) {
+    const g = classeEtGroupe(classe);
+    return (chemin || [])
+      .filter((p) => p !== '{groupe}' || g.groupe)
+      .map((p) => String(p).replace('{classe}', g.classe).replace('{groupe}', g.groupe).replace('{equipe}', equipe == null ? '{equipe}' : equipe));
+  }
+
   // Classes d'un projet : celles du collège de ses niveaux (tous les niveaux si le projet n'en dit rien).
   function classesDuCollege(college, niveaux) {
     const n = (niveaux || []).map((x) => niveauDe(x)).filter(Boolean);
@@ -5309,7 +5327,7 @@
   }
 
   // Réglages d'un projet complétés par ceux du collège :
-  //   projet.cheminProjet (fin du chemin, ex. ['DISTRIBUTEUR DE CEREALES']) → cheminClasse + cheminProjet + {equipe}
+  //   projet.cheminProjet (fin du chemin, ex. ['DISTRIBUTEUR DE CEREALES']) → cheminClasse + {groupe} + cheminProjet + {equipe}
   //   projet.niveaux → classes du collège de ces niveaux.
   // Des classes ou un chemin écrits dans le projet lui-même restent prioritaires (anciens réglages).
   function projetAvecCollege(projet, college) {
@@ -5317,7 +5335,7 @@
     if (!projet || !c) return projet;
     const r = Object.assign({}, projet);
     if (!projet.classes || !projet.classes.length) r.classes = classesDuCollege(c, projet.niveaux);
-    if (!projet.cheminSauvegarde && projet.cheminProjet) r.cheminSauvegarde = (c.cheminClasse || CHEMIN_CLASSE_DEFAUT).concat(projet.cheminProjet, ['{equipe}']);
+    if (!projet.cheminSauvegarde && projet.cheminProjet) r.cheminSauvegarde = (c.cheminClasse || CHEMIN_CLASSE_DEFAUT).concat(['{groupe}'], projet.cheminProjet, ['{equipe}']);
     return r;
   }
 
@@ -5350,7 +5368,7 @@
     );
   }
 
-  const api = { FORMAT_COLLEGE: FORMAT, ADRESSE_COLLEGE: ADRESSE, EVENEMENT_COLLEGE: EVENEMENT, chargerCollegeEnLigne, classesDuCollege, projetAvecCollege, lireListeClasses, lireCheminClasse, scriptCollege, niveauDe };
+  const api = { FORMAT_COLLEGE: FORMAT, ADRESSE_COLLEGE: ADRESSE, EVENEMENT_COLLEGE: EVENEMENT, chargerCollegeEnLigne, classesDuCollege, projetAvecCollege, lireListeClasses, lireCheminClasse, scriptCollege, niveauDe, classeEtGroupe, remplirChemin };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else Object.assign(A, api);
 })(this);

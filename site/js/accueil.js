@@ -111,7 +111,7 @@
     // ----- Dossier de l'équipe -----
 
     function preparerDossier() {
-      const chemin = (A.cheminSauvegarde || ['{classe}', '{equipe}']).map((p) => p.replace('{classe}', equipe.classe).replace('{equipe}', equipe.nom));
+      const chemin = LaboBlocs.remplirChemin(A.cheminSauvegarde || ['{classe}', '{equipe}'], equipe.classe, equipe.nom);
       // Le dossier à choisir (DISTRIBUTEUR DE CEREALES) est surligné ; le dossier de l'équipe est créé par l'atelier.
       const cible = chemin.length - 2;
       $('.chemin', racine).innerHTML = chemin
@@ -179,7 +179,7 @@
     // Avant-dernier dossier du chemin (ex. DISTRIBUTEUR DE CEREALES) : celui que l'équipe choisit.
     function dossierProjet() {
       const chemin = A.cheminSauvegarde || ['{classe}', '{equipe}'];
-      return String(chemin[chemin.length - 2] || '').replace('{classe}', equipe.classe);
+      return LaboBlocs.remplirChemin([chemin[chemin.length - 2] || ''], equipe.classe)[0];
     }
 
     async function valider(dossier, note) {
