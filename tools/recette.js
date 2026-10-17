@@ -40,10 +40,20 @@ const TAILLES = [
 const IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13A', '13B'];
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Réglages du collège : la page lit aussi la version en ligne de Labo Blocs. En recette (sans internet),
-// cette lecture reçoit la copie de secours du dépôt ; c'est la seule adresse hors du site permise.
+// Réglages du collège : la page lit aussi la version en ligne de Labo Blocs (seule adresse hors du site permise).
+// La recette ne dépend ni d'internet ni des classes publiées par le professeur : copie de secours et version
+// « en ligne » sont remplacées par des réglages d'essai fixes (5A à 5F) ; seul un appel marqué __recette passe tel quel.
 const ADRESSE_COLLEGE = 'https://anlito.github.io/labo-blocs/site/college.js';
-const COLLEGE_LOCAL = fs.readFileSync(path.join(SITE, 'donnees', 'college.js'), 'utf8');
+const COLLEGE_ESSAI = { format: 'labo-blocs/college', version: 1, classes: ['5A', '5B', '5C', '5D', '5E', '5F'], cheminClasse: ['Bureau', 'Classe', '{classe}', 'COMMUN', 'TECHNOLOGIE'] };
+const COLLEGE_LOCAL = `definirCollege(${JSON.stringify(COLLEGE_ESSAI)});`;
+function collegeDEssai(essai) {
+  let vraie;
+  Object.defineProperty(window, 'definirCollege', {
+    configurable: true,
+    get: () => (c) => vraie && vraie(c && c.__recette ? c : essai),
+    set: (f) => { vraie = f; },
+  });
+}
 async function lancer(nav) {
   const b = await puppeteer.launch({ executablePath: nav.chemin, headless: true, args: ARGS });
   const nouvellePage = b.newPage.bind(b);
@@ -51,6 +61,7 @@ async function lancer(nav) {
     const p = await nouvellePage();
     await p.setRequestInterception(true);
     p.on('request', (r) => (r.url().startsWith(ADRESSE_COLLEGE) ? r.respond({ status: 200, contentType: 'text/javascript', body: COLLEGE_LOCAL }) : r.continue()));
+    await p.evaluateOnNewDocument(collegeDEssai, COLLEGE_ESSAI);
     return p;
   };
   return b;
@@ -211,7 +222,9 @@ async function reglagesCollege(navigateur, base) {
     document.querySelector('.btn-nouvelle').click();
     document.querySelector('.champ-classe').value = avant[0];
     // La version en ligne arrive : une 4e est ignorée (le distributeur est un projet de 5e), le chemin change.
-    definirCollege({ format: 'labo-blocs/college', version: 1, classes: ['5A', '5G', '4A'], cheminClasse: ['Reseau', '{classe}'] });
+    definirCollege({ format: 'labo-blocs/college', version: 1, classes: ['5A', '5G', '5D1', '4A'], cheminClasse: ['Reseau', '{classe}'], __recette: true });
+    // Groupe : 5D1 est un groupe de la 5D, son dossier est dans celui de la classe.
+    const groupe = LaboBlocs.remplirChemin(Atelier.cheminSauvegarde, '5D1', 'X').join(' › ');
     const apres = options();
     const garde = document.querySelector('.champ-classe').value;
     const c = document.querySelectorAll('.champ-prenom');
@@ -236,11 +249,11 @@ async function reglagesCollege(navigateur, base) {
       await (await projet.getDirectoryHandle('College_Test')).getFileHandle('College_Test.json');
       cree = true;
     } catch {}
-    return { avant, apres, garde, chemin, refus, cree, commencer: !!document.querySelector('.btn-commencer') };
+    return { avant, apres, garde, chemin, groupe, refus, cree, commencer: !!document.querySelector('.btn-commencer') };
   });
   await page.close();
   const ok =
-    r.avant.length && r.avant.every((c) => c.startsWith('5')) && r.apres.join() === '5A,5G' && r.garde === '5A' &&
+    r.avant.length && r.avant.every((c) => c.startsWith('5')) && r.apres.join() === '5A,5G,5D1' && r.groupe === 'Reseau › 5D › 5D1 › DISTRIBUTEUR DE CEREALES › X' && r.garde === '5A' &&
     /Reseau › 5A › DISTRIBUTEUR DE CEREALES/.test(r.chemin) && /qui le contient/.test(r.refus) && r.cree && r.commencer;
   return { ok, detail: ok ? r.apres.join(', ') : JSON.stringify(r).slice(0, 300) };
 }
