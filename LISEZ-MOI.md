@@ -79,6 +79,13 @@ L'outil a trois écrans, comme ceux des autres projets (Théâtre d'ombre, Conce
   - **Carnet de projet** : chaque partie, son état, le travail de l'équipe (« Voir leurs réponses » case par case,
     avec ✓ / ✗) et ses points ;
   - **Historique** : chaque vérification et ses erreurs, le programme de chaque tentative, chaque indice.
+  - **Croquis et dessins** : photographier la feuille de l’équipe (croquis, dessin technique) avec une **webcam** ou un
+    visualiseur de documents : « Allumer la caméra », choisir le type, « Prendre la photo » (↻ pour la tourner),
+    « Enregistrer dans le dossier de l’équipe ». La photo est rangée en .jpg dans le dossier de l’équipe
+    (ex. `Croquis_Léa_Hugo_2026-10-17_10h42.jpg`) et les photos déjà présentes s’affichent à côté. La caméra reste
+    allumée d’une équipe à l’autre (‹ ›). Il faut avoir ouvert le **dossier de la classe** (Chrome, Edge) ; au premier
+    enregistrement, le navigateur demande le droit de modifier les fichiers. Avec des fichiers importés, la photo
+    est seulement téléchargée. « Importer une photo… » prend une photo faite avec un autre appareil.
 - **Bandeau** : la classe suivie et l'état du suivi en direct (« En direct · lu à 10:42 ») ; le dossier est relu
   toutes les 30 s (Chrome, Edge). « Barème » : la note, les seuils d'alerte, la fréquence du suivi.
   « Excel » (feuilles « Classe » et « Détail par exercice »), « CSV », « Imprimer » (A4 paysage, l'écran affiché),

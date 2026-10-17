@@ -31,6 +31,7 @@
     for (const s of $$('.vue')) s.hidden = !s.classList.contains('vue-' + nom);
     $('.pb-actions').hidden = nom === 'accueil';
     $('.pb-atelier').hidden = nom !== 'accueil'; // dans la classe, le lien est dans la barre des filtres
+    if (nom !== 'equipe') A.dessins.arreter(); // caméra éteinte hors de la vue Équipe
     scrollTo(0, 0);
   }
 
@@ -76,11 +77,13 @@
   // Tous les .json du dossier choisi et de ses sous-dossiers (ex. DISTRIBUTEUR DE CEREALES › Léa_Hugo › Léa_Hugo.json).
   // Un fichier qui n'a pas changé depuis la dernière lecture n'est pas relu (dossier réseau : on reste léger).
   const cache = new Map(); // chemin → { date, taille, texte }
+  const dossiersEquipes = new Map(); // chemin du .json → dossier qui le contient (photos des croquis)
   async function lireDossier(dossier, chemin, profondeur) {
     const sortie = [];
     for await (const entree of dossier.values()) {
       if (entree.kind === 'file' && /\.json$/i.test(entree.name)) {
         const nom = chemin + entree.name;
+        dossiersEquipes.set(nom, dossier);
         let f;
         try {
           f = await entree.getFile();
@@ -746,6 +749,12 @@
     for (const b of $$('.pe-onglets [data-onglet]')) b.setAttribute('aria-selected', String(b.dataset.onglet === vue.onglet));
 
     const box = $('.pe-contenu');
+    if (vue.onglet === 'dessins') {
+      // Mise à jour en direct : on ne touche pas à la caméra ni à la photo en cours.
+      if (!(miseAJour && A.dessins.actif())) A.dessins.monter(box, contexteDessins(eq));
+      return;
+    }
+    A.dessins.arreter();
     if (vue.onglet === 'programmation') box.innerHTML = programmationHtml(d, r, note);
     else if (vue.onglet === 'carnet') box.innerHTML = carnetHtml(d, note);
     else if (vue.onglet === 'historique') box.innerHTML = historiqueHtml(d);
@@ -767,6 +776,24 @@
     if (ouverts) for (const det of $$('.historique')) if (ouverts.has(det.dataset.ex)) det.open = true;
     if (reponses) for (const det of $$('.voir-reponses')) if (reponses.has(det.closest('.pe-partie').querySelector('h4').textContent)) det.open = true;
     if (miseAJour) scrollTo(0, defilement);
+  }
+
+  // Onglet « Croquis et dessins » : le dossier de l'équipe, et le droit d'y écrire (demandé au premier enregistrement).
+  function contexteDessins(eq) {
+    return {
+      equipe: A.nomEquipe(eq.donnees.equipe.eleves),
+      dossier: (suivi.dossier && dossiersEquipes.get(eq.fichier)) || null,
+      async autoriser() {
+        const racine = suivi.dossier;
+        if (!racine) return false;
+        try {
+          if ((await racine.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
+          return (await racine.requestPermission({ mode: 'readwrite' })) === 'granted';
+        } catch {
+          return false;
+        }
+      },
+    };
   }
 
   $('.pe-onglets').addEventListener('click', (e) => {

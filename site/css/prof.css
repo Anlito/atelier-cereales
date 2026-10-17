@@ -274,3 +274,33 @@ body.page-prof { overflow: auto; background: var(--fond); }
 .mj-message.attention, .mj-bloque { border-left: 5px solid var(--orange); background: var(--consigne-fond); color: var(--consigne-texte); padding: 0.625rem 0.875rem; border-radius: 0.625rem; }
 .mj-message.reussi { border-left-color: #2E7D32; background: #E3F2E5; color: #1B4D1F; }
 .mj-bloque ul { margin: 0.375rem 0 0; padding-left: 1.25rem; }
+
+/* Onglet « Croquis et dessins » : photo de la feuille par la webcam, enregistrée dans le dossier de l'équipe */
+.pd { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr); gap: 1rem; align-items: start; }
+.pd-alerte { margin: 0; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: var(--consigne-fond); border-left: 4px solid var(--orange); }
+.pd-types { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.pd-type { min-height: 2.5rem; padding: 0 1rem; border: 2px solid var(--bord); border-radius: 999px; background: #FFFFFF; font: 600 0.9375rem var(--police); cursor: pointer; }
+.pd-type[aria-checked="true"] { background: var(--bleu-fonce); border-color: var(--bleu-fonce); color: #FFFFFF; }
+.pd-ecran { position: relative; display: flex; align-items: center; justify-content: center; min-height: 18rem; max-height: 62vh; border-radius: 0.75rem; background: #1F2A30; overflow: hidden; }
+.pd-video, .pd-apercu { display: block; max-width: 100%; max-height: 62vh; object-fit: contain; }
+.pd-video[hidden], .pd-apercu[hidden], .pd-ecran-vide[hidden] { display: none; }
+.pd-ecran-vide { margin: 0; padding: 1rem; color: #C8D2D8; text-align: center; }
+.pd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.pd-actions[hidden], .pd-choix-camera[hidden] { display: none; }
+.pd-actions .btn-principal, .pd-actions .btn-secondaire { height: 2.75rem; }
+.pd-prendre { min-width: 12rem; justify-content: center; }
+.pd-importer { cursor: pointer; }
+.pd-choix-camera { display: flex; align-items: center; gap: 0.375rem; font-weight: 600; }
+.pd-choix-camera select { height: 2.5rem; max-width: 16rem; border: 2px solid var(--bord); border-radius: 0.5rem; font: 400 0.9375rem var(--police); }
+.pd-message { margin: 0; font-weight: 600; }
+.pd-message:empty { display: none; }
+.pd-message.juste { color: #1B5E20; }
+.pd-message.erreur { color: #8A5300; }
+.pd-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.625rem; }
+.pd-vignette { display: grid; gap: 0.25rem; color: var(--encre); text-decoration: none; font-size: 0.8125rem; }
+.pd-vignette img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--bord); border-radius: 0.5rem; background: var(--fond); }
+.pd-vignette:hover img { border-color: var(--bleu); }
+.pd-vignette strong { display: block; font-size: 0.875rem; }
+@media (max-width: 1000px) { .pd { grid-template-columns: 1fr; } }
+@media print { .pd-camera { display: none; } }
+.pd-liste .pe-vide { grid-column: 1 / -1; }
