@@ -7,6 +7,7 @@ le travail de chaque équipe tient dans un fichier `.json` enregistré dans son 
 - `site/index.html` : atelier des élèves (`?enseignant=1` : mode enseignant)
 - `site/prof.html` : outil professeur (import, suivi en direct, tableau, note, exports)
 - **Pour le professeur** : voir [LISEZ-MOI.md](LISEZ-MOI.md) (utilisation et modification des contenus).
+- **Nouveau projet sur ce modèle** : voir [docs/BRIEF-NOUVEAU-PROJET.md](docs/BRIEF-NOUVEAU-PROJET.md) (à donner à Claude Code).
 
 ## Organisation
 
