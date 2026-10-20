@@ -1,8 +1,9 @@
 // Tutoriel Arduino et câblage : rubriques, câblage du distributeur (depuis l'exercice 13A), composants.
-(function (global) {
+(async function (global) {
   'use strict';
 
   const A = global.Atelier;
+  await A.parcoursPret;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   const echapper = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

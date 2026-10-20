@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 // Le moteur est celui de Labo Blocs (module copié dans site/vendor/labo-blocs) : ces tests vérifient qu'il fait
 // tourner les exercices du distributeur comme l'ancien moteur de l'atelier. Le bloc en cours et le pas à pas sont
 // testés dans le dépôt labo-blocs (tests/simulation.test.js).
-const { creerSimulation, chronologie, positionServo, valider, depuisBlockly, versBlockly } = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
+const { creerSimulation, chronologie, positionServo, valider, depuisBlockly, versBlockly } = require(require('../tools/dependances-tests.js').noyau);
 const { chargerExercices, led, att, servo, appuye, si, prog } = require('./outils.js');
 const faux = require('./programmes-faux.js');
 

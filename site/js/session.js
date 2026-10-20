@@ -10,6 +10,7 @@
   function creerSession(options) {
     const s = {
       donnees: options.donnees,
+      dossier: options.dossier || null,
       handle: options.handle || null,
       lecture: !!options.lecture,
       nonEnregistre: false,

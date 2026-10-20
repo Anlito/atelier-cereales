@@ -76,6 +76,12 @@
 
   // Partie du carnet : d'après les vérifications gardées dans le fichier ({ date, reussi, bien, total }).
   function noterPartieCarnet(donnees, partie, b) {
+    const automatiques = ['classement','mouvement','trappe','final'];
+    if (!automatiques.includes(partie)) {
+      const niveau = (donnees.evaluationsProf || {})[partie];
+      if (![1,2,3,4].includes(niveau)) return {fraction:0,raisons:['À évaluer : hors du total'],nonEvalue:true};
+      return {fraction:niveau / 4, raisons:[['Non atteint','Partiellement atteint','Atteint','Dépassé'][niveau-1] + ' (' + niveau + '/4)'],parfait:false};
+    }
     const v = ((donnees.carnet && donnees.carnet.verifications) || {})[partie] || [];
     const premiere = v.findIndex((x) => x.reussi);
     if (premiere >= 0) {
@@ -122,6 +128,7 @@
     for (const [partie, coef] of Object.entries(b.carnet)) {
       if (!(coef > 0)) continue;
       const r = noterPartieCarnet(donnees, partie, b);
+      if (r.nonEvalue) continue;
       detail.push({ id: 'carnet:' + partie, carnet: true, partie, nom: NOMS_CARNET[partie] || partie, coef, attendu: true, ...r, points: r.fraction * coef });
       obtenu += r.fraction * coef;
       possible += coef;

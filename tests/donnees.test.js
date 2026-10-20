@@ -10,7 +10,7 @@ const { catalogue } = require('../site/js/moteur/catalogue.js');
 const { fiches, lexique } = catalogue.paquet();
 
 test('le parcours de Labo Blocs est complet : 14 exercices, identifiants stables, aucun problème', () => {
-  const LB = require('../site/vendor/labo-blocs/labo-blocs-noyau.js');
+  const LB = require(require('../tools/dependances-tests.js').noyau);
   const { catalogue } = require('../site/js/moteur/catalogue.js');
   const paquet = catalogue.paquet();
   assert.deepEqual(LB.controler(paquet.brut), []);

@@ -174,3 +174,13 @@ button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
 .confirmation p { margin: 0; }
 .confirmation .icone { width: 1.75rem; height: 1.75rem; }
 
+
+.dessins-criteres { margin:1.2rem 0; padding:1rem; border:1px solid #adbcc5; border-radius:8px; display:grid; gap:.8rem; }
+.dessins-criteres label { display:flex; gap:.7rem; align-items:baseline; }
+.dessins-criteres input { width:auto; flex:none; }
+.dessins-aide { padding:1rem; background:#edf5fa; line-height:1.6; }
+.photos-actions { display:flex; flex-wrap:wrap; gap:.6rem; margin:1rem 0; }
+.photos-vignettes { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:1rem; }
+.photos-vignettes figure { margin:0; }
+.photos-vignettes img { width:100%; max-height:420px; object-fit:contain; }
+.photos-vignettes figcaption { overflow-wrap:anywhere; font-size:.85rem; }

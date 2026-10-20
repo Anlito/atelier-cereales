@@ -3,6 +3,42 @@
 // Le tableau de câblage n'est pas ici : il est construit à partir des composants de l'exercice 13A,
 // pour que le câblage et les programmes utilisent toujours les mêmes broches.
 definirCarnet({
+  "dessins": [
+  {
+    "id": "croquis",
+    "type": "Croquis",
+    "titre": "Le croquis",
+    "consigne": "Sur papier, dessinez le distributeur à main levée, sans règle et sans échelle imposée, en perspective 3D. Commencez par les grandes formes et légendez les parties principales.",
+    "criteres": [
+      "À main levée, sans règle",
+      "Vue en perspective 3D",
+      "Proportions globales respectées",
+      "Boîtier principal visible",
+      "Trappe de sortie visible",
+      "Boutons identifiables",
+      "Parties principales légendées",
+      "Dessin propre et lisible"
+    ],
+    "aide": "Les imperfections sont normales : le croquis sert à communiquer une idée. Annotez directement le dessin."
+  },
+  {
+    "id": "dessin-technique",
+    "type": "Dessin_technique",
+    "titre": "Le dessin technique",
+    "consigne": "Sur papier, avec une règle et une équerre, représentez le distributeur en perspective avec la face principale visible, à l’échelle 1:3. Indiquez les dimensions réelles en millimètres.",
+    "criteres": [
+      "Réalisé avec règle et équerre",
+      "Perspective avec la face principale visible",
+      "Traits continus et propres",
+      "Dimensions réelles cotées en mm",
+      "Échelle 1:3 respectée",
+      "Boîtier et trappe visibles",
+      "Cartouche complété",
+      "Noms et classe lisibles"
+    ],
+    "aide": "Échelle 1:3 : divisez la longueur réelle par 3 pour tracer le dessin. Exemple : 150 mm réels → 50 mm sur la feuille ; la cote inscrite reste 150 mm. Trait plein : contours visibles. Trait mixte : axes de symétrie. La cote se place au-dessus de la ligne de cote."
+  }
+],
   "problematique": "Comment faire pour me servir des céréales le matin au petit déj, sans en mettre partout, en évitant de mettre les mains dedans pour des raisons d'hygiène ?",
   "nombreIdees": 4,
   "questionObjet": "Un objet ou système technique, c'est quoi ? Écris la définition avec tes propres mots.",

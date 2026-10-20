@@ -5,11 +5,13 @@
 (function (global) {
   'use strict';
 
-  const PARTIES = ['idees', 'definition', 'classement', 'mouvement', 'trappe', 'final', 'cablage'];
+  const PARTIES = ['idees', 'definition', 'classement', 'croquis', 'dessin-technique', 'mouvement', 'trappe', 'final', 'cablage'];
   const NOMS_PARTIES = {
     idees: 'Idées de solutions',
-    definition: 'Objet technique',
+    definition: 'Définition d’un objet technique',
     classement: 'Classement',
+    croquis: 'Croquis',
+    'dessin-technique': 'Dessin technique',
     mouvement: 'Algorigramme 1',
     trappe: 'Algorigramme 2',
     final: 'Algorigramme du distributeur',
@@ -17,13 +19,13 @@
   };
 
   function vide() {
-    return { idees: [], definition: '', classement: {}, algos: {}, couleurs: {}, verifications: {} };
+    return { dessins: {}, idees: [], definition: '', classement: {}, algos: {}, couleurs: {}, verifications: {} };
   }
 
   function completer(c) {
     const v = vide();
     const r = Object.assign(v, c || {});
-    for (const k of ['classement', 'algos', 'couleurs', 'verifications']) r[k] = r[k] || {};
+    for (const k of ['dessins', 'classement', 'algos', 'couleurs', 'verifications']) r[k] = r[k] || {};
     r.idees = Array.isArray(r.idees) ? r.idees : [];
     return r;
   }
@@ -124,7 +126,11 @@
     const lignes = lignesCablage(composants13).filter((l) => !l.couleurImposee);
     const choisies = lignes.filter((l) => c.couleurs[l.broche]).length;
     e.cablage = lignes.length && choisies === lignes.length ? 'fait' : choisies ? 'en_cours' : 'a_faire';
-    void contenu;
+    for (const p of (contenu.dessins || [])) {
+      const cases = c.dessins[p.id] || {};
+      const n = p.criteres.filter((_, i) => cases[i] === true).length;
+      e[p.id] = n === p.criteres.length ? 'fait' : n ? 'en_cours' : 'a_faire';
+    }
     return e;
   }
 
@@ -141,7 +147,8 @@
 
   // Chaque clic sur « Vérifier » d'une partie du carnet est gardé (pour le professeur).
   function noterVerificationCarnet(donnees, partie, resultat) {
-    donnees.carnet = completer(donnees.carnet);
+    // L'écran garde une référence au carnet : ne pas la remplacer après « Vérifier ».
+    donnees.carnet = Object.assign(donnees.carnet || {}, completer(donnees.carnet));
     const v = (donnees.carnet.verifications[partie] = donnees.carnet.verifications[partie] || []);
     v.push({ date: maintenant(), reussi: !!resultat.reussi, bien: resultat.bien, total: resultat.total });
     donnees.modifieLe = maintenant();

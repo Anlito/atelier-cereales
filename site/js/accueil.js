@@ -18,6 +18,7 @@
   function demarrer(commencer) {
     const racine = $('.ecran-accueil');
     racine.hidden = false;
+    let dossierEquipe = null;
     let equipe = null; // { eleves, classe, nom }
 
     for (const el of racine.querySelectorAll('[data-icone]')) el.outerHTML = A.icone(el.dataset.icone, { epaisseur: el.dataset.epaisseur });
@@ -44,6 +45,14 @@
       $('.reprendre-date', carte).textContent = 'Dernière modification le ' + dateFr(secours.modifieLe);
     }
     $('.btn-reprendre', racine).addEventListener('click', async () => {
+      // Le clic Reprendre permet de renouveler l'accès aux photos mémorisées.
+      dossierEquipe = await A.photos.retrouver(secours);
+      if (dossierEquipe) {
+        try {
+          if (await dossierEquipe.queryPermission({mode:'read'}) !== 'granted')
+            await dossierEquipe.requestPermission({mode:'read'});
+        } catch { /* Le bouton d'autorisation dans la galerie reste disponible. */ }
+      }
       // Le fichier mémorisé est réutilisé s'il est bien celui de cette équipe ; on prend la version la plus récente.
       let handle = await F.handleMemorise();
       let donnees = secours;
@@ -66,11 +75,11 @@
     $('.btn-pas-nous', racine).addEventListener('click', () => (carte.hidden = true));
 
     $('.btn-nouvelle', racine).addEventListener('click', () => montrer('equipe'));
-    $('.btn-ouvrir', racine).addEventListener('click', async () => {
+    async function ouvrirProjet(fichier) {
       erreur('choix', '');
       let r;
       try {
-        r = await F.ouvrir();
+        r = await F.ouvrir({fichier});
       } catch {
         return erreur('choix', 'Le fichier n’a pas pu être ouvert. Réessaie.');
       }
@@ -78,8 +87,11 @@
       if (!r.lecture.ok) return erreur('choix', r.lecture.raison + ' Rien n’a été modifié.');
       // Pas de demande d'autorisation à l'ouverture : rien n'a encore été fait. Elle viendra au premier
       // vrai travail de l'équipe (vérification, indice ou clic sur « Enregistrer »).
+      dossierEquipe = r.dossier || null;
       fin(r.lecture.donnees, r.handle);
-    });
+    }
+    $('.btn-ouvrir', racine).addEventListener('click', () => ouvrirProjet(false));
+    $('.btn-ouvrir-fichier', racine).addEventListener('click', () => ouvrirProjet(true));
 
     // ----- Équipe -----
 
@@ -183,6 +195,7 @@
     }
 
     async function valider(dossier, note) {
+      dossierEquipe = dossier;
       const nom = equipe.nom + '.json';
       // Ne jamais écraser une sauvegarde qui existe déjà : on propose de l'ouvrir.
       const existante = await F.sauvegardeExistante(dossier, nom);
@@ -229,11 +242,13 @@
     $('.btn-commencer-sans-dossier', racine).addEventListener('click', () => fin(A.creerProgression(equipe), null));
     $('.btn-retour-equipe', racine).addEventListener('click', () => montrer('equipe'));
 
-    function fin(donnees, handle) {
+    async function fin(donnees, handle) {
+      dossierEquipe = dossierEquipe || await A.photos.retrouver(donnees);
+      if (dossierEquipe) await A.photos.memoriserDossier(donnees, dossierEquipe);
       F.memoriserHandle(handle);
       F.sauverSecours(donnees);
       racine.hidden = true;
-      commencer({ donnees, handle });
+      commencer({ donnees, handle, dossier: dossierEquipe });
     }
 
     montrer('choix');

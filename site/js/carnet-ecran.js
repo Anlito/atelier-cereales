@@ -11,6 +11,7 @@
   const ONGLETS = [
     { cle: 'problematique', titre: 'Problématique', icone: 'crayon', parties: ['idees', 'definition'] },
     { cle: 'objet', titre: 'Objet automatisé', icone: 'variables', parties: ['classement'] },
+    { cle: 'dessins', titre: 'Croquis et dessin technique', icone: 'crayon', parties: ['croquis', 'dessin-technique'] },
     { cle: 'algorigrammes', titre: 'Algorigrammes', icone: 'decisions', parties: ['mouvement', 'trappe'] },
     { cle: 'algo-final', titre: 'Algorigramme du distributeur', icone: 'decisions', parties: ['final'] },
     { cle: 'programmation', titre: 'Programmation', icone: 'lumiere', parties: [] },
@@ -95,17 +96,29 @@
       montrer(o.dataset.onglet);
     });
 
+    let nettoyerPhotos = [];
     function montrer(cle) {
+      nettoyerPhotos.forEach(f => f()); nettoyerPhotos = [];
       // Changer d'onglet abandonne l'élément choisi ; un simple réaffichage le garde.
       const nouvelOnglet = !!cle && cle !== ui.onglet;
       if (nouvelOnglet) ui.choisi = null;
       ui.onglet = cle || ui.onglet;
       majEntete();
       const zone = $('.carnet-contenu', racine);
-      zone.innerHTML = { problematique, objet, algorigrammes, 'algo-final': algoFinal, programmation, cablage }[ui.onglet]();
+      zone.innerHTML = { problematique, objet, dessins, algorigrammes, 'algo-final': algoFinal, programmation, cablage }[ui.onglet]();
+      if (ui.onglet === 'dessins') for (const p of C.dessins || []) nettoyerPhotos.push(A.photos.monter(zone.querySelector('[data-photos="' + p.id + '"]'), session, p.type));
       if (nouvelOnglet) racine.scrollTop = 0;
     }
 
+    function dessins() {
+      return '<p>Réalisez les deux dessins sur papier. Cochez les critères après avoir vérifié votre travail : ces cases ne constituent pas une correction du professeur.</p>' + (C.dessins || []).map(p => '<section class="carte-carnet"><h2>' + echapper(p.titre) + '</h2><p>' + echapper(p.consigne) + '</p><fieldset class="dessins-criteres"><legend>Avant de rendre notre feuille</legend>' + p.criteres.map((c,i) => '<label><input type="checkbox" data-dessin="' + p.id + '" data-critere="' + i + '" ' + ((K.dessins[p.id] || {})[i] ? 'checked' : '') + '>' + echapper(c) + '</label>').join('') + '</fieldset><p class="dessins-aide">' + echapper(p.aide) + '</p><div data-photos="' + p.id + '"></div></section>').join('');
+    }
+    racine.addEventListener('change', e => {
+      const t = e.target;
+      if (!t.dataset.dessin || session.lecture) return;
+      (K.dessins[t.dataset.dessin] ||= {})[t.dataset.critere] = t.checked;
+      modifie(false);
+    });
     // ---------- 1. Problématique ----------
 
     function problematique() {
@@ -117,7 +130,7 @@
         h += `<label>Idée ${i + 1}<textarea rows="3" data-idee="${i}" placeholder="Notre idée de solution…">${echapper(K.idees[i] || '')}</textarea></label>`;
       }
       h += '</div>' +
-        `<h3>${echapper(C.questionObjet)}</h3>` +
+        `<h3>Définition d’un objet technique</h3><p>${echapper(C.questionObjet)}</p>` +
         `<textarea rows="3" class="champ-definition" placeholder="Un objet technique, c'est…">${echapper(K.definition)}</textarea></section>`;
       return h;
     }

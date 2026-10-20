@@ -1,9 +1,10 @@
 // Outil professeur : accueil (choix de la classe), vue Classe (résumé, alertes, tableau), vue Équipe (onglets),
 // suivi en direct du dossier de la classe, barème réglable, exports.
-(function (global) {
+(async function (global) {
   'use strict';
 
   const A = global.Atelier;
+  await A.parcoursPret;
   const LB = global.LaboBlocs;
   const $ = (sel, racine) => (racine || document).querySelector(sel);
   const $$ = (sel, racine) => [...(racine || document).querySelectorAll(sel)];
@@ -19,7 +20,7 @@
   let manuels = []; // { nom, texte } : fichiers glissés ou choisis à la main
   let fichiersDossier = []; // fichiers lus dans le dossier de la classe (relus en direct)
   let fichiers = []; // les deux réunis
-  let bareme = A.completerBareme(A.bareme);
+  let bareme = A.completerBareme(A.notesProf.bareme() || A.bareme);
   let fusion = { equipes: [], invalides: [] };
   let misesAJour = new Set();
 
@@ -52,6 +53,7 @@
       d.modifieLe + '|' + Object.values(d.exercices).map((e) => `${e.statut}:${e.tentatives}:${e.indicesOuverts}`).join(',');
     const avant = new Map(fusion.equipes.map((e) => [e.cle, signature(e.donnees)]));
     fusion = A.fusionnerEquipes(fichiers);
+    for (const eq of fusion.equipes) Object.defineProperty(eq.donnees, 'evaluationsProf', {value:A.notesProf.pour(eq.donnees),configurable:true,enumerable:false});
     // Équipes qui ont avancé depuis la dernière lecture (signalées dans le tableau).
     misesAJour = new Set(fusion.equipes.filter((e) => avant.has(e.cle) && avant.get(e.cle) !== signature(e.donnees)).map((e) => e.cle));
     if (!fusion.equipes.length && !fichiers.length) {
@@ -562,7 +564,7 @@
       return `<p class="carnet-verifs">${pluriel(v.length, 'vérification')}` +
         (reussie >= 0 ? ` · réussi à la ${reussie + 1}${reussie ? 'e' : 're'}` : ` · dernière : ${der.bien}/${der.total} juste${der.bien > 1 ? 's' : ''}`) + '</p>';
     };
-    const points = (p) => (note.detail.some((x) => x.id === 'carnet:' + p) ? pointsHtml(note, 'carnet:' + p) : '<span class="points-raison">non noté</span>');
+    const points = (p) => (note.detail.some((x) => x.id === 'carnet:' + p) ? pointsHtml(note, 'carnet:' + p) : '<span class="points-raison">' + (bareme.carnet[p] > 0 ? 'À évaluer · hors du total' : 'non noté') + '</span>');
     const avecReponses = (p) => {
       const commence = p === 'classement' ? Object.keys(K.classement).length : Object.keys(K.algos[p] || {}).length;
       return verifs(p) + (commence ? `<details class="voir-reponses"><summary>Voir leurs réponses</summary>${reponsesHtml(K, C, p)}</details>` : '');
@@ -572,13 +574,16 @@
       .filter((l) => !l.couleurImposee)
       .map((l) => `<span class="couleur-cable">${echapper(l.nom)} (${l.broche}) : <strong>${echapper(K.couleurs[l.broche] || '—')}</strong></span>`)
       .join('');
+    const manuelle = p => !['classement','mouvement','trappe','final'].includes(p) && bareme.carnet[p] > 0
+      ? '<label>Niveau de maîtrise <select data-note-manuelle="' + p + '"><option value="">À évaluer</option>' + ['Non atteint','Partiellement atteint','Atteint','Dépassé'].map((n,i) => '<option value="' + (i+1) + '" ' + ((d.evaluationsProf || {})[p] === i+1 ? 'selected' : '') + '>' + n + ' (' + (i+1) + '/4)</option>').join('') + '</select></label>' : '';
     const partie = (p, contenu) =>
       `<article class="pe-partie etat-${etats[p]}"><header><h4>${A.NOMS_PARTIES_CARNET[p]}</h4>` +
       `<span class="pe-etat">${mot[etats[p]]}</span><span class="pe-points">${points(p)}</span></header>` +
-      `<div class="pe-partie-corps">${contenu || '<p class="pe-vide">Pas encore de travail.</p>'}</div></article>`;
+      `<div class="pe-partie-corps">${manuelle(p)}${contenu || '<p class="pe-vide">Pas encore de travail.</p>'}</div></article>`;
     let h = `<section class="pe-carte"><h3>Carnet de projet · ${A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length}/${A.PARTIES_CARNET.length} parties faites</h3>`;
     h += partie('idees', idees.length ? '<ol>' + idees.map((i) => `<li>${echapper(i)}</li>`).join('') + '</ol>' : '');
     h += partie('definition', K.definition ? `<p>« ${echapper(K.definition)} »</p>` : '');
+    for (const p of C.dessins || []) h += partie(p.id, '<ul>' + p.criteres.map((c,i) => '<li>' + ((K.dessins[p.id] || {})[i] ? '✓ ' : '○ ') + echapper(c) + '</li>').join('') + '</ul><p>Auto-vérification de l’équipe.</p>');
     for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += partie(p, avecReponses(p));
     h += partie('cablage', couleurs ? `<div class="couleurs-cables">${couleurs}</div>` : '');
     return h + '</section>';
@@ -879,10 +884,10 @@
   const NOMS_CARNET_BAREME = { classement: 'Carnet · classement', mouvement: 'Carnet · algorigramme 1', trappe: 'Carnet · algorigramme 2' };
   $('.bareme-coefs').innerHTML =
     Object.keys(A.BAREME_DEFAUT.coefficients)
-      .map((id) => `<label title="${echapper(titre(id))}">Ex. ${id} <input type="number" data-coef="${id}" min="0" max="10" step="0.5"></label>`)
+      .map((id) => `<label title="${echapper(titre(id))}">Ex. ${id} <input type="checkbox" data-noter-ex="${id}" aria-label="Noter exercice ${id}"> Noter <input type="number" data-coef="${id}" min="0" max="10" step="0.5"></label>`)
       .join('') +
-    Object.keys(A.BAREME_DEFAUT.carnet)
-      .map((p) => `<label>${NOMS_CARNET_BAREME[p]} <input type="number" data-coef-carnet="${p}" min="0" max="10" step="0.5"></label>`)
+    A.PARTIES_CARNET
+      .map((p) => `<label>${A.NOMS_PARTIES_CARNET[p]} <input type="checkbox" data-noter-carnet="${p}" aria-label="Noter ${A.NOMS_PARTIES_CARNET[p]}"> Noter <input type="number" data-coef-carnet="${p}" min="0" max="10" step="0.5"></label>`)
       .join('');
   function remplirBareme() {
     for (const el of zoneBareme.querySelectorAll('[data-b]')) {
@@ -890,10 +895,14 @@
       el.value = el.hasAttribute('data-pourcent') ? Math.round(v * 100) : String(v);
     }
     for (const el of zoneBareme.querySelectorAll('[data-coef]')) el.value = bareme.coefficients[el.dataset.coef];
-    for (const el of zoneBareme.querySelectorAll('[data-coef-carnet]')) el.value = bareme.carnet[el.dataset.coefCarnet];
+    for (const el of zoneBareme.querySelectorAll('[data-coef-carnet]')) el.value = bareme.carnet[el.dataset.coefCarnet] || 0;
+    for (const el of zoneBareme.querySelectorAll('[data-noter-ex]')) el.checked = bareme.coefficients[el.dataset.noterEx] > 0;
+    for (const el of zoneBareme.querySelectorAll('[data-noter-carnet]')) el.checked = bareme.carnet[el.dataset.noterCarnet] > 0;
     resumerBareme();
   }
   function resumerBareme() {
+    $('.bareme-exemples').innerHTML = '<h4>Comprendre les retenues du carnet</h4><p>La retenue porte sur les points de la partie, avant la première réussite. Les vérifications suivantes ne retirent rien.</p><table><thead><tr><th>Première réussite</th><th>Points conservés</th></tr></thead><tbody>' + [1,2,3,6].map(n => '<tr><td>Vérification ' + n + '</td><td>' + Math.round(100 * (1 - Math.min(bareme.penaliteEchecMax,Math.max(0,n-1-bareme.essaisGratuits)*bareme.penaliteEchec))) + ' %</td></tr>').join('') + '</tbody></table><p>Après une vérification, sans réussite : ' + Math.round(bareme.participation*100) + ' % ; sans vérification : 0. Les évaluations manuelles ne subissent pas ces retenues.</p>';
+
     $('.bareme-resume').textContent =
       `· sur ${bareme.sur}, ${bareme.objectif} exercices attendus, −${Math.round(bareme.penaliteIndice * 100)} % par indice, ` +
       `−${Math.round(bareme.penaliteEchec * 100)} % par essai raté${bareme.essaisGratuits ? ` au-delà de ${bareme.essaisGratuits}` : ''}, ` +
@@ -901,14 +910,17 @@
       `commencé : ${Math.round(bareme.participation * 100)} %, bonus 13B : +${A.nombreFr(bareme.bonus13B)}`;
   }
   function apresBareme() {
-    resumerBareme();
+    const ok = A.notesProf.regler(bareme);
+    $('.evaluations-stockage').textContent = ok ? 'Barème et évaluations conservés sur ce navigateur. Exportez une sauvegarde pour les conserver ailleurs.' : 'Stockage indisponible : exportez vos évaluations avant de fermer.';
+    remplirBareme();
     dessiner();
     if (vue.nom === 'equipe') dessinerEquipe(true);
   }
   zoneBareme.addEventListener('input', (e) => {
     const el = e.target;
     const v = Number(el.value);
-    if (el.value === '' || !Number.isFinite(v) || v < 0) return;
+    if (el.type === 'checkbox') return;
+    if (el.value === '' || !Number.isFinite(v) || v < 0 || (el.max && v > Number(el.max))) return;
     if (el.dataset.coef) bareme.coefficients[el.dataset.coef] = v;
     else if (el.dataset.coefCarnet) bareme.carnet[el.dataset.coefCarnet] = v;
     else if (el.dataset.b) bareme[el.dataset.b] = el.hasAttribute('data-pourcent') ? v / 100 : v;
@@ -918,6 +930,31 @@
     bareme = A.completerBareme(A.bareme);
     remplirBareme();
     apresBareme();
+  });
+  zoneBareme.addEventListener('change', e => {
+    const el = e.target;
+    if (el.dataset.noterEx) bareme.coefficients[el.dataset.noterEx] = el.checked ? (A.BAREME_DEFAUT.coefficients[el.dataset.noterEx] || 1) : 0;
+    else if (el.dataset.noterCarnet) bareme.carnet[el.dataset.noterCarnet] = el.checked ? 1 : 0;
+    else return;
+    apresBareme();
+  });
+  $('.pe-contenu').addEventListener('change', e => {
+    const id = e.target.dataset.noteManuelle;
+    if (!id) return;
+    const eq = fusion.equipes.find(x => x.cle === vue.equipe);
+    if (!eq) return;
+    const ok = A.notesProf.noter(eq.donnees, id, e.target.value);
+    $('.evaluations-stockage').textContent = ok ? 'Évaluation enregistrée sur ce navigateur.' : 'Stockage indisponible : exportez vos évaluations.';
+    recalculer();
+  });
+  $('.btn-export-evaluations').addEventListener('click', () => {
+    A.notesProf.regler(bareme);
+    telecharger(A.notesProf.texte(), 'application/json', 'cereales-evaluations-prof.json');
+  });
+  $('.import-evaluations').addEventListener('change', async e => {
+    const fichier = e.target.files[0]; e.target.value = ''; if (!fichier) return;
+    try { const ok = A.notesProf.importer(await fichier.text()); bareme = A.completerBareme(A.notesProf.bareme()); remplirBareme(); recalculer(); $('.evaluations-stockage').textContent = ok ? 'Barème et évaluations importés.' : 'Importés en mémoire seulement : exportez avant de fermer.'; }
+    catch (err) { $('.evaluations-stockage').textContent = err.message; }
   });
   remplirBareme();
   montrerVue('accueil');

@@ -199,6 +199,12 @@
         ]);
       }
     }
+    if (bareme) for (const eq of equipes) {
+      const note = N.noterEquipe(eq.donnees, bareme);
+      for (const x of note.detail.filter(x => x.carnet && !Object.hasOwn(NOMS,x.partie))) {
+        lignes.push([eq.donnees.equipe.classe || '', eq.donnees.equipe.eleves.join(', '), 'Carnet · ' + x.partie, 'évalué manuellement', '', '', '', '', '', '', '', Math.round(x.pointsNote*100)/100, Math.round(x.pointsNoteMax*100)/100, x.raisons.join(' ; ')]);
+      }
+    }
     return { entete, lignes };
   }
 

@@ -1,180 +1,44 @@
-# Projet distributeur de céréales — LISEZ-MOI (professeur)
+# Distributeur de céréales — Guide professeur
 
-Un atelier de programmation en blocs, avec simulateur en direct, pour les 13 exercices du projet
-« distributeur de céréales » (5e). Pas de compte, pas de serveur : tout se passe dans le navigateur,
-et le travail de chaque équipe est enregistré dans **un fichier** dans le dossier de l'équipe.
+## Ouvrir le projet
 
-- **Élèves** : `index.html`
-- **Professeur** : `prof.html` (aucun lien depuis l'écran des élèves)
-- **Mode enseignant** (tout ouvert, bouton « Solution », rien n'est enregistré) : `index.html?enseignant=1`,
-  ou le lien en haut de `prof.html`.
+Élèves : `index.html`. Professeur : `prof.html`. Tutoriel : `tuto.html`.
+Une connexion Internet est nécessaire, y compris avec le ZIP local : moteur, éditeur, simulateur et exercices viennent directement de Labo Blocs en ligne. Aucune copie n’est embarquée. Un bouton permet de réessayer si la connexion échoue.
 
----
+Chrome ou Edge sont recommandés pour les dossiers, l’enregistrement et l’envoi vers Arduino.
 
-## 1. Ouvrir l'atelier
+## Travail des équipes
 
-**En ligne** : l'adresse GitHub Pages du projet.
+Nouvelle équipe : choisir les prénoms, la classe et le dossier du projet. Un dossier d’équipe est créé sans écraser les sauvegardes existantes. « Ouvrir notre équipe » donne accès au JSON et aux photos. « Reprendre » retrouve la session et demande à nouveau l’autorisation du dossier si nécessaire.
 
-**Depuis le dossier réseau** : décompresser `atelier-cereales.zip`, puis ouvrir
-`atelier-cereales/index.html` (double-clic). Le site marche sans connexion internet.
+Le carnet contient la problématique, les idées, la définition d’un objet technique, le classement, les dessins, les algorigrammes, la programmation et le câblage. Les idées et la définition sont deux réponses distinctes, présentées dans cet ordre dans le suivi professeur.
 
-**Navigateurs** : Chrome ou Edge recommandés. Firefox fonctionne, mais sans choix de dossier :
-« Enregistrer » y télécharge le fichier, que l'élève doit ranger lui-même dans le dossier de l'équipe.
+Le travail et les programmes restent dans le JSON de l’équipe. Les anciennes sauvegardes sont reprises. Les photos restent séparées. Aucune sauvegarde élève n’est envoyée à Labo Blocs : seules ses ressources publiques sont chargées.
 
-## 2. Ce que font les élèves
+## Croquis et dessin technique
 
-1. **Accueil** : « Nouvelle équipe » (1 à 3 prénoms et la classe) ou « Ouvrir notre sauvegarde ».
-2. **Dossier de l'équipe** : le chemin à suivre s'affiche
-   (`Bureau › Classe › 5A › COMMUN › TECHNOLOGIE › DISTRIBUTEUR DE CEREALES`). L'élève sélectionne seulement
-   `DISTRIBUTEUR DE CEREALES` : l'atelier y crée le dossier de l'équipe (`Prénom_Prénom`). Le professeur n'a que le
-   dossier DISTRIBUTEUR DE CEREALES à créer dans chaque classe. Le dossier de l'équipe est toujours créé par
-   l'atelier : si l'élève choisit ce dossier lui-même, l'atelier lui demande le dossier qui le contient ; un autre
-   dossier → « Créer … dedans » ou « Choisir un autre dossier ».
-   Une sauvegarde déjà présente n'est jamais écrasée : l'atelier propose de l'ouvrir.
-3. **Carnet de projet** (il remplace le document élève) : six onglets — Problématique (idées, définition),
-   Objet automatisé (classement capteur / carte / actionneur), Algorigrammes (deux exercices),
-   Algorigramme du distributeur, Programmation, Câblage. Un bouton « Vérifier » corrige le classement et les
-   algorigrammes : il dit combien de réponses sont justes et marque « à revoir » ce qui est faux, sans donner la réponse.
-4. **Exercices de programmation** (onglet Programmation) : on réussit l'exercice N pour ouvrir le N+1
-   (13B est un défi après 13A). L'écran d'exercice est celui de **Labo Blocs** (le même dans tous les projets) ;
-   son bouton « Carnet » ramène au carnet.
-5. **Un seul fichier** `Prénom_Prénom.json` garde le carnet et les exercices. Sur Chrome et Edge, il se réenregistre
-   tout seul (à chaque vérification et peu après une modification).
-6. Si l'onglet est fermé par erreur, l'accueil propose « Reprendre le travail de … ».
-7. **Tester sur la maquette** : l'équipe envoie **son propre programme** dans la carte Arduino de sa maquette, depuis
-   l'écran d'exercice (« Tester » › **« Dans la carte »**, avec Chrome ou Edge, aussi depuis le dossier réseau), ou
-   depuis le carnet (onglet Programmation › « Envoyer mon programme dans la carte Arduino », qui ouvre l'exercice 13
-   dans ce mode). La première fois, la carte reçoit son **programme de base Labo Blocs** (« Installer le programme de
-   la carte », une dizaine de secondes, une fois pour toutes) ; ensuite chaque envoi ne prend que quelques secondes et
-   la carte garde le programme, même débranchée. Boutons attendus : boutons à 2 fils (signal + GND), lus avec la
-   résistance interne de la carte (réglage "boutonsVersMasse" du parcours). Chaque envoi est noté pour le professeur.
-   **En direct** (« Tester » › « En direct », ou « Essayer en direct sur la maquette » dans le carnet) : le programme
-   tourne dans l'ordinateur et la maquette obéit tout de suite (ses vrais boutons comptent) ; le câble doit rester
-   branché, le programme s'arrête si l'onglet est fermé (la carte éteint tout).
-   Fin de séance : « Vider la carte » efface le programme (protocole de démontage).
-8. **Tutoriel de câblage** (`tuto.html`, lien dans le carnet) : la carte Arduino, la platine de test, les
-   protocoles d'installation / d'envoi du programme / de démontage, le câblage du distributeur (construit depuis
-   l'exercice 13A du parcours) et la fiche de branchement de chaque composant.
+Travail sur papier : croquis à main levée en perspective ; dessin technique avec règle et équerre, à l’échelle 1:3 et dimensions réelles cotées en millimètres. Les 16 critères cochés sont une auto-vérification, pas une note.
 
-## 3. Outil professeur (`prof.html`)
+Dans la fiche professeur → Croquis et dessins : choisir le type, photographier ou importer, puis enregistrer dans le dossier d’équipe. Les élèves retrouvent les photos dans la rubrique correspondante, relues toutes les 15 secondes. Avec un JSON seul, donner accès au dossier dans la galerie. Firefox permet une sélection manuelle.
 
-L'outil a trois écrans, comme ceux des autres projets (Théâtre d'ombre, Concept Store) :
+## Suivi et notation
 
-- **Accueil — Suivre une classe** : « Ouvrir le dossier de la classe » (ex. `DISTRIBUTEUR DE CEREALES`, tous les
-  dossiers d'équipes sont lus d'un coup), « Reprendre » le dernier dossier suivi en un clic, ou « Importer des
-  fichiers .json » (on peut aussi les glisser n'importe où dans la page).
-- **Classe** :
-  - en haut, les **chiffres clés** : nombre d'équipes, note moyenne, exercices réussis et parties du carnet
-    (moyennes), programmes du distributeur réussis, équipes bloquées ;
-  - les **alertes** : une équipe est **bloquée** quand elle a fait au moins 6 tentatives ou passé 10 minutes sur
-    un exercice non réussi (seuils réglables). Une alerte fait un son, et une notification si elle est autorisée ;
-  - le **tableau** : ✓ réussi, ● en cours, ○ non commencé, avec le nombre de tentatives ; avancement, parties du
-    carnet terminées (ex. 5/7), ★ réussites du premier coup sans indice, note, dernière activité.
-    Les équipes qui viennent d'avancer sont signalées.
-- **Équipe** (clic sur une ligne ou sur une alerte), avec ‹ › pour passer à l'équipe voisine et Échap pour revenir :
-  - **Bilan** : la note et ce qui la compose (programmation, carnet, bonus 13B), l'avancement, la maquette
-    (programme envoyé dans la carte) ;
-  - **Programmation** : chaque exercice, ses tentatives, indices, temps et points ; « Lancer le programme » le
-    rouvre dans l'atelier, en lecture ;
-  - **Carnet de projet** : chaque partie, son état, le travail de l'équipe (« Voir leurs réponses » case par case,
-    avec ✓ / ✗) et ses points ;
-  - **Historique** : chaque vérification et ses erreurs, le programme de chaque tentative, chaque indice.
-  - **Croquis et dessins** : photographier la feuille de l’équipe (croquis, dessin technique) avec une **webcam** ou un
-    visualiseur de documents : « Allumer la caméra », choisir le type, « Prendre la photo » (↻ pour la tourner),
-    « Enregistrer dans le dossier de l’équipe ». La photo est rangée en .jpg dans le dossier de l’équipe
-    (ex. `Croquis_Léa_Hugo_2026-10-17_10h42.jpg`) et les photos déjà présentes s’affichent à côté. La caméra reste
-    allumée d’une équipe à l’autre (‹ ›). Il faut avoir ouvert le **dossier de la classe** (Chrome, Edge) ; au premier
-    enregistrement, le navigateur demande le droit de modifier les fichiers. Avec des fichiers importés, la photo
-    est seulement téléchargée. « Importer une photo… » prend une photo faite avec un autre appareil.
-- **Bandeau** : la classe suivie et l'état du suivi en direct (« En direct · lu à 10:42 ») ; le dossier est relu
-  toutes les 30 s (Chrome, Edge). « Barème » : la note, les seuils d'alerte, la fréquence du suivi.
-  « Excel » (feuilles « Classe » et « Détail par exercice »), « CSV », « Imprimer » (A4 paysage, l'écran affiché),
-  « Autre classe ».
+Ouvrir le dossier de classe pour le suivi en direct (30 secondes par défaut). L’import de JSON seuls est ponctuel : réimporter pour voir les nouvelles réponses. Vérifier l’enregistrement élève et utiliser Actualiser côté professeur.
 
-### La note
+Barème : choisir les parties à noter, coefficients et bonus 13B (0 = désactivé). Les parties automatiques utilisent les réussites, indices et tentatives avant la première réussite. Le tableau explique les points conservés selon les réglages ; les vérifications après réussite ne retirent rien.
 
-Bouton « Barème » de `prof.html` (réglages valables le temps de la page), ou fichier `donnees/notation.js`
-(réglages gardés). Par défaut, note sur 20 :
+Les parties manuelles se notent dans Équipe → Carnet de projet : Non atteint (1/4), Partiellement atteint (2/4), Atteint (3/4), Dépassé (4/4). Sans niveau choisi, la partie reste hors du total.
 
-- chaque exercice a un **coefficient** selon sa difficulté ;
-- **réussi** : tous ses points s'il est réussi **du premier coup et sans indice** ; sinon −10 % par indice
-  (au plus −30 %) et −5 % par essai raté (au plus −25 %), comptés **avant** la réussite ;
-- **commencé sans réussir** : 20 % des points ; **non commencé** : 0 ; **13B réussi** : +1 point ;
-- **exercices attendus** : la note est calculée sur les N premiers exercices attendus à ce moment du projet
-  (à augmenter au fil des séances). Un exercice réussi en avance ne compense pas les erreurs (réglage « avance »).
-- **carnet de projet** : le **classement** et les **deux algorigrammes d'entraînement** sont notés de la même façon
-  (coefficient 1 chacun) : tous les points s'ils sont réussis à la première vérification, −5 % par vérification
-  ratée avant la réussite, 20 % s'ils sont commencés sans être réussis. La **problématique** et l'**algorigramme du
-  distributeur** ne sont pas notés : le détail de chaque équipe montre quand même leur travail (idées, définition,
-  et « Voir leurs réponses » case par case avec ✓ / ✗). Les coefficients du carnet se règlent dans le Barème.
+Les évaluations sont séparées des JSON élèves, conservées sur le navigateur professeur et utilisées dans les résultats et exports. Exporter mes évaluations sauvegarde le barème et les niveaux ; l’import fusionne les niveaux et reprend le barème importé. Conserver cette sauvegarde pour changer de poste.
 
-Les élèves sont prévenus dans le panneau des indices qu'un indice enlève un peu de points.
+## Source unique de Labo Blocs
 
-### Mettre à jour les exercices
+Publier les modifications dans Labo Blocs, puis recharger les pages du distributeur. Exercices indique les versions du moteur et du parcours. Il n’y a plus d’installation locale des exercices. Une session ouverte garde sa version jusqu’au rechargement.
 
-Les exercices de programmation viennent de **Labo Blocs**, l'outil de programmation par blocs commun aux projets :
-l'atelier en garde une copie, `parcours/distributeur.js`, et ne change que si vous le décidez.
+## Contenus du projet
 
-Bouton **« Exercices »** en haut de `prof.html` (ou le lien « Mettre à jour les exercices » de l'accueil) :
+`donnees/carnet.js` : consignes et réponses ; `donnees/notation.js` : barème initial ; `donnees/classes.js` : niveaux et dossier. Les réglages du collège sont partagés avec Labo Blocs. Ne pas renommer les identifiants des réponses pendant l’année.
 
-1. **Version installée** : numéro et date de la version des exercices.
-2. **Chercher une nouvelle version** : « Chercher en ligne » (la dernière version publiée par Labo Blocs, connexion
-   internet nécessaire) ou « Choisir un fichier… » (un parcours exporté par Labo Blocs, `….labo-parcours.json`).
-3. **Les différences** s'affichent : exercices modifiés (avec la consigne avant / après), ajoutés, supprimés,
-   déplacés, textes retouchés. Une version faite pour un Labo Blocs plus récent est refusée, avec la raison.
-4. **« Valider la mise à jour »**, puis choisir le **dossier du site** (celui qui contient `index.html` et `parcours`) :
-   le nouveau fichier remplace l'ancien, gardé dans `parcours/distributeur-precedent.js`. Les élèves ont les nouveaux
-   exercices en rechargeant l'atelier (F5). Avec Firefox, ou depuis le site en ligne, le fichier est téléchargé :
-   le copier à la main dans `parcours/`.
-5. **« Revenir à la version précédente »** remet l'ancienne version (la version actuelle prend sa place).
+## Vérification au collège
 
-**Le travail des élèves est protégé** : leurs blocs et leurs réussites sont gardés. Un exercice déjà réussi qui a
-changé apparaît « ↻ modifié, à revérifier » dans leur carnet : ils relancent la vérification. L'exercice suivant reste
-ouvert. Une mise à jour ne demande rien d'autre : les élèves envoient leur propre programme dans la carte.
-
----
-
-## 4. Modifier les contenus (sans toucher au programme)
-
-Tous les contenus sont dans des fichiers texte, à ouvrir avec le Bloc-notes (ou tout éditeur de texte).
-Ils sont dans le dossier du site (`site/` dans le dépôt, `atelier-cereales/` dans l'archive).
-
-> **Règles d'écriture** : garder les guillemets droits `"…"`, les virgules entre les éléments, les crochets
-> `[ ]` et accolades `{ }`. Une apostrophe dans un texte s'écrit normalement (`l'angle`).
-> Après une modification, recharger la page (F5). Si la page reste blanche ou un exercice disparaît,
-> c'est en général une virgule ou un guillemet oublié : annuler la dernière modification.
-
-| Je veux modifier… | Fichier | Champ |
-|---|---|---|
-| la **liste des classes** et le **début du chemin** (`Bureau › Classe › {classe} › …`), communs à tous les outils | accueil de **Labo Blocs**, « Réglages du collège » (code professeur) | publié en ligne ; l'atelier lit cette version, sinon sa copie de secours `donnees/college.js`, rafraîchie à chaque publication du site |
-| les **niveaux** du projet (classes proposées) et le **dossier du projet** | `donnees/classes.js` | `definirReglagesAtelier({ niveaux: ["5"], cheminProjet: ["DISTRIBUTEUR DE CEREALES"] })` |
-| les **couleurs de câbles en stock** (choix du câblage) | `donnees/carnet.js` | `"couleursCables"` : une liste pour `"led"`, une pour `"bouton"` |
-| les **composants du tutoriel** (photo, branchement) | `donnees/tuto-composants.js` | `"branchement"`, `"note"` |
-| le **barème** de la note | `donnees/notation.js` | chaque réglage est expliqué dans le fichier |
-| le **carnet de projet** (problématique, éléments à classer et leur bonne colonne, étapes des algorigrammes, couleurs de câbles) | `donnees/carnet.js` | chaque partie est expliquée dans le fichier ; le tableau de câblage est construit depuis l'exercice 13A du parcours |
-
-**Les exercices de programmation** (consigne, titre, composants et broches, blocs proposés, indices, tests de
-vérification, solution, fiches « À savoir », lexique, durées de la trappe) ne se modifient plus ici : ils viennent de
-Labo Blocs et arrivent par **« Exercices › Mettre à jour les exercices »** (§3). En attendant l'éditeur d'exercices
-de Labo Blocs, une correction urgente peut se faire dans `parcours/distributeur.js` (texte, mêmes règles d'écriture),
-mais elle sera remplacée par la prochaine mise à jour : la signaler pour qu'elle soit faite aussi dans Labo Blocs.
-Le tableau « Câblage » du carnet suit l'exercice 13A du parcours.
-
----
-
-## 5. Points à confirmer (choix faits pour cette version)
-
-- **Grande dose** : CHOIX vaut **7** (la consigne), alors que les captures du programme affectent 10
-  (paramètres du parcours).
-- **Exercice 12** : le bouton est sur **D5** (bouton Trappe) et le moteur sur **D6**, comme au câblage.
-- **Consignes** : les numéros de broches des consignes Vittascience ont été remplacés par ceux du câblage.
-- **Exercice 11** : un programme qui reste 4 s à 0° (cinq positions écrites, puis la boucle) est accepté.
-- **13A** suffit pour terminer le parcours ; **13B** est un défi.
-- Libellés des blocs : ceux de Vittascience ; catégories Lumière, Temps, Bouton, Moteur, Décisions, Variables.
-
-## 6. À vérifier en classe
-
-- Sur un poste de 5e : Chrome/Edge et Firefox, ouverture depuis le dossier réseau, choix du dossier de l'équipe.
-- Enregistrer, fermer, rouvrir le fichier et reprendre à l'exercice en cours.
-- Le suivi en direct de `prof.html` sur le vrai dossier réseau de la classe.
-- Avec 2 ou 3 élèves, sans explication : trouvent-ils comment lancer, enregistrer, ouvrir le lexique et demander un indice ?
+Vérifier l’accès Internet à Labo Blocs, l’ouverture d’une ancienne sauvegarde, son enregistrement réseau et le suivi professeur. Tester l’envoi sur une vraie carte Arduino, les boutons et le servo : les tests logiciels ne remplacent pas cet essai matériel.

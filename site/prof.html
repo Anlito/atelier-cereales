@@ -7,7 +7,7 @@
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/atelier.css">
 <link rel="stylesheet" href="css/prof.css">
-<link rel="stylesheet" href="vendor/labo-blocs/labo-blocs.css">
+<link rel="stylesheet" href="https://anlito.github.io/labo-blocs/module/labo-blocs.css">
 </head>
 <body class="page-prof">
 
@@ -128,7 +128,7 @@
       <button type="button" class="btn-secondaire btn-retour-exercices" data-ic="retour">Retour</button>
       <div class="pe-titre">
         <h2 id="titre-exercices">Mettre à jour les exercices</h2>
-        <p class="pe-sous-titre">Les exercices de programmation viennent de Labo Blocs. Rien ne change sans votre validation.</p>
+        <p class="pe-sous-titre">À chaque ouverture, la dernière version compatible publiée dans Labo Blocs est chargée automatiquement. Sans connexion, une copie reste disponible.</p>
       </div>
     </div>
     <div class="mj-contenu" aria-live="polite"></div>
@@ -174,8 +174,7 @@
       <h3>Barème de la note <span class="bareme-resume"></span></h3>
       <p class="bareme-explication">Pour chaque exercice : <strong>réussi</strong> = tous ses points, moins des retenues d’autonomie
         (indices ouverts et essais ratés <em>avant</em> la réussite) ; <strong>commencé sans réussir</strong> = une part des points ;
-        <strong>non commencé</strong> = 0. Le défi 13B donne un bonus. Ces réglages ne durent que le temps de la page :
-        pour les garder, modifiez <code>donnees/notation.js</code>.</p>
+        <strong>non commencé</strong> = 0. Le défi 13B donne un bonus. Le barème et les évaluations sont conservés dans ce navigateur. Exportez une sauvegarde pour changer de poste.</p>
       <div class="bareme-reglages">
         <label>Note sur <input type="number" data-b="sur" min="1" max="100" step="1"></label>
         <label>Exercices attendus (les N premiers) <input type="number" data-b="objectif" min="1" max="13" step="1"></label>
@@ -191,30 +190,31 @@
           <select data-b="arrondi"><option value="0.5">au demi-point</option><option value="0.25">au quart de point</option><option value="1">au point</option><option value="0">au centième</option></select>
         </label>
       </div>
-      <p class="bareme-titre-coefs">Coefficients (0 = ne compte pas). Le carnet : le classement et les deux algorigrammes
-        d’entraînement sont notés comme la programmation (−5 % par vérification ratée avant la réussite) ; la problématique et
-        l’algorigramme du distributeur ne sont pas notés, mais leur travail est visible dans l’onglet « Carnet de projet » de chaque équipe.</p>
-      <div class="bareme-coefs"></div>
+      <p class="bareme-titre-coefs">Choisissez les exercices et parties à noter, puis leur coefficient. Le défi 13B se règle par son bonus (0 = non noté).</p>
+      <div class="bareme-coefs"></div><div class="bareme-exemples"></div><p>Les parties manuelles utilisent quatre niveaux : Non atteint (1/4), Partiellement atteint (2/4), Atteint (3/4), Dépassé (4/4). Une partie à évaluer reste hors du total jusqu’au choix du professeur. Les cases cochées par les élèves ne donnent pas de note automatique.</p><p class="evaluations-stockage" role="status"></p><button type="button" class="btn-secondaire btn-export-evaluations">Exporter mes évaluations</button><label class="btn-secondaire">Importer une sauvegarde<input class="import-evaluations" type="file" accept=".json" /></label>
       <button type="button" class="btn-secondaire btn-bareme-fichier">Revenir au barème du fichier</button>
     </section>
   </div>
 </dialog>
 
 <!-- Labo Blocs : moteur (lecture des sauvegardes, parcours) et dessin des blocs -->
-<script src="vendor/labo-blocs/labo-blocs-noyau.js"></script>
-<script src="vendor/labo-blocs/labo-blocs-interface.js"></script>
-<script src="js/moteur/catalogue.js"></script>
-<script src="js/moteur/carnet.js"></script>
-<script src="js/moteur/progression.js"></script>
-<script src="js/moteur/notation.js"></script>
-<script src="js/moteur/classe.js"></script>
-<script src="js/moteur/xlsx.js"></script>
-<script src="parcours/distributeur.js"></script>
-<script src="donnees/notation.js"></script>
-<script src="donnees/carnet.js"></script>
-<script src="js/icones.js"></script>
-<script src="js/prof-dessins.js"></script>
-<script src="js/prof.js"></script>
-<script src="js/mise-a-jour.js"></script>
+<script type="application/x-atelier" data-src="https://anlito.github.io/labo-blocs/module/labo-blocs-noyau.js"></script>
+<script type="application/x-atelier" data-src="https://anlito.github.io/labo-blocs/module/labo-blocs-interface.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/catalogue.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/carnet.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/progression.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/notation.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/classe.js"></script>
+<script type="application/x-atelier" data-src="js/moteur/xlsx.js"></script>
+<script type="application/x-atelier" data-src="https://anlito.github.io/labo-blocs/parcours/distributeur/parcours.js"></script>
+<script type="application/x-atelier" data-src="js/parcours-source.js"></script>
+<script type="application/x-atelier" data-src="donnees/notation.js"></script>
+<script type="application/x-atelier" data-src="donnees/carnet.js"></script>
+<script type="application/x-atelier" data-src="js/icones.js"></script>
+<script type="application/x-atelier" data-src="js/prof-dessins.js"></script>
+<script type="application/x-atelier" data-src="js/notes-prof.js"></script>
+<script type="application/x-atelier" data-src="js/prof.js"></script>
+<script type="application/x-atelier" data-src="js/mise-a-jour.js"></script>
+<script src="js/connexion-labo.js"></script>
 </body>
 </html>
