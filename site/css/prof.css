@@ -309,3 +309,4 @@ body.page-prof { overflow: auto; background: var(--fond); }
 .bareme-exemples table {border-collapse:collapse;width:100%;margin:1rem 0;}
 .bareme-exemples th,.bareme-exemples td {padding:.6rem;text-align:left;border-bottom:1px solid #bbb;}
 [data-note-manuelle] {margin:.5rem;padding:.5rem;max-width:100%;}
+a.prof-carte { text-decoration: none; }
