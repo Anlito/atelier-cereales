@@ -3,7 +3,7 @@
 // professeur (« Mettre à jour les exercices »). Les autres données du projet (lexique, fiches, carnet, classes,
 // barème…) sont des scripts definirXxx({...}) de site/donnees/, lisibles en ouvrant index.html depuis un dossier.
 //
-// Pour le carnet, l'outil du professeur et le tutoriel, un exercice garde son numéro comme identifiant (« 1 » …
+// Pour le carnet et l'outil du professeur, un exercice garde son numéro comme identifiant (« 1 » …
 // « 13B ») ; idParcours est l'identifiant stable du parcours (« dist-01 » …), celui des sauvegardes.
 
 (function (global) {
@@ -83,6 +83,5 @@
       appliquer();
       if (global.document) global.document.addEventListener(L.EVENEMENT_COLLEGE || 'labo-blocs:college', appliquer);
     };
-    global.definirComposantsTuto = (liste) => (Atelier.composantsTuto = liste);
   }
 })(this);

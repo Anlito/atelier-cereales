@@ -380,8 +380,7 @@
     minutes: Math.max(1, Number($('.seuil-minutes').value) || A.SEUILS.minutes),
   });
 
-  const ex13 = exercices.find((e) => e.id === '13A');
-  const avancementCarnet = (d) => A.avancementCarnet(d.carnet, A.carnet, ex13 ? ex13.composants : []);
+  const avancementCarnet = (d) => A.avancementCarnet(d.carnet, A.carnet);
 
   function resume(eq) {
     const r = A.resumerEquipe(eq.donnees, seuils());
@@ -554,7 +553,7 @@
   function carnetHtml(d, note) {
     const K = A.harmoniserClassement(A.completerCarnet(d.carnet), (A.carnet || {}).classement);
     const C = A.carnet || {};
-    const etats = A.etatsCarnet(K, C, ex13 ? ex13.composants : []);
+    const etats = A.etatsCarnet(K, C);
     const mot = { fait: '✓ fait', en_cours: '● en cours', a_faire: '○ à faire' };
     const verifs = (p) => {
       const v = K.verifications[p] || [];
@@ -570,10 +569,6 @@
       return verifs(p) + (commence ? `<details class="voir-reponses"><summary>Voir leurs réponses</summary>${reponsesHtml(K, C, p)}</details>` : '');
     };
     const idees = K.idees.filter((x) => x && x.trim());
-    const couleurs = A.lignesCablage(ex13 ? ex13.composants : [])
-      .filter((l) => !l.couleurImposee)
-      .map((l) => `<span class="couleur-cable">${echapper(l.nom)} (${l.broche}) : <strong>${echapper(K.couleurs[l.broche] || '—')}</strong></span>`)
-      .join('');
     const manuelle = p => !['classement','mouvement','trappe','final'].includes(p) && bareme.carnet[p] > 0
       ? '<label>Niveau de maîtrise <select data-note-manuelle="' + p + '"><option value="">À évaluer</option>' + ['Non atteint','Partiellement atteint','Atteint','Dépassé'].map((n,i) => '<option value="' + (i+1) + '" ' + ((d.evaluationsProf || {})[p] === i+1 ? 'selected' : '') + '>' + n + ' (' + (i+1) + '/4)</option>').join('') + '</select></label>' : '';
     const partie = (p, contenu) =>
@@ -585,7 +580,6 @@
     h += partie('definition', K.definition ? `<p>« ${echapper(K.definition)} »</p>` : '');
     for (const p of C.dessins || []) h += partie(p.id, '<ul>' + p.criteres.map((c,i) => '<li>' + ((K.dessins[p.id] || {})[i] ? '✓ ' : '○ ') + echapper(c) + '</li>').join('') + '</ul><p>Auto-vérification de l’équipe.</p>');
     for (const p of ['classement', 'mouvement', 'trappe', 'final']) h += partie(p, avecReponses(p));
-    h += partie('cablage', couleurs ? `<div class="couleurs-cables">${couleurs}</div>` : '');
     return h + '</section>';
   }
 
@@ -653,16 +647,6 @@
     return h + '</section>';
   }
 
-  // Programmes envoyés dans la carte de la maquette : mode « Dans la carte » (historique de chaque exercice), et
-  // anciennes sauvegardes (programme 13A / 13B précompilé, « envoisCarte »). Triés par date.
-  function envoisReussis(d) {
-    const anciens = (d.envoisCarte || []).filter((x) => x.reussi && x.version !== 'vierge');
-    const nouveaux = [];
-    const ex = (d.programmation && d.programmation.exercices) || {};
-    for (const [id, e] of Object.entries(ex)) for (const h of e.historique || []) if (h.type === 'envoi' && h.reussi) nouveaux.push({ date: h.date, exercice: A.numeroExercice ? A.numeroExercice(id) : id });
-    return anciens.concat(nouveaux).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  }
-
   // Niveaux par compétence (Labo Blocs), ceux du fichier pour le Carnet de classe.
   function competencesHtml(eq) {
     const lb = equipesLaboBlocs([{ eq }])[0];
@@ -676,15 +660,13 @@
     );
   }
 
-  // Onglet « Bilan » : la note et ce qui la compose, l'avancement, la maquette.
+  // Onglet « Bilan » : la note et ce qui la compose, l'avancement.
   function bilanHtml(eq, d, r, note) {
     const parties = note.detail.filter((x) => !x.id.startsWith('carnet:'));
     const carnet = note.detail.filter((x) => x.id.startsWith('carnet:'));
     const somme = (l, cle) => l.reduce((s, x) => s + x[cle], 0);
     const enCours = ORDRE.find((id) => r.cellules[id].statut === 'en_cours');
     const bloques = ORDRE.filter((id) => r.cellules[id].bloque);
-    const envois = envoisReussis(d);
-    const dernierEnvoi = envois[envois.length - 1];
     const ligne = (etiquette, valeur) => `<div class="pe-info"><span>${etiquette}</span><strong>${valeur}</strong></div>`;
     return (
       '<div class="pe-bilan">' +
@@ -699,6 +681,7 @@
       'Le détail des points est dans les onglets « Programmation » et « Carnet de projet ».</p></section>' +
       '<section class="pe-carte"><h3>Avancement</h3><div class="pe-infos">' +
       ligne('Exercices réussis', `${r.avancement}/13`) +
+      ligne('Exercice 13 (distributeur)', d.exercice13 && d.exercice13.versionReussie ? `réussi (version ${echapper(d.exercice13.versionReussie)})` : 'pas encore réussi') +
       ligne('Du premier coup sans indice', `★ ${r.premierCoup}`) +
       ligne('Carnet de projet', `${avancementCarnet(d)}/${A.PARTIES_CARNET.length} parties`) +
       ligne('En cours', enCours ? `exercice ${enCours} · ${echapper(titre(enCours))}` : '—') +
@@ -707,10 +690,6 @@
       '</div>' +
       (bloques.length ? `<p class="pe-bloque">${A.icone('alerte', { epaisseur: 2.4 })}Bloquée sur l’exercice ${bloques.map((id) => `${id} · ${echapper(titre(id))}`).join(', ')}</p>` : '') +
       '</section>' +
-      '<section class="pe-carte"><h3>Maquette</h3><div class="pe-infos">' +
-      ligne('Exercice 13', d.exercice13 && d.exercice13.versionReussie ? `réussi (version ${echapper(d.exercice13.versionReussie)})` : 'pas encore réussi') +
-      ligne('Programme envoyé dans la carte', envois.length ? `${envois.length} fois, dernière le ${echapper(heure(dernierEnvoi.date))}${dernierEnvoi.exercice || dernierEnvoi.version ? ` (exercice ${echapper(dernierEnvoi.exercice || dernierEnvoi.version)})` : ''}` : 'pas encore') +
-      '</div></section>' +
       competencesHtml(eq) +
       `<p class="pe-fichier">Fichier : ${echapper(eq.fichier)}</p>` +
       '</div>'

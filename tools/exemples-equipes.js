@@ -104,7 +104,6 @@ function remplirCarnet(d, niveau) {
     K.algos.final = { ...contenu.algoFinal.cases };
     Cn.noterVerificationCarnet(d, 'final', { reussi: false, bien: 15, total: 18 });
     Cn.noterVerificationCarnet(d, 'final', { reussi: true, bien: 18, total: 18 });
-    for (const l of Cn.lignesCablage(ex13.composants)) if (!l.couleurImposee) K.couleurs[l.broche] = 'rouge';
   }
 }
 [3, 2, 1, 1, 3, 0].forEach((n, i) => {

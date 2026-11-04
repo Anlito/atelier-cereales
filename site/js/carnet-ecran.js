@@ -1,5 +1,5 @@
 // Carnet de projet : la page d'accueil de l'équipe après l'ouverture du projet.
-// Problématique, objet automatisé, algorigrammes, algorigramme du distributeur, programmation, câblage.
+// Problématique, objet automatisé, croquis et dessin technique, algorigrammes, algorigramme du distributeur, programmation.
 // Tout est rangé dans le même fichier que les exercices (session commune).
 (function (global) {
   'use strict';
@@ -15,7 +15,6 @@
     { cle: 'algorigrammes', titre: 'Algorigrammes', icone: 'decisions', parties: ['mouvement', 'trappe'] },
     { cle: 'algo-final', titre: 'Algorigramme du distributeur', icone: 'decisions', parties: ['final'] },
     { cle: 'programmation', titre: 'Programmation', icone: 'lumiere', parties: [] },
-    { cle: 'cablage', titre: 'Câblage', icone: 'bouton', parties: ['cablage'] },
   ];
   // Couleurs des colonnes ; titres et explications du « ? » dans donnees/carnet.js.
   const COULEURS_COLONNES = { capteur: '#1E88E5', carte: '#7B1FA2', actionneur: '#E65100' };
@@ -42,7 +41,6 @@
     const D = session.donnees;
     const C = A.carnet || {};
     const racine = $('.ecran-carnet');
-    const ex13 = A.catalogue.exercices().find((e) => e.id === '13A');
     const exercices = A.catalogue.exercices();
     D.carnet = A.harmoniserClassement(A.completerCarnet(D.carnet), C.classement);
     const K = D.carnet;
@@ -75,7 +73,7 @@
       return e.some((x) => x !== 'a_faire') ? 'en_cours' : 'a_faire';
     }
     function majEntete() {
-      const etats = A.etatsCarnet(K, C, ex13.composants);
+      const etats = A.etatsCarnet(K, C);
       const fait = A.PARTIES_CARNET.filter((p) => etats[p] === 'fait').length;
       $('.carnet-avancement', racine).innerHTML =
         `<span><strong>Carnet</strong> ${fait}/${A.PARTIES_CARNET.length}</span>` +
@@ -105,7 +103,7 @@
       ui.onglet = cle || ui.onglet;
       majEntete();
       const zone = $('.carnet-contenu', racine);
-      zone.innerHTML = { problematique, objet, dessins, algorigrammes, 'algo-final': algoFinal, programmation, cablage }[ui.onglet]();
+      zone.innerHTML = { problematique, objet, dessins, algorigrammes, 'algo-final': algoFinal, programmation }[ui.onglet]();
       if (ui.onglet === 'dessins') for (const p of C.dessins || []) nettoyerPhotos.push(A.photos.monter(zone.querySelector('[data-photos="' + p.id + '"]'), session, p.type));
       if (nouvelOnglet) racine.scrollTop = 0;
     }
@@ -398,8 +396,7 @@
     function programmation() {
       const suivant = A.exerciceAReprendre(D);
       let h = '<section class="carte-carnet"><h2>Programmation</h2>' +
-        '<p class="mode-emploi">Programme le distributeur en blocs, exercice par exercice. Réussis un exercice pour ouvrir le suivant. ' +
-        'Les broches sont celles du câblage (onglet Câblage).</p>' +
+        '<p class="mode-emploi">Programme le distributeur en blocs, exercice par exercice. Réussis un exercice pour ouvrir le suivant.</p>' +
         `<button type="button" class="btn-principal btn-continuer" data-exercice="${suivant}">${A.LECTURE}Continuer : exercice ${suivant}</button>` +
         '<div class="liste-programmation">';
       for (const ex of exercices) {
@@ -413,50 +410,7 @@
           `<span class="liste-numero">${ex.id}</span><span class="liste-titre">${echapper(ex.titre)}</span>` +
           `<span class="liste-statut"><span aria-hidden="true">${symbole}</span> ${mot}${p && p.tentatives ? ` · ${p.tentatives} vérification${p.tentatives > 1 ? 's' : ''}` : ''}</span></button>`;
       }
-      // Maquette : l'élève envoie SON programme de l'exercice 13 (mode « Dans la carte » de l'écran d'exercice).
-      const version = versionMaquette();
-      h += '</div><div class="tester-maquette">' +
-        `<h3>${A.icone('lumiere', { epaisseur: 2.4 })}Tester sur la maquette</h3>` +
-        (!version
-          ? '<p>Quand l’exercice 13 sera ouvert, tu pourras envoyer ton programme du distributeur dans la carte Arduino de ta maquette.</p>' +
-            '<button type="button" class="btn-principal btn-envoi-carte" disabled>Envoyer mon programme dans la carte Arduino</button>'
-          : (D.exercices[version] && D.exercices[version].statut === 'reussi'
-              ? `<p>Ton programme du distributeur est validé${version === '13B' ? ' (défi compris)' : ''} : envoie-le dans la carte Arduino de ta maquette.</p>`
-              : `<p>Ton programme de l’exercice ${version} n’est pas encore validé : tu peux quand même l’essayer sur ta maquette.</p>`) +
-            `<button type="button" class="btn-principal btn-envoi-carte" data-version="${version}">Envoyer mon programme dans la carte Arduino</button> ` +
-            `<button type="button" class="btn-secondaire btn-direct-carte" data-version="${version}" title="Le programme tourne dans l’ordinateur et la maquette obéit tout de suite (câble branché)">Essayer en direct sur la maquette</button>`) +
-        '<p class="demontage">Fin de séance (démontage) : <button type="button" class="btn-secondaire btn-vider-carte">Vider la carte</button> ' +
-        '<a class="lien-tuto" href="tuto.html" target="_blank" rel="noopener">Tutoriel de câblage</a></p>' +
-        '</div>';
-      return h + '</section>';
-    }
-
-    // ---------- 6. Câblage ----------
-
-    function cablage() {
-      const lignes = A.lignesCablage(ex13.composants);
-      // Couleurs en stock pour chaque type de composant (ou une seule liste pour tous).
-      const stock = C.couleursCables || [];
-      let h = '<section class="carte-carnet"><h2>Câblage du distributeur</h2>' +
-        '<a class="encart-tuto" href="tuto.html" target="_blank" rel="noopener">' +
-        `<span class="encart-tuto-icone">${A.icone('livre', { epaisseur: 2.4 })}</span>` +
-        '<span class="encart-tuto-texte"><strong>Tutoriel de câblage</strong>À lire avant de câbler : la carte Arduino, la platine de test, les protocoles, puis le branchement de la LED, du bouton poussoir et du servo-moteur.</span>' +
-        '<span class="encart-tuto-ouvrir">Ouvrir le tutoriel →</span></a>' +
-        '<p class="regle"><strong>Règle :</strong> le câble GND (la masse) est toujours <strong>marron ou noir</strong>. ' +
-        'Pour le câble de signal, choisis une couleur parmi celles en stock. Les broches sont les mêmes que dans les exercices de programmation.</p>' +
-        '<table class="table-cablage"><thead><tr><th>Composant</th><th>Rôle</th><th>Couleur du câble de signal</th><th>Broche</th></tr></thead><tbody>';
-      for (const l of lignes) {
-        const couleurs = (Array.isArray(stock) ? stock : stock[l.type]) || [];
-        const choisie = l.couleurImposee ? C.couleurServo : couleurs.find((c) => c.nom === K.couleurs[l.broche]);
-        const choix = l.couleurImposee
-          ? `<span class="couleur-fixe"><span class="point" style="background:${C.couleurServo.code}"></span>${C.couleurServo.nom} (imposé)</span>`
-          : '<div class="choix-couleurs">' +
-            couleurs.map((c) => `<button type="button" class="point-couleur${K.couleurs[l.broche] === c.nom ? ' choisie' : ''}" data-broche="${l.broche}" data-couleur="${c.nom}" style="background:${c.code}" aria-label="${c.nom}" aria-pressed="${K.couleurs[l.broche] === c.nom}"></button>`).join('') +
-            `<span class="nom-couleur">${choisie ? choisie.nom : 'à choisir'}</span></div>`;
-        h += `<tr><td><strong>${echapper(l.nom)}</strong></td><td><span class="role role-${l.role}">${l.role === 'capteur' ? 'Capteur' : 'Actionneur'}</span></td>` +
-          `<td>${choix}</td><td><span class="broche-cablage">${l.broche}</span></td></tr>`;
-      }
-      return h + '</tbody></table></section>';
+      return h + '</div></section>';
     }
 
     // ---------- Clics et glisser-déposer ----------
@@ -466,15 +420,6 @@
       if (!b || !racine.contains(b)) return;
       if (b.dataset.verifier) return verifier(b.dataset.verifier);
       if (b.dataset.exercice) return A.ouvrirExercice(b.dataset.exercice);
-      if (b.classList.contains('btn-envoi-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'carte' });
-      if (b.classList.contains('btn-direct-carte')) return A.ouvrirExercice(b.dataset.version, { mode: 'direct' });
-      if (b.classList.contains('btn-vider-carte')) return viderLaCarte();
-      if (b.dataset.couleur) {
-        K.couleurs[b.dataset.broche] = K.couleurs[b.dataset.broche] === b.dataset.couleur ? undefined : b.dataset.couleur;
-        if (!K.couleurs[b.dataset.broche]) delete K.couleurs[b.dataset.broche];
-        modifie(false);
-        return montrer();
-      }
       // « ? » d'une colonne : ouvre ou ferme son explication.
       if (b.dataset.aideColonne) {
         ui.aideColonne = ui.aideColonne === b.dataset.aideColonne ? null : b.dataset.aideColonne;
@@ -551,38 +496,13 @@
     carnet.montrer(onglet);
   }
   // Exercices : écran de Labo Blocs, posé à la première ouverture ; « Carnet » ramène à l'onglet Programmation.
-  //   options : { mode: 'carte' | 'direct' } (« Tester sur la maquette » : envoyer son programme dans la carte, ou
-  //   le faire tourner en direct, câble branché)
-  function ouvrirExercice(numero, options) {
+  function ouvrirExercice(numero) {
     if (!A.idExercice(numero) || !A.estDebloque(session.donnees, numero)) return;
     $('.ecran-carnet').hidden = true;
     $('.ecran-programmation').hidden = false;
     if (!A.programmation) A.programmation = A.monterProgrammation(session, { retour: { texte: 'Carnet', action: () => montrerCarnet('programmation') } });
     A.programmation.ouvrir(A.idExercice(numero));
-    A.programmation.choisirModeTest(options && ['carte', 'direct'].includes(options.mode) ? options.mode : 'simulateur');
-  }
-
-  // Exercice 13 à envoyer dans la maquette : 13B s'il est réussi, sinon 13A (s'il est ouvert).
-  function versionMaquette() {
-    const D = session.donnees;
-    if (D.exercices['13B'] && D.exercices['13B'].statut === 'reussi') return '13B';
-    return A.estDebloque(D, '13A') ? '13A' : null;
-  }
-
-  // Fin de séance (démontage) : la carte de la maquette est vidée, son programme effacé.
-  function viderLaCarte() {
-    const D = session.donnees;
-    global.LaboBlocs.ouvrirDialogueCarte({
-      carte: 'uno',
-      titre: 'Vider la carte Arduino',
-      intro: 'Protocole de démontage : on efface le programme de la carte. Elle ne commandera plus rien : tu pourras ensuite débrancher délicatement les câbles et les composants.',
-      seulementVider: true,
-      surVidage(r) {
-        if (session.lecture) return;
-        global.LaboBlocs.noterVidage(D, A.idExercice('13A'), { carte: 'uno', reussi: !!(r && r.ok) });
-        session.aEnregistrer(true, true);
-      },
-    });
+    A.programmation.choisirModeTest('simulateur');
   }
 
   Object.assign(A, { demarrerProjet, montrerCarnet, ouvrirExercice });

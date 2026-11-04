@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const PARTIES = ['idees', 'definition', 'classement', 'croquis', 'dessin-technique', 'mouvement', 'trappe', 'final', 'cablage'];
+  const PARTIES = ['idees', 'definition', 'classement', 'croquis', 'dessin-technique', 'mouvement', 'trappe', 'final'];
   const NOMS_PARTIES = {
     idees: 'Idées de solutions',
     definition: 'Définition d’un objet technique',
@@ -15,17 +15,16 @@
     mouvement: 'Algorigramme 1',
     trappe: 'Algorigramme 2',
     final: 'Algorigramme du distributeur',
-    cablage: 'Câblage',
   };
 
   function vide() {
-    return { dessins: {}, idees: [], definition: '', classement: {}, algos: {}, couleurs: {}, verifications: {} };
+    return { dessins: {}, idees: [], definition: '', classement: {}, algos: {}, verifications: {} };
   }
 
   function completer(c) {
     const v = vide();
     const r = Object.assign(v, c || {});
-    for (const k of ['dessins', 'classement', 'algos', 'couleurs', 'verifications']) r[k] = r[k] || {};
+    for (const k of ['dessins', 'classement', 'algos', 'verifications']) r[k] = r[k] || {};
     r.idees = Array.isArray(r.idees) ? r.idees : [];
     return r;
   }
@@ -93,17 +92,6 @@
     return r;
   }
 
-  // Câblage : chaque composant de l'exercice 13A (le servo a une couleur imposée).
-  function lignesCablage(composants) {
-    return (composants || []).map((c) => ({
-      broche: c.broche,
-      type: c.type,
-      nom: { led: 'LED', bouton: 'Bouton', servo: 'Servo-moteur' }[c.type] + (c.nom ? ' ' + c.nom.replace(/Dose$/, ' dose') : ''),
-      role: c.type === 'bouton' ? 'capteur' : 'actionneur',
-      couleurImposee: c.type === 'servo',
-    }));
-  }
-
   // ---------- Avancement ----------
 
   function dernier(c, partie) {
@@ -113,7 +101,7 @@
   const reussie = (c, partie) => ((c.verifications || {})[partie] || []).some((v) => v.reussi);
 
   // État de chaque partie : 'fait' | 'en_cours' | 'a_faire'
-  function etats(carnet, contenu, composants13) {
+  function etats(carnet, contenu) {
     const c = completer(carnet);
     const e = {};
     const idees = c.idees.filter((x) => x && x.trim()).length;
@@ -123,9 +111,6 @@
       const commence = p === 'classement' ? Object.keys(c.classement).length : Object.keys(c.algos[p] || {}).length;
       e[p] = reussie(c, p) ? 'fait' : commence || dernier(c, p) ? 'en_cours' : 'a_faire';
     }
-    const lignes = lignesCablage(composants13).filter((l) => !l.couleurImposee);
-    const choisies = lignes.filter((l) => c.couleurs[l.broche]).length;
-    e.cablage = lignes.length && choisies === lignes.length ? 'fait' : choisies ? 'en_cours' : 'a_faire';
     for (const p of (contenu.dessins || [])) {
       const cases = c.dessins[p.id] || {};
       const n = p.criteres.filter((_, i) => cases[i] === true).length;
@@ -134,8 +119,8 @@
     return e;
   }
 
-  function avancementCarnet(carnet, contenu, composants13) {
-    const e = etats(carnet, contenu, composants13);
+  function avancementCarnet(carnet, contenu) {
+    const e = etats(carnet, contenu);
     return PARTIES.filter((p) => e[p] === 'fait').length;
   }
 
@@ -163,7 +148,6 @@
     harmoniserClassement,
     corrigerAlgo,
     attenduLineaire,
-    lignesCablage,
     etatsCarnet: etats,
     avancementCarnet,
     noterVerificationCarnet,

@@ -58,29 +58,19 @@ test('algorigramme : ordre libre dans un groupe, textes en double acceptés', ()
   assert.equal(C.corrigerAlgo({ ...attendu, c2: attendu.c4, c4: attendu.c2 }, attendu, []).bien, 3);
 });
 
-test('câblage construit depuis l’exercice 13A : mêmes broches que les programmes', () => {
-  const l = C.lignesCablage(ex13.composants);
-  assert.deepEqual([...l.map((x) => x.broche)].sort(), ['D10', 'D11', 'D3', 'D4', 'D5', 'D6', 'D9']);
-  assert.equal(l.find((x) => x.broche === 'D3').role, 'capteur');
-  assert.equal(l.find((x) => x.broche === 'D9').nom, 'LED Petite dose');
-  assert.equal(l.find((x) => x.broche === 'D6').couleurImposee, true);
-});
-
 test('avancement du carnet et vérifications gardées dans le fichier', () => {
   const d = P.creerProgression({ eleves: ['Léa', 'Hugo'], classe: '5A' });
   assert.equal(C.avancementCarnet(d.carnet, contenu, ex13.composants), 0);
   d.carnet.idees = ['Une trémie avec une trappe', 'Un tapis roulant'];
   d.carnet.definition = 'Un objet fabriqué par l’homme pour répondre à un besoin.';
-  for (const l of C.lignesCablage(ex13.composants)) d.carnet.couleurs[l.broche] = 'rouge';
   C.noterVerificationCarnet(d, 'classement', { reussi: false, bien: 12, total: 14 });
   C.noterVerificationCarnet(d, 'classement', { reussi: true, bien: 14, total: 14 });
   const e = C.etatsCarnet(d.carnet, contenu, ex13.composants);
   assert.equal(e.idees, 'fait');
   assert.equal(e.definition, 'fait');
   assert.equal(e.classement, 'fait');
-  assert.equal(e.cablage, 'fait');
   assert.equal(e.final, 'a_faire');
-  assert.equal(C.avancementCarnet(d.carnet, contenu, ex13.composants), 4);
+  assert.equal(C.avancementCarnet(d.carnet, contenu, ex13.composants), 3);
   assert.equal(d.carnet.verifications.classement.length, 2);
 });
 

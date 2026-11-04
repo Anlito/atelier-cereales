@@ -1,7 +1,5 @@
 // Carnet de projet (ancien « document élève ») : contenus et réponses attendues.
 // Le professeur peut modifier ce fichier (textes, éléments à classer, étapes des algorigrammes).
-// Le tableau de câblage n'est pas ici : il est construit à partir des composants de l'exercice 13A,
-// pour que le câblage et les programmes utilisent toujours les mêmes broches.
 definirCarnet({
   "dessins": [
   {
@@ -107,20 +105,5 @@ definirCarnet({
       "s8R": "Bouton Trappe appuyé ?", "s9R": "LED Trappe allumée", "s10R": "Trappe ouverte", "s11R": "7 secondes écoulées ?"
     },
     "groupes": [["s1", "s2", "s3", "s4"], ["s6L", "s7L"], ["s9L", "s10L"], ["s6R", "s7R"], ["s9R", "s10R"]]
-  },
-
-  // Câblage : couleurs proposées pour le câble de signal, selon le stock de câbles de chaque composant.
-  // (Le câble GND est toujours marron ou noir.)
-  "couleursCables": {
-    "led": [
-      { "nom": "rouge", "code": "#E53935" }, { "nom": "jaune", "code": "#FDD835" },
-      { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" }
-    ],
-    "bouton": [
-      { "nom": "rouge", "code": "#E53935" }, { "nom": "jaune", "code": "#FDD835" },
-      { "nom": "vert", "code": "#2E7D32" }, { "nom": "bleu", "code": "#1E88E5" },
-      { "nom": "blanc", "code": "#F5F5F5" }
-    ]
-  },
-  "couleurServo": { "nom": "orange", "code": "#F07020" }
+  }
 });

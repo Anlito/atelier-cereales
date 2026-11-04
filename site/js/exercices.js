@@ -29,8 +29,7 @@
     const o = options || {};
     const paquet = A.catalogue.paquet();
     const hote = $('.ecran-programmation');
-    let monte = null;
-    monte = LB.monterExercice(hote, {
+    const monte = LB.monterExercice(hote, {
       session,
       paquet,
       projet: PROJET,
@@ -39,11 +38,6 @@
       toutDebloquer: o.toutDebloquer,
       solution: o.solution,
       listeExercices: o.listeExercices,
-      // Exercice 13 réussi : l'élève envoie son programme dans la carte de la maquette (mode « Dans la carte »).
-      actionsReussite: (ex) =>
-        /^13/.test(String(ex.numero)) && !session.lecture
-          ? [{ texte: 'Envoyer dans la carte Arduino', principal: true, action: () => monte.choisirModeTest('carte') }]
-          : [],
     });
     return monte;
   }
